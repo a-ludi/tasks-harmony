@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-not-for-production")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -55,6 +55,8 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://tasks_harmony:tasks_ha
 
 import re
 _match = re.match(r"postgres://(\w+):(\w+)@([\w.]+):(\d+)/(\w+)", DATABASE_URL)
+if _match is None:
+    raise ValueError(f"Invalid DATABASE_URL format: {DATABASE_URL!r}")
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
