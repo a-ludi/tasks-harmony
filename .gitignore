@@ -1,2 +1,5 @@
 .claude/
 .node/
+__pycache__/
+*.pyc
+*.pyo
