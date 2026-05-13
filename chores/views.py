@@ -8,7 +8,8 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from .models import ChoreCompletion, ChoreDefinition, ChoreInstance
+from .answer_validators import AnswerValidationError, validate_answer
+from .models import ChoreCompletion, ChoreDefinition, ChoreInstance, CompletionAnswer, Question, QuestionChoice
 from .recurrence import ChoreStatus, detect_streak_break, get_chore_status
 from xp.formulas import calculate_xp
 
@@ -28,27 +29,34 @@ def _annotate_status(instance: ChoreInstance, now) -> ChoreStatus:
     )
 
 
-@login_required
-def complete(request, pk):
-    if request.method != "POST":
-        return HttpResponseBadRequest()
+def _coerce_answer(question, raw):
+    if raw is None or raw.strip() == "":
+        return None
+    if question.type == "INTEGER":
+        return int(raw)
+    if question.type == "BOOLEAN":
+        return raw.lower() in ("true", "1", "yes", "on")
+    if question.type == "ENUM":
+        return int(raw)
+    return raw  # TEXT
 
-    instance = get_object_or_404(ChoreInstance, pk=pk, owner=request.user, is_active=True)
 
+def _validate_timestamp(request):
+    """Parse and validate completed_at from POST data. Returns (completed_at, now) or raises."""
     raw_ts = request.POST.get("completed_at", "")
     completed_at = parse_datetime(raw_ts)
     if completed_at is None:
-        return HttpResponseBadRequest("Invalid completed_at")
-
+        return None, None
     now = timezone.now()
     max_age = timedelta(hours=django_settings.COMPLETION_TIMESTAMP_MAX_AGE_HOURS)
-    if completed_at > now:
-        return HttpResponseBadRequest("Timestamp is in the future")
-    if now - completed_at > max_age:
-        return HttpResponseBadRequest("Timestamp too old")
+    if completed_at > now or now - completed_at > max_age:
+        return None, None
+    return completed_at, now
 
+
+def _save_completion(request, instance, completed_at, now, answers_by_question=None):
+    """Atomic: update streak, save completion + answers, update profile XP."""
     with transaction.atomic():
-        # Use completed_at (not server now) so streak continuity reflects the user's timeline
         broke = detect_streak_break(instance.definition.recurrence, instance.last_completed_at, completed_at)
         instance.streak_count = 1 if broke else instance.streak_count + 1
         instance.last_completed_at = completed_at
@@ -56,12 +64,44 @@ def complete(request, pk):
         xp_settings = instance.owner.profile.xp_settings
         xp_earned = calculate_xp(instance.definition.base_xp, instance.streak_count, xp_settings)
 
-        ChoreCompletion.objects.create(instance=instance, completed_at=completed_at, xp_earned=xp_earned)
+        completion = ChoreCompletion.objects.create(
+            instance=instance, completed_at=completed_at, xp_earned=xp_earned
+        )
         instance.save()
+
+        if answers_by_question:
+            for q, value in answers_by_question.items():
+                if value is None:
+                    continue
+                kwargs = {"completion": completion, "question": q}
+                if q.type == "TEXT":
+                    kwargs["text_value"] = value
+                elif q.type == "INTEGER":
+                    kwargs["integer_value"] = value
+                elif q.type == "BOOLEAN":
+                    kwargs["boolean_value"] = value
+                elif q.type == "ENUM":
+                    kwargs["enum_value_id"] = value
+                CompletionAnswer.objects.create(**kwargs)
 
         from accounts.models import Profile
         Profile.objects.filter(user=request.user).update(total_xp=models.F("total_xp") + xp_earned)
 
+    return xp_earned
+
+
+@login_required
+def complete(request, pk):
+    if request.method != "POST":
+        return HttpResponseBadRequest()
+
+    instance = get_object_or_404(ChoreInstance, pk=pk, owner=request.user, is_active=True)
+
+    completed_at, now = _validate_timestamp(request)
+    if completed_at is None:
+        return HttpResponseBadRequest("Invalid completed_at")
+
+    _save_completion(request, instance, completed_at, now)
     instance.refresh_from_db()
     status = _annotate_status(instance, now)
     return render(request, "chores/_chore_card.html", {"instance": instance, "status": status})
@@ -69,7 +109,48 @@ def complete(request, pk):
 
 @login_required
 def questions(request, pk):
-    return HttpResponse(status=501)
+    instance = get_object_or_404(ChoreInstance, pk=pk, owner=request.user, is_active=True)
+    qs = list(instance.definition.questions.prefetch_related("choices").all())
+
+    if request.method == "GET":
+        return render(request, "chores/_question_modal.html", {
+            "instance": instance,
+            "questions": qs,
+            "errors": {},
+        })
+
+    # POST — validate answers then complete
+    completed_at, now = _validate_timestamp(request)
+    if completed_at is None:
+        return HttpResponseBadRequest("Invalid completed_at")
+
+    errors = {}
+    typed_answers = {}
+
+    for q in qs:
+        raw = request.POST.get(f"question_{q.pk}")
+        try:
+            value = _coerce_answer(q, raw)
+            valid_ids = set(q.choices.values_list("pk", flat=True)) if q.type == "ENUM" else set()
+            validate_answer(q, value, valid_ids)
+            typed_answers[q] = value
+        except (AnswerValidationError, ValueError) as exc:
+            errors[q.pk] = str(exc)
+
+    if errors:
+        return render(request, "chores/_question_modal.html", {
+            "instance": instance,
+            "questions": qs,
+            "errors": errors,
+            "posted": request.POST,
+        })
+
+    _save_completion(request, instance, completed_at, now, answers_by_question=typed_answers)
+    instance.refresh_from_db()
+    status = _annotate_status(instance, now)
+    card_html = render(request, "chores/_chore_card.html", {"instance": instance, "status": status}).content.decode()
+    close_oob = '<div hx-swap-oob="innerHTML:#question-modal-content"></div>'
+    return HttpResponse(card_html + close_oob)
 
 
 @login_required

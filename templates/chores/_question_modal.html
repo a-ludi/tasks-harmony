@@ -1,0 +1,49 @@
+{% load chore_tags %}
+<div class="modal-header">
+  <h5 class="modal-title">Complete: {{ instance.definition.name }}</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{% url 'chore_questions' instance.pk %}"
+      hx-target="#chore-{{ instance.pk }}"
+      hx-swap="outerHTML"
+      hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('question-modal')).hide()">
+  {% csrf_token %}
+  <input type="hidden" name="completed_at" class="js-now">
+  <div class="modal-body">
+    {% for q in questions %}
+    <div class="mb-3">
+      <label class="form-label">{{ q.text }}{% if q.required %} *{% endif %}</label>
+      {% if q.type == "TEXT" %}
+        <input type="text" name="question_{{ q.pk }}" class="form-control"
+               value="{{ posted|get_item:q.pk|default:'' }}">
+      {% elif q.type == "INTEGER" %}
+        <input type="number" name="question_{{ q.pk }}" class="form-control"
+               {% if q.min_value is not None %}min="{{ q.min_value }}"{% endif %}
+               {% if q.max_value is not None %}max="{{ q.max_value }}"{% endif %}
+               value="{{ posted|get_item:q.pk|default:'' }}">
+      {% elif q.type == "BOOLEAN" %}
+        <select name="question_{{ q.pk }}" class="form-select">
+          <option value="">---</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      {% elif q.type == "ENUM" %}
+        <select name="question_{{ q.pk }}" class="form-select">
+          <option value="">---</option>
+          {% for choice in q.choices.all %}
+          <option value="{{ choice.pk }}">{{ choice.label }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+      {% with error=errors|get_item:q.pk %}
+        {% if error %}<div class="text-danger small">{{ error }}</div>{% endif %}
+      {% endwith %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </div>
+</form>
+<script>document.querySelectorAll('.js-now').forEach(el => el.value = new Date().toISOString());</script>
