@@ -4,11 +4,12 @@ from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.db import models, transaction
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from .answer_validators import AnswerValidationError, validate_answer
+from .forms import ChoreDefinitionForm, QuestionFormSet
 from .models import ChoreCompletion, ChoreDefinition, ChoreInstance, CompletionAnswer, Question, QuestionChoice
 from .recurrence import ChoreStatus, detect_streak_break, get_chore_status
 from xp.formulas import calculate_xp
@@ -154,8 +155,50 @@ def questions(request, pk):
 
 
 @login_required
-def chore_create(request):
-    return HttpResponse(status=501)
+def create_chore(request):
+    if request.method == "POST":
+        form = ChoreDefinitionForm(request.POST)
+        formset = QuestionFormSet(request.POST, prefix="questions")
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                defn = form.save(commit=False)
+                defn.creator = request.user
+                defn.save()
+                formset.instance = defn
+                formset.save()
+                ChoreInstance.objects.create(definition=defn, owner=request.user)
+            return redirect("dashboard")
+    else:
+        form = ChoreDefinitionForm()
+        formset = QuestionFormSet(prefix="questions")
+    return render(request, "chores/chore_form.html", {"form": form, "formset": formset, "action": "Create"})
+
+
+@login_required
+def edit_chore(request, definition_id):
+    defn = get_object_or_404(ChoreDefinition, pk=definition_id, creator=request.user)
+    if request.method == "POST":
+        form = ChoreDefinitionForm(request.POST, instance=defn)
+        formset = QuestionFormSet(request.POST, instance=defn, prefix="questions")
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                form.save()
+                formset.save()
+            return redirect("dashboard")
+    else:
+        form = ChoreDefinitionForm(instance=defn)
+        formset = QuestionFormSet(instance=defn, prefix="questions")
+    return render(request, "chores/chore_form.html", {"form": form, "formset": formset, "action": "Edit"})
+
+
+@login_required
+def deactivate_chore(request, instance_id):
+    if request.method != "POST":
+        return HttpResponseBadRequest()
+    instance = get_object_or_404(ChoreInstance, pk=instance_id, owner=request.user)
+    instance.is_active = False
+    instance.save()
+    return redirect("dashboard")
 
 
 @login_required

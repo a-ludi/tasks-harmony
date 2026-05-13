@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Chore{% endblock %}
+{% block content %}
+<h2>{{ action }} Chore</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+
+  <h4 class="mt-4">Questions</h4>
+  {{ formset.management_form }}
+  <div id="question-formset">
+    {% for qform in formset %}
+    <div class="border rounded p-3 mb-2 question-form">
+      {{ qform.as_p }}
+      {% if qform.instance.pk %}{{ qform.DELETE }}{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn btn-outline-secondary btn-sm mb-3" id="add-question">+ Add Question</button>
+
+  <div>
+    <button class="btn btn-primary" type="submit">{{ action }}</button>
+    <a class="btn btn-link" href="{% url 'dashboard' %}">Cancel</a>
+  </div>
+</form>
+
+<script>
+  let formIdx = {{ formset.total_form_count }};
+  document.getElementById('add-question').addEventListener('click', () => {
+    const container = document.getElementById('question-formset');
+    const tmpl = container.querySelector('.question-form');
+    if (!tmpl) return;
+    const clone = tmpl.cloneNode(true);
+    clone.innerHTML = clone.innerHTML.replace(/__prefix__/g, formIdx).replace(/questions-\d+-/g, `questions-${formIdx}-`);
+    clone.querySelectorAll('input,select,textarea').forEach(el => el.value = '');
+    container.appendChild(clone);
+    document.getElementById('id_questions-TOTAL_FORMS').value = ++formIdx;
+  });
+</script>
+{% endblock %}
