@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1>My Chores</h1>
+  <a class="btn btn-success" href="{% url 'chore_create' %}">+ New Chore</a>
+</div>
+
+{% if not annotated %}
+  <p class="text-muted">No active chores. Add one to get started!</p>
+{% else %}
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3" id="chore-grid">
+    {% for instance, status in annotated %}
+      {% include "chores/_chore_card.html" with instance=instance status=status %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Modal container for question forms -->
+<div class="modal fade" id="question-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" id="question-modal-content"></div>
+  </div>
+</div>
+{% endblock %}

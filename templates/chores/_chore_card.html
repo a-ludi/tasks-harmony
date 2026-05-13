@@ -1,0 +1,36 @@
+{% load chore_tags %}
+<div class="col" id="chore-{{ instance.pk }}">
+  <div class="card h-100 {% if status.value == 'overdue' %}border-danger{% elif status.value == 'due' %}border-warning{% elif status.value == 'completed' %}border-success{% else %}border-secondary{% endif %}">
+    <div class="card-header d-flex justify-content-between">
+      <span>{{ instance.definition.name }}</span>
+      <span class="badge {% if status.value == 'overdue' %}bg-danger{% elif status.value == 'due' %}bg-warning text-dark{% elif status.value == 'completed' %}bg-success{% else %}bg-secondary{% endif %}">
+        {{ status.value|title }}
+      </span>
+    </div>
+    <div class="card-body">
+      <p class="card-text small text-muted">Streak: {{ instance.streak_count }} &nbsp;|&nbsp; XP: {% xp_preview instance %}</p>
+      {% if status.value == 'overdue' or status.value == 'due' %}
+        {% if instance.definition.questions.exists %}
+          <button class="btn btn-primary btn-sm"
+            hx-get="{% url 'chore_questions' instance.pk %}"
+            hx-target="#question-modal-content"
+            hx-on::after-request="new bootstrap.Modal(document.getElementById('question-modal')).show()">
+            Complete
+          </button>
+        {% else %}
+          <form hx-post="{% url 'chore_complete' instance.pk %}"
+                hx-target="#chore-{{ instance.pk }}"
+                hx-swap="outerHTML">
+            {% csrf_token %}
+            <input type="hidden" name="completed_at" class="js-now">
+            <button class="btn btn-primary btn-sm" type="submit">Complete</button>
+          </form>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="card-footer text-muted small">{{ instance.definition.get_xp_size_display }}</div>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.js-now').forEach(el => el.value = new Date().toISOString());
+</script>

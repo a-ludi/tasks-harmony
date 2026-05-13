@@ -10,8 +10,8 @@ class ChoreStatus(Enum):
     UPCOMING = "upcoming"
 
 
-def _parse_rule(rrule_string: str):
-    return rrulestr(rrule_string, ignoretz=False)
+def _parse_rule(rrule_string) -> object:
+    return rrulestr(str(rrule_string), ignoretz=False)
 
 
 def get_chore_status(
