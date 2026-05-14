@@ -1,9 +1,23 @@
 from django import forms
 from django.forms import inlineformset_factory
+from dateutil.rrule import rrulestr
 from .models import ChoreDefinition, Question
 
 
 class ChoreDefinitionForm(forms.ModelForm):
+    recurrence = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 4}),
+        help_text="Enter recurrence in RRULE format, e.g. DTSTART:20260101T000000Z\nRRULE:FREQ=DAILY",
+    )
+
+    def clean_recurrence(self):
+        value = self.cleaned_data["recurrence"]
+        try:
+            rrulestr(value, ignoretz=False)
+        except Exception as exc:
+            raise forms.ValidationError(f"Invalid recurrence rule: {exc}")
+        return value
+
     class Meta:
         model = ChoreDefinition
         fields = ["name", "description", "xp_size", "recurrence"]

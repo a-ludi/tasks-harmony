@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/static/js/service-worker.js');
+      navigator.serviceWorker.register('/service-worker.js');
     }
     window.addEventListener('offline', () => {
       document.querySelectorAll('button[type="submit"], .btn-primary').forEach(btn => {
@@ -47,6 +47,16 @@
         btn.disabled = false;
         delete btn.dataset.offlineDisabled;
       });
+    });
+    // Clean up Bootstrap modal backdrop when modal is reset via HTMX OOB swap
+    document.body.addEventListener('htmx:afterSwap', function() {
+      const modal = document.getElementById('question-modal');
+      if (modal && !modal.classList.contains('show')) {
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+      }
     });
   </script>
 </body>

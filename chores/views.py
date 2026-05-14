@@ -150,7 +150,15 @@ def questions(request, pk):
     instance.refresh_from_db()
     status = _annotate_status(instance, now)
     card_html = render(request, "chores/_chore_card.html", {"instance": instance, "status": status}).content.decode()
-    close_oob = '<div hx-swap-oob="innerHTML:#question-modal-content"></div>'
+    # Replace entire modal element (removes Bootstrap's 'show' class → display:none)
+    close_oob = (
+        '<div id="question-modal" class="modal fade" tabindex="-1" aria-hidden="true"'
+        ' hx-swap-oob="outerHTML">'
+        '<div class="modal-dialog">'
+        '<div class="modal-content" id="question-modal-content"></div>'
+        '</div>'
+        '</div>'
+    )
     return HttpResponse(card_html + close_oob)
 
 

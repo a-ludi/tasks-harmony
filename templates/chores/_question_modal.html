@@ -6,7 +6,7 @@
 <form hx-post="{% url 'chore_questions' instance.pk %}"
       hx-target="#chore-{{ instance.pk }}"
       hx-swap="outerHTML"
-      hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('question-modal')).hide()">
+      hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('question-modal')).hide()">
   {% csrf_token %}
   <input type="hidden" name="completed_at" class="js-now">
   <div class="modal-body">
