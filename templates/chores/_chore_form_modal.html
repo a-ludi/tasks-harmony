@@ -1,0 +1,85 @@
+<div class="modal-header">
+  <h5 class="modal-title">{{ action }} Chore</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{{ form_url }}"
+      hx-target="#chore-form-modal-content"
+      hx-swap="innerHTML">
+  {% csrf_token %}
+  <div class="modal-body">
+    {{ form.as_p }}
+
+    <h5 class="mt-3">Questions</h5>
+    {{ formset.management_form }}
+    <div id="question-formset">
+      {% for qform in formset %}
+      <div class="border rounded p-3 mb-2 question-form">
+        {{ qform.as_p }}
+        {% if qform.instance.pk %}
+          <div class="d-none">{{ qform.DELETE }}</div>
+        {% endif %}
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeQuestion(this)">Remove</button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div id="empty-question-form" class="d-none">
+      <div class="border rounded p-3 mb-2 question-form">
+        {{ formset.empty_form.as_p }}
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeQuestion(this)">Remove</button>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-3" id="add-question">+ Add Question</button>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button class="btn btn-primary" type="submit">{{ action }}</button>
+  </div>
+</form>
+
+<script>
+  let formIdx = {{ formset.total_form_count }};
+
+  function removeQuestion(btn) {
+    const form = btn.closest('.question-form');
+    const deleteCheckbox = form.querySelector('input[type="checkbox"][id$="-DELETE"]');
+    if (deleteCheckbox) {
+      deleteCheckbox.checked = true;
+      form.classList.add('d-none');
+    } else {
+      form.remove();
+    }
+  }
+
+  function updateChoicesVisibility(typeSelect) {
+    const form = typeSelect.closest('.question-form');
+    const choicesRow = Array.from(form.querySelectorAll('p')).find(p => {
+      const label = p.querySelector('label');
+      return label && label.textContent.includes('Choices');
+    });
+    if (choicesRow) {
+      choicesRow.style.display = typeSelect.value === 'ENUM' ? '' : 'none';
+    }
+  }
+
+  document.getElementById('question-formset').addEventListener('change', e => {
+    if (e.target.tagName === 'SELECT' && e.target.id.includes('-type')) {
+      updateChoicesVisibility(e.target);
+    }
+  });
+
+  document.querySelectorAll('#question-formset select[id$="-type"]').forEach(updateChoicesVisibility);
+
+  document.getElementById('add-question').addEventListener('click', () => {
+    const container = document.getElementById('question-formset');
+    const tmpl = document.getElementById('empty-question-form').querySelector('.question-form');
+    const clone = tmpl.cloneNode(true);
+    clone.innerHTML = clone.innerHTML.replace(/__prefix__/g, formIdx);
+    clone.querySelectorAll('input,select,textarea').forEach(el => el.value = '');
+    container.appendChild(clone);
+    document.getElementById('id_questions-TOTAL_FORMS').value = ++formIdx;
+    const newTypeSelect = clone.querySelector('select[id$="-type"]');
+    if (newTypeSelect) updateChoicesVisibility(newTypeSelect);
+  });
+</script>
