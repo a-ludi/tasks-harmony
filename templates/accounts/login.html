@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% load chore_tags %}
 {% block title %}Login{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-4">
-    <h2>Login</h2>
+    <h2 class="mb-3">Login</h2>
     <form method="post">
       {% csrf_token %}
-      {{ form.as_p }}
+      {% for field in form %}{% bs_field field %}{% endfor %}
       <button class="btn btn-primary w-100" type="submit">Login</button>
     </form>
     <p class="mt-2 text-center"><a href="{% url 'register' %}">Create account</a></p>

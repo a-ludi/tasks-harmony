@@ -1,14 +1,32 @@
 {% load chore_tags %}
 <div class="col" id="chore-{{ instance.pk }}">
   <div class="card h-100 {% if status.value == 'overdue' %}border-danger{% elif status.value == 'due' %}border-warning{% elif status.value == 'completed' %}border-success{% else %}border-secondary{% endif %}">
-    <div class="card-header d-flex justify-content-between">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <span>{{ instance.definition.name }}</span>
-      <span class="badge {% if status.value == 'overdue' %}bg-danger{% elif status.value == 'due' %}bg-warning text-dark{% elif status.value == 'completed' %}bg-success{% else %}bg-secondary{% endif %}">
-        {{ status.value|title }}
-      </span>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge {% if status.value == 'overdue' %}bg-danger{% elif status.value == 'due' %}bg-warning text-dark{% elif status.value == 'completed' %}bg-success{% else %}bg-secondary{% endif %}">
+          {{ status.value|title }}
+        </span>
+        <div class="dropdown">
+          <button class="btn btn-link btn-sm p-0 text-secondary" type="button"
+                  data-bs-toggle="dropdown" aria-expanded="false" aria-label="Card options">
+            ⋯
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <button class="dropdown-item"
+                hx-get="{% url 'chore_edit' instance.definition.pk %}"
+                hx-target="#chore-form-modal-content"
+                hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('question-modal'))?.hide(); bootstrap.Modal.getOrCreateInstance(document.getElementById('chore-form-modal')).show()">
+                Edit
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
     <div class="card-body">
-      <p class="card-text small text-muted">Streak: {{ instance.streak_count }} &nbsp;|&nbsp; XP: {% xp_preview instance %}</p>
+      <p class="card-text small text-muted">Streak: {{ instance.streak_count }} &nbsp;|&nbsp; XP: {% xp_preview instance %} &nbsp;|&nbsp; {{ instance.definition.get_xp_size_display }}</p>
       {% if status.value == 'overdue' or status.value == 'due' %}
         {% if instance.definition.questions.exists %}
           <button class="btn btn-primary btn-sm"
@@ -27,15 +45,6 @@
           </form>
         {% endif %}
       {% endif %}
-    </div>
-    <div class="card-footer d-flex justify-content-between align-items-center text-muted small">
-      <span>{{ instance.definition.get_xp_size_display }}</span>
-      <button class="btn btn-outline-secondary btn-sm py-0"
-        hx-get="{% url 'chore_edit' instance.definition.pk %}"
-        hx-target="#chore-form-modal-content"
-        hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('question-modal'))?.hide(); bootstrap.Modal.getOrCreateInstance(document.getElementById('chore-form-modal')).show()">
-        Edit
-      </button>
     </div>
   </div>
 </div>
