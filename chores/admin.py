@@ -9,7 +9,7 @@ class QuestionInline(admin.TabularInline):
 
 @admin.register(ChoreDefinition)
 class ChoreDefinitionAdmin(admin.ModelAdmin):
-    list_display = ["name", "creator", "xp_size", "created_at"]
+    list_display = ["name", "creator", "xp_size"]
     inlines = [QuestionInline]
 
 
