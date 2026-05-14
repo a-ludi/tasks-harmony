@@ -218,7 +218,10 @@ def dashboard(request):
     )
     annotated = []
     for inst in instances:
-        status = _annotate_status(inst, now)
+        try:
+            status = _annotate_status(inst, now)
+        except Exception:
+            continue
         annotated.append((inst, status))
     annotated.sort(key=lambda t: STATUS_ORDER[t[1]])
     return render(request, "chores/dashboard.html", {"annotated": annotated})

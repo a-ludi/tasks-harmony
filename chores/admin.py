@@ -1,4 +1,5 @@
 from django.contrib import admin
+from .forms import ChoreDefinitionForm
 from .models import ChoreDefinition, ChoreInstance, Question, QuestionChoice, ChoreCompletion, CompletionAnswer
 
 
@@ -9,6 +10,7 @@ class QuestionInline(admin.TabularInline):
 
 @admin.register(ChoreDefinition)
 class ChoreDefinitionAdmin(admin.ModelAdmin):
+    form = ChoreDefinitionForm
     list_display = ["name", "creator", "xp_size"]
     inlines = [QuestionInline]
 
