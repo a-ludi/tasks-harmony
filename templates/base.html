@@ -21,7 +21,7 @@
       </a>
       <div class="ms-auto d-flex align-items-center gap-2">
         {% if user.is_authenticated %}
-        <span id="xp-counter" class="navbar-text text-light">XP: {{ user.profile.total_xp }}</span>
+        <span id="xp-counter" class="navbar-text text-light">{{ user.profile.total_xp }} XP</span>
         <div class="d-flex">
           <a class="btn btn-outline-light btn-sm rounded-end-0" href="{% url 'profile' %}" title="Profile">
             <i class="bi bi-person-circle"></i>

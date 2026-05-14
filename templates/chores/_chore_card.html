@@ -26,7 +26,7 @@
       </div>
     </div>
     <div class="card-body">
-      <p class="card-text small text-muted">Streak: {{ instance.streak_count }} &nbsp;|&nbsp; XP: {% xp_preview instance %}</p>
+      <p class="card-text small text-muted">Streak: {{ instance.streak_count }} &nbsp;|&nbsp; {% xp_preview instance %} XP</p>
       {% if status.value == 'overdue' or status.value == 'due' %}
         <div class="d-flex justify-content-end">
           {% if instance.definition.questions.exists %}
