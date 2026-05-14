@@ -28,22 +28,24 @@
     <div class="card-body">
       <p class="card-text small text-muted">Streak: {{ instance.streak_count }} &nbsp;|&nbsp; XP: {% xp_preview instance %}</p>
       {% if status.value == 'overdue' or status.value == 'due' %}
-        {% if instance.definition.questions.exists %}
-          <button class="btn btn-primary btn-sm"
-            hx-get="{% url 'chore_questions' instance.pk %}"
-            hx-target="#question-modal-content"
-            hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('question-modal')).show()">
-            Complete
-          </button>
-        {% else %}
-          <form hx-post="{% url 'chore_complete' instance.pk %}"
-                hx-target="#chore-{{ instance.pk }}"
-                hx-swap="outerHTML">
-            {% csrf_token %}
-            <input type="hidden" name="completed_at" class="js-now">
-            <button class="btn btn-primary btn-sm" type="submit">Complete</button>
-          </form>
-        {% endif %}
+        <div class="d-flex justify-content-end">
+          {% if instance.definition.questions.exists %}
+            <button class="btn btn-primary btn-sm"
+              hx-get="{% url 'chore_questions' instance.pk %}"
+              hx-target="#question-modal-content"
+              hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('question-modal')).show()">
+              Complete
+            </button>
+          {% else %}
+            <form hx-post="{% url 'chore_complete' instance.pk %}"
+                  hx-target="#chore-{{ instance.pk }}"
+                  hx-swap="outerHTML">
+              {% csrf_token %}
+              <input type="hidden" name="completed_at" class="js-now">
+              <button class="btn btn-primary btn-sm" type="submit">Complete</button>
+            </form>
+          {% endif %}
+        </div>
       {% endif %}
     </div>
   </div>
