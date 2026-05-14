@@ -30,12 +30,7 @@
           <span class="text-muted">XP Settings</span>
           <span>
             {% with s=request.user.profile.xp_settings %}
-              {% if s %}
-                {{ s.name }}
-                <small class="text-muted ms-2">max ×{{ s.max_streak_multiplier }}, floor ×{{ s.decay_floor }}</small>
-              {% else %}
-                —
-              {% endif %}
+              {% if s %}{{ s.name }}{% else %}—{% endif %}
             {% endwith %}
           </span>
         </li>
