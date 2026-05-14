@@ -8,14 +8,18 @@
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
-      <a class="navbar-brand" href="/">Tasks Harmony</a>
+      <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+        <img src="/static/icon.svg" width="28" height="28" alt="">
+        Tasks Harmony
+      </a>
       {% if user.is_authenticated %}
-      <span class="navbar-text text-light me-3">XP: {{ user.profile.total_xp }}</span>
+      <span id="xp-counter" class="navbar-text text-light me-3">XP: {{ user.profile.total_xp }}</span>
       <form method="post" action="{% url 'logout' %}" class="d-inline">
         {% csrf_token %}
         <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
