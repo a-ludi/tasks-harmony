@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load chore_tags %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h2 class="mb-4">Profile</h2>
+
+    {% for message in messages %}
+      <div class="alert alert-success alert-dismissible fade show py-2">{{ message }}</div>
+    {% endfor %}
+
+    {# ── Stats ── #}
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">Account Info</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Username</span>
+          <span>{{ request.user.username }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Joined</span>
+          <span>{{ request.user.date_joined|date:"j N Y" }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Total XP</span>
+          <span>{{ request.user.profile.total_xp }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">XP Settings</span>
+          <span>
+            {% with s=request.user.profile.xp_settings %}
+              {% if s %}
+                {{ s.name }}
+                <small class="text-muted ms-2">max ×{{ s.max_streak_multiplier }}, floor ×{{ s.decay_floor }}</small>
+              {% else %}
+                —
+              {% endif %}
+            {% endwith %}
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    {# ── Personal info form ── #}
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">Personal Info</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="info">
+          {% for field in info_form %}{% bs_field field %}{% endfor %}
+          <button class="btn btn-primary" type="submit">Save</button>
+        </form>
+      </div>
+    </div>
+
+    {# ── Password form ── #}
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">Change Password</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="password">
+          {% for field in password_form %}{% bs_field field %}{% endfor %}
+          <button class="btn btn-primary" type="submit">Change Password</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
