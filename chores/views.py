@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from django.conf import settings as django_settings
@@ -7,6 +8,8 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+
+logger = logging.getLogger(__name__)
 
 from .answer_validators import AnswerValidationError, validate_answer
 from .forms import ChoreDefinitionForm, QuestionFormSet
@@ -221,6 +224,7 @@ def dashboard(request):
         try:
             status = _annotate_status(inst, now)
         except Exception:
+            logger.exception("Skipping ChoreInstance pk=%s: failed to compute status", inst.pk)
             continue
         annotated.append((inst, status))
     annotated.sort(key=lambda t: STATUS_ORDER[t[1]])
