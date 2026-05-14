@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import models, transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -108,7 +109,10 @@ def complete(request, pk):
     _save_completion(request, instance, completed_at, now)
     instance.refresh_from_db()
     status = _annotate_status(instance, now)
-    return render(request, "chores/_chore_card.html", {"instance": instance, "status": status})
+    request.user.profile.refresh_from_db()
+    card_html = render(request, "chores/_chore_card.html", {"instance": instance, "status": status}).content.decode()
+    xp_html = render(request, "chores/_xp_counter.html", {"total_xp": request.user.profile.total_xp}).content.decode()
+    return HttpResponse(card_html + xp_html)
 
 
 @login_required
@@ -142,31 +146,51 @@ def questions(request, pk):
             errors[q.pk] = str(exc)
 
     if errors:
-        return render(request, "chores/_question_modal.html", {
-            "instance": instance,
-            "questions": qs,
-            "errors": errors,
-            "posted": request.POST,
-        })
+        # Return the chore card as primary (so HTMX doesn't replace it with modal HTML)
+        # and put the error form into #question-modal-content via OOB so the modal stays open.
+        status = _annotate_status(instance, now)
+        card_html = render(request, "chores/_chore_card.html", {"instance": instance, "status": status}).content.decode()
+        modal_html = render(request, "chores/_question_modal.html", {
+            "instance": instance, "questions": qs, "errors": errors, "posted": request.POST,
+        }).content.decode()
+        oob_modal = f'<div id="question-modal-content" hx-swap-oob="innerHTML">{modal_html}</div>'
+        response = HttpResponse(card_html + oob_modal)
+        response["HX-Validation-Error"] = "true"
+        return response
 
     _save_completion(request, instance, completed_at, now, answers_by_question=typed_answers)
     instance.refresh_from_db()
     status = _annotate_status(instance, now)
+    request.user.profile.refresh_from_db()
     card_html = render(request, "chores/_chore_card.html", {"instance": instance, "status": status}).content.decode()
-    # Replace entire modal element (removes Bootstrap's 'show' class → display:none)
-    close_oob = (
-        '<div id="question-modal" class="modal fade" tabindex="-1" aria-hidden="true"'
-        ' hx-swap-oob="outerHTML">'
-        '<div class="modal-dialog">'
-        '<div class="modal-content" id="question-modal-content"></div>'
-        '</div>'
-        '</div>'
-    )
-    return HttpResponse(card_html + close_oob)
+    xp_html = render(request, "chores/_xp_counter.html", {"total_xp": request.user.profile.total_xp}).content.decode()
+    # No close_oob — Bootstrap's hide() (called from hx-on::after-request in the template)
+    # operates on the live modal instance and properly removes the backdrop.
+    return HttpResponse(card_html + xp_html)
+
+
+def _save_question_choices(formset):
+    """After formset.save(), sync QuestionChoice rows for every saved ENUM question."""
+    deleted_pks = {f.instance.pk for f in formset.deleted_forms if f.instance.pk}
+    for qform in formset.forms:
+        if not qform.cleaned_data or not qform.instance.pk:
+            continue
+        if qform.instance.pk in deleted_pks:
+            continue
+        question = qform.instance
+        if question.type != "ENUM":
+            question.choices.all().delete()
+            continue
+        raw = qform.cleaned_data.get("choice_labels", "")
+        labels = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+        question.choices.all().delete()
+        for i, label in enumerate(labels):
+            QuestionChoice.objects.create(question=question, label=label, order=i)
 
 
 @login_required
 def create_chore(request):
+    is_htmx = bool(request.headers.get("HX-Request"))
     if request.method == "POST":
         form = ChoreDefinitionForm(request.POST)
         formset = QuestionFormSet(request.POST, prefix="questions")
@@ -177,17 +201,29 @@ def create_chore(request):
                 defn.save()
                 formset.instance = defn
                 formset.save()
+                _save_question_choices(formset)
                 ChoreInstance.objects.create(definition=defn, owner=request.user)
+            if is_htmx:
+                response = HttpResponse()
+                response["HX-Redirect"] = "/"
+                return response
             return redirect("dashboard")
+        # invalid POST falls through to shared render below
     else:
         form = ChoreDefinitionForm()
         formset = QuestionFormSet(prefix="questions")
+    if is_htmx:
+        return render(request, "chores/_chore_form_modal.html", {
+            "form": form, "formset": formset, "action": "Create",
+            "form_url": reverse("chore_create"),
+        })
     return render(request, "chores/chore_form.html", {"form": form, "formset": formset, "action": "Create"})
 
 
 @login_required
 def edit_chore(request, definition_id):
     defn = get_object_or_404(ChoreDefinition, pk=definition_id, creator=request.user)
+    is_htmx = bool(request.headers.get("HX-Request"))
     if request.method == "POST":
         form = ChoreDefinitionForm(request.POST, instance=defn)
         formset = QuestionFormSet(request.POST, instance=defn, prefix="questions")
@@ -195,10 +231,21 @@ def edit_chore(request, definition_id):
             with transaction.atomic():
                 form.save()
                 formset.save()
+                _save_question_choices(formset)
+            if is_htmx:
+                response = HttpResponse()
+                response["HX-Redirect"] = "/"
+                return response
             return redirect("dashboard")
+        # invalid POST falls through to shared render below
     else:
         form = ChoreDefinitionForm(instance=defn)
         formset = QuestionFormSet(instance=defn, prefix="questions")
+    if is_htmx:
+        return render(request, "chores/_chore_form_modal.html", {
+            "form": form, "formset": formset, "action": "Edit",
+            "form_url": reverse("chore_edit", args=[definition_id]),
+        })
     return render(request, "chores/chore_form.html", {"form": form, "formset": formset, "action": "Edit"})
 
 
