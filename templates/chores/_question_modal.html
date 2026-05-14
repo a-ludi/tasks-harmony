@@ -3,10 +3,11 @@
   <h5 class="modal-title">Complete: {{ instance.definition.name }}</h5>
   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
-<form hx-post="{% url 'chore_questions' instance.pk %}"
+<form class="d-flex flex-column flex-fill overflow-hidden"
+      hx-post="{% url 'chore_questions' instance.pk %}"
       hx-target="#chore-{{ instance.pk }}"
       hx-swap="outerHTML"
-      hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('question-modal')).hide()">
+      hx-on::after-request="if (!event.detail.xhr.getResponseHeader('HX-Validation-Error')) { bootstrap.Modal.getInstance(document.getElementById('question-modal')).hide(); }">
   {% csrf_token %}
   <input type="hidden" name="completed_at" class="js-now">
   <div class="modal-body">

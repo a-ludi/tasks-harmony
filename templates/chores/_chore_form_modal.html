@@ -3,7 +3,8 @@
   <h5 class="modal-title">{{ action }} Chore</h5>
   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
-<form hx-post="{{ form_url }}"
+<form class="d-flex flex-column flex-fill overflow-hidden"
+      hx-post="{{ form_url }}"
       hx-target="#chore-form-modal-content"
       hx-swap="innerHTML">
   {% csrf_token %}
