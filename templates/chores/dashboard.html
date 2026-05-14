@@ -3,7 +3,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1>My Chores</h1>
-  <a class="btn btn-success" href="{% url 'chore_create' %}">+ New Chore</a>
+  <button class="btn btn-success"
+    hx-get="{% url 'chore_create' %}"
+    hx-target="#chore-form-modal-content"
+    hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('chore-form-modal')).show()">
+    + New Chore
+  </button>
 </div>
 
 {% if not annotated %}
@@ -20,6 +25,13 @@
 <div class="modal fade" id="question-modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content" id="question-modal-content"></div>
+  </div>
+</div>
+
+<!-- Modal container for chore forms -->
+<div class="modal fade" id="chore-form-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" id="chore-form-modal-content"></div>
   </div>
 </div>
 {% endblock %}
