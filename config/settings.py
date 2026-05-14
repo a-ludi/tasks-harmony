@@ -3,9 +3,18 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-not-for-production")
+_SECRET_KEY_DEFAULT = "dev-secret-key-not-for-production"
+SECRET_KEY = os.environ.get("SECRET_KEY", _SECRET_KEY_DEFAULT)
 DEBUG = os.environ.get("DEBUG", "False") == "True"
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
+
+if not DEBUG and SECRET_KEY == _SECRET_KEY_DEFAULT:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be set to a secure random value in production (DEBUG=False)."
+    )
+
+_allowed = os.environ.get("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = _allowed.split(",") if _allowed else (["*"] if DEBUG else [])
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -71,7 +80,21 @@ DATABASES = {
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# HTTPS / cookie security (no-op in development; enforced in production)
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
