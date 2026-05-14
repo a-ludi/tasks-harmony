@@ -7,6 +7,9 @@
     <h2 class="mb-3">Login</h2>
     <form method="post">
       {% csrf_token %}
+      {% for error in form.non_field_errors %}
+        <div class="alert alert-danger py-2">{{ error }}</div>
+      {% endfor %}
       {% for field in form %}{% bs_field field %}{% endfor %}
       <button class="btn btn-primary w-100" type="submit">Login</button>
     </form>
