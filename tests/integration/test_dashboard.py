@@ -42,6 +42,17 @@ def test_dashboard_excludes_inactive_chores(client, django_user_model):
 
 
 @pytest.mark.django_db
+def test_dashboard_only_shows_own_chores(client, django_user_model):
+    owner = django_user_model.objects.create_user(username="greta", password="pw")
+    visitor = django_user_model.objects.create_user(username="hans", password="pw")
+    make_chore(owner, "Owner Chore", "DTSTART:20260101T000000Z\nRRULE:FREQ=DAILY")
+    client.force_login(visitor)
+    response = client.get("/")
+    assert b"Owner Chore" not in response.content
+    assert b"No active chores" in response.content
+
+
+@pytest.mark.django_db
 def test_dashboard_orders_overdue_before_due(client, django_user_model):
     user = django_user_model.objects.create_user(username="frank", password="pw")
     client.force_login(user)
@@ -57,3 +68,14 @@ def test_dashboard_orders_overdue_before_due(client, django_user_model):
     response = client.get("/")
     content = response.content.decode()
     assert content.index("Overdue Chore") < content.index("Due Chore")
+
+
+@pytest.mark.django_db
+def test_dashboard_both_modals_have_scrollable_class(client, django_user_model):
+    """Regression: question and chore-form modals must carry modal-dialog-scrollable
+    so their body content scrolls instead of overflowing the viewport."""
+    user = django_user_model.objects.create_user(username="scroll1", password="pw")
+    client.force_login(user)
+    response = client.get("/")
+    content = response.content.decode()
+    assert content.count("modal-dialog-scrollable") >= 2
