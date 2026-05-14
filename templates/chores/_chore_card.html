@@ -8,9 +8,9 @@
           {{ status.value|title }}
         </span>
         <div class="dropdown">
-          <button class="btn btn-link btn-sm p-0 text-secondary" type="button"
+          <button class="btn btn-light px-2" type="button"
                   data-bs-toggle="dropdown" aria-expanded="false" aria-label="Card options">
-            ⋯
+            ⋮
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
@@ -26,7 +26,7 @@
       </div>
     </div>
     <div class="card-body">
-      <p class="card-text small text-muted">Streak: {{ instance.streak_count }} &nbsp;|&nbsp; XP: {% xp_preview instance %} &nbsp;|&nbsp; {{ instance.definition.get_xp_size_display }}</p>
+      <p class="card-text small text-muted">Streak: {{ instance.streak_count }} &nbsp;|&nbsp; XP: {% xp_preview instance %}</p>
       {% if status.value == 'overdue' or status.value == 'due' %}
         {% if instance.definition.questions.exists %}
           <button class="btn btn-primary btn-sm"
