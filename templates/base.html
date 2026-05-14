@@ -19,18 +19,22 @@
         <img src="/static/icon.svg" width="28" height="28" alt="">
         Tasks Harmony
       </a>
-      {% if user.is_authenticated %}
-      <span id="xp-counter" class="navbar-text text-light me-3">XP: {{ user.profile.total_xp }}</span>
-      <a class="btn btn-outline-light btn-sm me-2" href="{% url 'profile' %}" title="Profile">
-        <i class="bi bi-person-circle"></i>
-      </a>
-      <form method="post" action="{% url 'logout' %}" class="d-inline">
-        {% csrf_token %}
-        <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
-      </form>
-      {% else %}
-      <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Login</a>
-      {% endif %}
+      <div class="ms-auto d-flex align-items-center gap-2">
+        {% if user.is_authenticated %}
+        <span id="xp-counter" class="navbar-text text-light">XP: {{ user.profile.total_xp }}</span>
+        <div class="d-flex">
+          <a class="btn btn-outline-light btn-sm rounded-end-0" href="{% url 'profile' %}" title="Profile">
+            <i class="bi bi-person-circle"></i>
+          </a>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="btn btn-outline-light btn-sm rounded-start-0" style="margin-left:-1px" type="submit">Logout</button>
+          </form>
+        </div>
+        {% else %}
+        <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Login</a>
+        {% endif %}
+      </div>
     </div>
   </nav>
   <div class="container">
