@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: tasks_harmony
       POSTGRES_USER: tasks_harmony
-      POSTGRES_PASSWORD: tasks_harmony
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -12,13 +12,15 @@ services:
     build: .
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
     environment:
-      DATABASE_URL: postgres://tasks_harmony:tasks_harmony@db:5432/tasks_harmony
-      SECRET_KEY: changeme-in-production
+      PYTHONPATH: /app
+      DJANGO_SETTINGS_MODULE: config.settings
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
       DEBUG: "False"
     depends_on:
       - db
     ports:
-      - "8000:8000"
+      - "0.0.0.0:8000:8000"
 
 volumes:
   postgres_data:

@@ -73,12 +73,12 @@ def test_profile_post_password_change_updates_password(client, django_user_model
     response = client.post("/accounts/profile/", {
         "action": "password",
         "old_password": "oldpass99!",
-        "new_password1": "Newpass123!",
-        "new_password2": "Newpass123!",
+        "new_password1": "Newpass1234!!",
+        "new_password2": "Newpass1234!!",
     })
     assert response.status_code == 302
     user.refresh_from_db()
-    assert user.check_password("Newpass123!")
+    assert user.check_password("Newpass1234!!")
 
 
 @pytest.mark.django_db
@@ -88,8 +88,8 @@ def test_profile_post_password_wrong_old_does_not_change(client, django_user_mod
     response = client.post("/accounts/profile/", {
         "action": "password",
         "old_password": "wrongpass",
-        "new_password1": "Newpass123!",
-        "new_password2": "Newpass123!",
+        "new_password1": "Newpass1234!!",
+        "new_password2": "Newpass1234!!",
     })
     assert response.status_code == 200
     user.refresh_from_db()

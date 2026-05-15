@@ -2,17 +2,35 @@ from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
+from django.core.cache import cache
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 
 from .forms import PersonalInfoForm, RegisterForm
 
+_REGISTER_RATE_LIMIT = 10   # max POST attempts
+_REGISTER_WINDOW_SECS = 3600  # per hour
+
 
 class RegisterView(CreateView):
     form_class = RegisterForm
     template_name = "accounts/register.html"
     success_url = reverse_lazy("dashboard")
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == "POST":
+            ip = request.META.get("REMOTE_ADDR", "unknown")
+            key = f"register_attempts_{ip}"
+            attempts = cache.get(key, 0)
+            if attempts >= _REGISTER_RATE_LIMIT:
+                return HttpResponse(
+                    "Too many registration attempts. Please try again later.",
+                    status=429,
+                )
+            cache.set(key, attempts + 1, _REGISTER_WINDOW_SECS)
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         response = super().form_valid(form)
