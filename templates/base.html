@@ -49,7 +49,7 @@
       navigator.serviceWorker.register('/service-worker.js');
     }
     window.addEventListener('offline', () => {
-      document.querySelectorAll('button[type="submit"], .btn-primary').forEach(btn => {
+      document.querySelectorAll('[data-offline-disable]').forEach(btn => {
         btn.disabled = true;
         btn.dataset.offlineDisabled = '1';
       });
@@ -71,5 +71,7 @@
       }
     });
   </script>
+
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>
