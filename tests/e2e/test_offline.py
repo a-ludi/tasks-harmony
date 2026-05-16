@@ -62,3 +62,32 @@ def test_pending_completions_idb_roundtrip(page: Page, live_server, context):
     }""")
     assert result["before"] == [{"choreId": 42, "completedAt": "2026-01-01T00:00:00Z", "csrfToken": "tok"}]
     assert result["after"] == []
+
+
+@pytest.mark.django_db(transaction=True)
+def test_card_shows_syncing_on_mark_pending_event(page: Page, live_server, context):
+    """Dispatching mark-pending on the card div switches it to Syncing... state."""
+    user, pw = create_test_user("e2e_alpine1")
+    from django.utils import timezone
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(creator=user, name="Alpine Chore", xp_size="S", recurrence=rrule)
+    ChoreInstance.objects.create(definition=defn, owner=user)
+
+    login_browser(page, live_server.url, "e2e_alpine1", pw)
+    page.wait_for_load_state("networkidle")
+
+    instance = ChoreInstance.objects.get(owner=user)
+    card_id = f"chore-{instance.pk}"
+
+    # Before event: form visible, Syncing button hidden
+    expect(page.locator(f"#{card_id} form[data-offline-intercept]")).to_be_visible()
+    expect(page.locator(f"#{card_id} button:has-text('Syncing')")).to_be_hidden()
+
+    # Dispatch mark-pending directly on the card div
+    page.evaluate(f"""
+        document.getElementById('{card_id}').dispatchEvent(new CustomEvent('mark-pending'))
+    """)
+
+    # After event: Syncing visible, form hidden
+    expect(page.locator(f"#{card_id} button:has-text('Syncing')")).to_be_visible()
+    expect(page.locator(f"#{card_id} form[data-offline-intercept]")).to_be_hidden()
