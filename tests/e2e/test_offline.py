@@ -44,3 +44,21 @@ def test_complete_button_disabled_when_offline(page: Page, live_server, context)
     complete_btn = page.locator("button:has-text('Complete')")
     expect(complete_btn).to_be_disabled()
     context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_pending_completions_idb_roundtrip(page: Page, live_server, context):
+    """Verify IndexedDB module exposes queueCompletion / getPending / removePending."""
+    user, pw = create_test_user("e2e_idb1")
+    login_browser(page, live_server.url, "e2e_idb1", pw)
+    page.wait_for_load_state("networkidle")
+
+    result = page.evaluate("""async () => {
+        await window.PendingCompletions.queueCompletion(42, '2026-01-01T00:00:00Z', 'tok');
+        const before = await window.PendingCompletions.getPending();
+        await window.PendingCompletions.removePending(42);
+        const after = await window.PendingCompletions.getPending();
+        return { before, after };
+    }""")
+    assert result["before"] == [{"choreId": 42, "completedAt": "2026-01-01T00:00:00Z", "csrfToken": "tok"}]
+    assert result["after"] == []
