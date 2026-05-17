@@ -1,31 +1,46 @@
 // static/js/offline-complete.js
 // Depends on window.PendingCompletions (pending-completions.js loaded first).
 
+let _syncing = false;
+
 async function _syncPending() {
-  const pending = await window.PendingCompletions.getPending();
-  if (!pending.length) return;
+  // Guard against concurrent invocations (online event + SW postMessage + DOMContentLoaded
+  // can all fire close together and each would POST the same IDB entry before removal).
+  if (_syncing) return;
+  _syncing = true;
+  try {
+    const pending = await window.PendingCompletions.getPending();
+    if (!pending.length) return;
 
-  let anySuccess = false;
-  for (const { choreId, completedAt, csrfToken } of pending) {
-    try {
-      const resp = await fetch(`/chores/${choreId}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          completed_at: completedAt,
-          csrfmiddlewaretoken: csrfToken,
-        }),
-      });
-      if (resp.ok) {
-        await window.PendingCompletions.removePending(choreId);
-        anySuccess = true;
+    let anySuccess = false;
+    for (const { choreId, completedAt, csrfToken } of pending) {
+      try {
+        const resp = await fetch(`/chores/${choreId}/complete/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            completed_at: completedAt,
+            csrfmiddlewaretoken: csrfToken,
+          }),
+        });
+        if (resp.ok) {
+          await window.PendingCompletions.removePending(choreId);
+          anySuccess = true;
+        } else if (resp.status === 400) {
+          // Server rejected this completion (e.g. timestamp too old >48h). Discard it
+          // so the card doesn't stay stuck in Syncing... forever.
+          await window.PendingCompletions.removePending(choreId);
+        }
+        // Other non-ok statuses (5xx, network error) leave the entry for the next sync.
+      } catch (_) {
+        // Network still down — leave in IDB.
       }
-    } catch (_) {
-      // Network still down or server error — leave in IDB.
     }
-  }
 
-  if (anySuccess) location.reload();
+    if (anySuccess) location.reload();
+  } finally {
+    _syncing = false;
+  }
 }
 
 // Intercept HTMX form submissions when offline.

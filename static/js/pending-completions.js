@@ -14,7 +14,10 @@ function _openDb() {
         e.target.result.createObjectStore(_STORE, { keyPath: 'choreId' });
       };
       req.onsuccess = e => resolve(e.target.result);
-      req.onerror = e => reject(e.target.error);
+      req.onerror = e => {
+        _dbPromise = null;  // Allow retry on next call (e.g. private-browsing quota)
+        reject(e.target.error);
+      };
     });
   }
   return _dbPromise;
