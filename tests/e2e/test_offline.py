@@ -91,3 +91,89 @@ def test_card_shows_syncing_on_mark_pending_event(page: Page, live_server, conte
     # After event: Syncing visible, form hidden
     expect(page.locator(f"#{card_id} button:has-text('Syncing')")).to_be_visible()
     expect(page.locator(f"#{card_id} form[data-offline-intercept]")).to_be_hidden()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_simple_complete_shows_syncing(page: Page, live_server, context):
+    """Clicking Complete while offline queues to IDB and shows Syncing... state."""
+    user, pw = create_test_user("e2e_sync1")
+    from django.utils import timezone
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(creator=user, name="Sync Chore", xp_size="S", recurrence=rrule)
+    ChoreInstance.objects.create(definition=defn, owner=user)
+
+    login_browser(page, live_server.url, "e2e_sync1", pw)
+    page.wait_for_load_state("networkidle")
+
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+
+    page.locator("button:has-text('Complete')").click()
+
+    instance = ChoreInstance.objects.get(owner=user)
+    card = page.locator(f"#chore-{instance.pk}")
+    expect(card.locator("button:has-text('Syncing')")).to_be_visible()
+    expect(card.locator("form[data-offline-intercept]")).to_be_hidden()
+
+    # IDB has the queued entry
+    pending = page.evaluate("window.PendingCompletions.getPending()")
+    assert len(pending) == 1
+    assert pending[0]["choreId"] == instance.pk
+
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_complete_syncs_on_reconnect(page: Page, live_server, context):
+    """Coming back online syncs IDB entries and reloads the page showing Completed."""
+    user, pw = create_test_user("e2e_sync2")
+    from django.utils import timezone
+    from chores.models import ChoreCompletion
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(creator=user, name="Reconnect Chore", xp_size="S", recurrence=rrule)
+    ChoreInstance.objects.create(definition=defn, owner=user)
+
+    login_browser(page, live_server.url, "e2e_sync2", pw)
+    page.wait_for_load_state("networkidle")
+
+    # Go offline and complete the chore
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    page.locator("button:has-text('Complete')").click()
+
+    instance = ChoreInstance.objects.get(owner=user)
+    expect(page.locator(f"#chore-{instance.pk} button:has-text('Syncing')")).to_be_visible()
+
+    # Come back online — page should reload and show Completed
+    context.set_offline(False)
+    with page.expect_navigation(timeout=8000):
+        page.evaluate("window.dispatchEvent(new Event('online'))")
+    page.wait_for_load_state("domcontentloaded")
+
+    # Server recorded the completion
+    assert ChoreCompletion.objects.filter(instance=instance).exists()
+
+    # Card shows Completed badge
+    expect(page.locator(f"#chore-{instance.pk} .badge:has-text('Completed')")).to_be_visible()
+
+    # IDB is empty
+    pending = page.evaluate("window.PendingCompletions.getPending()")
+    assert pending == []
+
+
+@pytest.mark.django_db(transaction=True)
+def test_idb_roundtrip_now_passes(page: Page, live_server, context):
+    """IDB roundtrip test now works because pending-completions.js is loaded."""
+    user, pw = create_test_user("e2e_idb2")
+    login_browser(page, live_server.url, "e2e_idb2", pw)
+    page.wait_for_load_state("networkidle")
+
+    result = page.evaluate("""async () => {
+        await window.PendingCompletions.queueCompletion(99, '2026-06-01T00:00:00Z', 'tok2');
+        const before = await window.PendingCompletions.getPending();
+        await window.PendingCompletions.removePending(99);
+        const after = await window.PendingCompletions.getPending();
+        return { before, after };
+    }""")
+    assert result["before"] == [{"choreId": 99, "completedAt": "2026-06-01T00:00:00Z", "csrfToken": "tok2"}]
+    assert result["after"] == []
