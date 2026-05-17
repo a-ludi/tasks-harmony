@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tasks-harmony-v1';
+const CACHE_NAME = 'tasks-harmony-v2';
 const APP_SHELL = [
   '/',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
@@ -35,4 +35,16 @@ self.addEventListener('fetch', event => {
       })
       .catch(() => caches.match(event.request))
   );
+});
+
+// Background Sync: ping open page clients to trigger syncPending().
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-completions') {
+    event.waitUntil(
+      self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
+        .then(clients =>
+          Promise.all(clients.map(c => c.postMessage({ type: 'SYNC_COMPLETIONS' })))
+        )
+    );
+  }
 });
