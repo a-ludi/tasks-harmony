@@ -362,3 +362,50 @@ def test_profile_reloads_on_reconnect(page: Page, live_server, context):
         page.evaluate("window.dispatchEvent(new Event('online'))")
     page.wait_for_load_state("networkidle")
     expect(page.locator("#profile-forms button[type=submit]").first).to_be_enabled()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_logout_redirects_to_login_with_flag(page: Page, live_server, context):
+    """Clicking Logout offline navigates to the cached login page and sets the pending flag."""
+    user, pw = create_test_user("e2e_logout1")
+    login_browser(page, live_server.url, "e2e_logout1", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    page.locator("#logout-form button[type=submit]").click()
+    page.wait_for_url(f"{live_server.url}/accounts/login/", timeout=5000)
+
+    assert page.evaluate("localStorage.getItem('offline_logout_pending')") == '1'
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_logout_completes_server_side_on_reconnect(page: Page, live_server, context):
+    """After offline logout, going online auto-submits real logout; flag is cleared and profile is inaccessible."""
+    user, pw = create_test_user("e2e_logout2")
+    login_browser(page, live_server.url, "e2e_logout2", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    page.locator("#logout-form button[type=submit]").click()
+    page.wait_for_url(f"{live_server.url}/accounts/login/", timeout=5000)
+
+    context.set_offline(False)
+    # Wait for auto-logout flag to clear (login page script submits real logout then reloads)
+    page.wait_for_function("() => !localStorage.getItem('offline_logout_pending')", timeout=10000)
+
+    # Server session is now cleared — profile requires login
+    page.goto(f"{live_server.url}/accounts/profile/")
+    assert "/accounts/login/" in page.url

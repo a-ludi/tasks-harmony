@@ -26,7 +26,7 @@
           <a class="btn btn-outline-light btn-sm rounded-end-0" href="{% url 'profile' %}" title="Profile">
             <i class="bi bi-person-circle"></i>
           </a>
-          <form method="post" action="{% url 'logout' %}">
+          <form id="logout-form" method="post" action="{% url 'logout' %}">
             {% csrf_token %}
             <button class="btn btn-outline-light btn-sm rounded-start-0" style="margin-left:-1px" type="submit">Logout</button>
           </form>
@@ -70,6 +70,13 @@
         const wrapper = btn.closest('[data-offline-wrapper]');
         if (wrapper) bootstrap.Tooltip.getInstance(wrapper)?.dispose();
       });
+    });
+    document.getElementById('logout-form')?.addEventListener('submit', function(e) {
+      if (!navigator.onLine) {
+        e.preventDefault();
+        localStorage.setItem('offline_logout_pending', '1');
+        location.href = '{% url "login" %}';
+      }
     });
     // Clean up Bootstrap modal backdrop when modal is reset via HTMX OOB swap
     document.body.addEventListener('htmx:afterSwap', function() {

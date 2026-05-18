@@ -17,3 +17,37 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    if (!localStorage.getItem('offline_logout_pending')) return;
+
+    async function completeLogout() {
+      try {
+        await fetch('{% url "login" %}');
+        var csrf = document.cookie.split(';').map(function(c) { return c.trim(); })
+          .find(function(c) { return c.startsWith('csrftoken='); })
+          ?.split('=')[1];
+        if (csrf) {
+          await fetch('{% url "logout" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ csrfmiddlewaretoken: csrf }),
+            redirect: 'manual',
+          });
+        }
+      } finally {
+        localStorage.removeItem('offline_logout_pending');
+        location.reload();
+      }
+    }
+
+    if (navigator.onLine) {
+      completeLogout();
+    } else {
+      window.addEventListener('online', completeLogout, { once: true });
+    }
+  })();
+</script>
+{% endblock %}
