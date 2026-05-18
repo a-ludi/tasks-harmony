@@ -21,7 +21,7 @@ The risk is limited to dev environments.
 **Trade-off:** Every developer needs to create their own `.env` file from `.env.example`
 after cloning. This is standard practice but adds a setup step.
 
-**Your call:** Implement this? (Recommended: yes)
+**Your call:** Yes
 
 ---
 
@@ -41,7 +41,7 @@ That was a design goal of the PWA.
 **Alternative:** Cache navigation requests keyed by user (e.g., include a user ID in
 the cache key via a custom response header). More complex.
 
-**Your call:** Which approach? Skip HTML caching / user-keyed cache / accept the risk?
+**Your call:** accept the risk for now but keep the finding documented.
 
 ---
 
@@ -57,7 +57,7 @@ scripts require `'unsafe-inline'` or nonce-based CSP (complex with HTMX's `hx-on
 **Trade-off:** Nonce-based CSP with HTMX is non-trivial; `'unsafe-inline'` weakens the
 benefit. The practical gain is limited unless a real XSS vector exists.
 
-**Your call:** Add `'unsafe-inline'` CSP now / implement nonce-based CSP / defer?
+**Your call:** defer but keep documented
 
 ---
 
@@ -72,7 +72,7 @@ Self-DOS only in the current single-user model.
 running in a subprocess). Simpler: reject patterns with known catastrophic constructs,
 or add a max-length and max-complexity check.
 
-**Your call:** Add validation / install `regex` package / leave as-is (low real risk)?
+**Your call:** Add validation with thread-based timeout
 
 ---
 
@@ -90,7 +90,7 @@ NIST SP 800-63B. The `MinimumLengthValidator` accepts an `OPTIONS` dict:
 
 **Trade-off:** Breaks existing short passwords at next change. New registrations only.
 
-**Your call:** Raise minimum to 12?
+**Your call:** Raise minimum to 12. Also integrate protection against known weak passwords.
 
 ---
 
@@ -101,7 +101,7 @@ brute-force target.
 
 **Proposed fix:** Move admin to a non-guessable path (e.g., `/staff-panel/`).
 
-**Your call:** Move it / add rate limiting instead / leave as-is?
+**Your call:** add rate limiting instead
 
 ---
 
@@ -116,7 +116,7 @@ Playwright from production image.
 **Trade-off:** Multi-stage Dockerfile is more complex; may need to adjust file
 permissions.
 
-**Your call:** Harden Dockerfile / leave for later?
+**Your call:** Harden Dockerfile but move to the end of queue because it requires my attention.
 
 ---
 
@@ -132,7 +132,7 @@ link to the new address.
 **Trade-off:** Friction for legitimate users. Risk is currently zero (no password-reset
 by email exists).
 
-**Your call:** Add password confirmation / defer until password reset is needed?
+**Your call:** defer until password reset is needed
 
 ---
 
@@ -143,7 +143,7 @@ force and username enumeration are possible.
 
 **Proposed fix:** Install `django-axes` or `django-ratelimit` and configure thresholds.
 
-**Your call:** Implement rate limiting / defer?
+**Your call:** Implement rate limiting
 
 ---
 
@@ -156,7 +156,7 @@ debug mode and source code bind-mounted.
 **Proposed fix:** Rename to `docker-compose.dev.yml` (requires `-f` flag) or add a
 prominent README note. Remove the bind-mount from override and make it explicit.
 
-**Your call:** Rename override file / add README warning / leave as-is?
+**Your call:** leave as-is and revisit when deployment is integrated
 
 ---
 
