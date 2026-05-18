@@ -37,6 +37,7 @@
       </ul>
     </div>
 
+    <div id="profile-forms">
     {# ── Personal info form ── #}
     <div class="card mb-4">
       <div class="card-header fw-semibold">Personal Info</div>
@@ -62,6 +63,7 @@
         </form>
       </div>
     </div>
+    </div>
 
   </div>
 </div>
@@ -70,7 +72,7 @@
 {% block extra_scripts %}
 <script>
   function _setProfileFormsDisabled(disabled) {
-    document.querySelectorAll('form input, form select, form textarea, form button[type=submit]').forEach(function(el) {
+    document.querySelectorAll('#profile-forms input, #profile-forms select, #profile-forms textarea, #profile-forms button[type=submit]').forEach(function(el) {
       el.disabled = disabled;
     });
   }

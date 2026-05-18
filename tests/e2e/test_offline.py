@@ -325,7 +325,7 @@ def test_profile_inputs_disabled_when_loaded_offline(page: Page, live_server, co
 
     context.set_offline(True)
     page.reload(wait_until="domcontentloaded")
-    expect(page.locator("form button[type=submit]").first).to_be_disabled()
+    expect(page.locator("#profile-forms button[type=submit]").first).to_be_disabled()
     context.set_offline(False)
 
 
@@ -338,7 +338,7 @@ def test_profile_inputs_disabled_on_going_offline(page: Page, live_server, conte
 
     context.set_offline(True)
     page.evaluate("window.dispatchEvent(new Event('offline'))")
-    expect(page.locator("form button[type=submit]").first).to_be_disabled()
+    expect(page.locator("#profile-forms button[type=submit]").first).to_be_disabled()
     context.set_offline(False)
 
 
@@ -361,4 +361,4 @@ def test_profile_reloads_on_reconnect(page: Page, live_server, context):
     with page.expect_navigation(timeout=6000):
         page.evaluate("window.dispatchEvent(new Event('online'))")
     page.wait_for_load_state("networkidle")
-    expect(page.locator("form button[type=submit]").first).to_be_enabled()
+    expect(page.locator("#profile-forms button[type=submit]").first).to_be_enabled()
