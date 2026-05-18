@@ -38,7 +38,7 @@
     </div>
   </nav>
   <div id="offline-banner" class="alert alert-warning rounded-0 py-2 mb-0 text-center" role="alert" style="display:none">
-    <strong>Offline</strong> &mdash; simple completions will sync when reconnected. Chores with questions need a connection.
+    <strong>Offline</strong> &mdash; simple completions will sync when reconnected.
   </div>
   <div class="container">
     {% for message in messages %}
@@ -56,6 +56,10 @@
       document.querySelectorAll('[data-offline-disable]').forEach(btn => {
         btn.disabled = true;
         btn.dataset.offlineDisabled = '1';
+        const wrapper = btn.closest('[data-offline-wrapper]');
+        if (wrapper) {
+          bootstrap.Tooltip.getOrCreateInstance(wrapper, { title: 'Requires a connection' });
+        }
       });
     });
     window.addEventListener('online', () => {
@@ -63,6 +67,8 @@
       document.querySelectorAll('[data-offline-disabled]').forEach(btn => {
         btn.disabled = false;
         delete btn.dataset.offlineDisabled;
+        const wrapper = btn.closest('[data-offline-wrapper]');
+        if (wrapper) bootstrap.Tooltip.getInstance(wrapper)?.dispose();
       });
     });
     // Clean up Bootstrap modal backdrop when modal is reset via HTMX OOB swap

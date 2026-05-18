@@ -1,13 +1,12 @@
 {% load chore_tags %}
 <div class="col" id="chore-{{ instance.pk }}"
-     x-data="{ pending: false }"
+     x-data="{ pending: false, statusBadgeClass: '{% if status.value == 'overdue' %}bg-danger{% elif status.value == 'due' %}bg-warning text-dark{% elif status.value == 'completed' %}bg-success{% else %}bg-secondary{% endif %}' }"
      @mark-pending="pending = true">
   <div class="card h-100 {% if status.value == 'overdue' %}border-danger{% elif status.value == 'due' %}border-warning{% elif status.value == 'completed' %}border-success{% else %}border-secondary{% endif %}">
     <div class="card-header d-flex justify-content-between align-items-center">
       <span>{{ instance.definition.name }}</span>
       <div class="d-flex align-items-center gap-2">
-        <span class="badge {% if status.value == 'overdue' %}bg-danger{% elif status.value == 'due' %}bg-warning text-dark{% elif status.value == 'completed' %}bg-success{% else %}bg-secondary{% endif %}"
-              :class="pending ? 'bg-info text-dark' : ''">
+        <span class="badge" :class="pending ? 'bg-info text-dark' : statusBadgeClass">
           <span x-show="!pending">{{ status.value|title }}</span>
           <span x-show="pending" style="display:none">Pending</span>
         </span>
@@ -18,12 +17,15 @@
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
-              <button class="dropdown-item"
-                hx-get="{% url 'chore_edit' instance.definition.pk %}"
-                hx-target="#chore-form-modal-content"
-                hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('question-modal'))?.hide(); bootstrap.Modal.getOrCreateInstance(document.getElementById('chore-form-modal')).show()">
-                Edit
-              </button>
+              <span style="display:block" data-offline-wrapper tabindex="0">
+                <button class="dropdown-item"
+                        data-offline-disable
+                        hx-get="{% url 'chore_edit' instance.definition.pk %}"
+                        hx-target="#chore-form-modal-content"
+                        hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('question-modal'))?.hide(); bootstrap.Modal.getOrCreateInstance(document.getElementById('chore-form-modal')).show()">
+                  Edit
+                </button>
+              </span>
             </li>
           </ul>
         </div>
@@ -34,16 +36,18 @@
       {% if status.value == 'overdue' or status.value == 'due' %}
         <div class="d-flex justify-content-end">
           {% if instance.definition.questions.exists %}
-            <button class="btn btn-primary btn-sm"
-                    data-offline-disable
-                    hx-get="{% url 'chore_questions' instance.pk %}"
-                    hx-target="#question-modal-content"
-                    hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('question-modal')).show()">
-              Complete
-            </button>
+            <span class="d-inline-block" data-offline-wrapper tabindex="0">
+              <button class="btn btn-primary btn-sm"
+                      data-offline-disable
+                      hx-get="{% url 'chore_questions' instance.pk %}"
+                      hx-target="#question-modal-content"
+                      hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('question-modal')).show()">
+                Complete
+              </button>
+            </span>
           {% else %}
             <button x-show="pending" style="display:none"
-                    class="btn btn-secondary btn-sm" disabled>Syncing&hellip;</button>
+                    class="btn btn-info btn-sm" disabled>Syncing&hellip;</button>
             <form x-show="!pending"
                   hx-post="{% url 'chore_complete' instance.pk %}"
                   hx-target="#chore-{{ instance.pk }}"

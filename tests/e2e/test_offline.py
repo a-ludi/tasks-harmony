@@ -5,6 +5,36 @@ from chores.models import ChoreDefinition, ChoreInstance
 
 
 @pytest.mark.django_db(transaction=True)
+def test_new_chore_and_edit_disabled_when_offline(page: Page, live_server, context):
+    """+ New Chore and Edit dropdown item are disabled when offline."""
+    user, pw = create_test_user("e2e_offl_edit")
+    from django.utils import timezone
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(creator=user, name="Edit Chore", xp_size="S", recurrence=rrule)
+    ChoreInstance.objects.create(definition=defn, owner=user)
+
+    login_browser(page, live_server.url, "e2e_offl_edit", pw)
+    page.wait_for_load_state("networkidle")
+
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+
+    expect(page.locator("button[data-offline-disable]:has-text('+ New Chore')")).to_be_disabled()
+
+    # Edit button disabled (checked via JS since it's inside a hidden dropdown)
+    edit_disabled = page.evaluate("""
+        () => {
+            const btns = Array.from(document.querySelectorAll('[data-offline-disable]'));
+            const edit = btns.find(b => b.textContent.trim() === 'Edit');
+            return edit ? edit.disabled : null;
+        }
+    """)
+    assert edit_disabled is True
+
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
 def test_offline_banner_shown_when_offline(page: Page, live_server, context):
     """An offline banner appears when going offline and disappears when back online."""
     user, pw = create_test_user("e2e_banner1")

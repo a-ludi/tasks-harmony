@@ -3,12 +3,15 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1>My Chores</h1>
-  <button class="btn btn-success"
-    hx-get="{% url 'chore_create' %}"
-    hx-target="#chore-form-modal-content"
-    hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('chore-form-modal')).show()">
-    + New Chore
-  </button>
+  <span class="d-inline-block" data-offline-wrapper tabindex="0">
+    <button class="btn btn-success"
+            data-offline-disable
+            hx-get="{% url 'chore_create' %}"
+            hx-target="#chore-form-modal-content"
+            hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('chore-form-modal')).show()">
+      + New Chore
+    </button>
+  </span>
 </div>
 
 {% if not annotated %}
