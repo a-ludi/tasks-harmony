@@ -296,3 +296,16 @@ def test_login_page_in_app_shell_cache(page: Page, live_server, context):
         "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
         timeout=10000,
     )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_profile_cached_after_dashboard_load(page: Page, live_server, context):
+    """Profile page is cached by the SW background fetch on dashboard load."""
+    user, pw = create_test_user("e2e_prof_warm1")
+    login_browser(page, live_server.url, "e2e_prof_warm1", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
+        timeout=10000,
+    )
