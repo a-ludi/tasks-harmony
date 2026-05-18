@@ -1,6 +1,7 @@
-const CACHE_NAME = 'tasks-harmony-v2';
+const CACHE_NAME = 'tasks-harmony-v3';
 const APP_SHELL = [
   '/',
+  '/accounts/login/',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
   'https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js',

@@ -66,7 +66,7 @@ def test_offline_dashboard_served_from_cache(page: Page, live_server, context):
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     # Confirm the dashboard URL is in the SW cache before going offline
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v2').then(c => c.match('/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -262,7 +262,7 @@ def test_offline_pending_state_restored_after_reload(page: Page, live_server, co
     page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v2').then(c => c.match('/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -283,3 +283,16 @@ def test_offline_pending_state_restored_after_reload(page: Page, live_server, co
     expect(page.locator(f"#chore-{instance.pk} form[data-offline-intercept]")).to_be_hidden()
 
     context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_login_page_in_app_shell_cache(page: Page, live_server, context):
+    """Login page is pre-cached in APP_SHELL so offline logout redirect works."""
+    user, pw = create_test_user("e2e_shell1")
+    login_browser(page, live_server.url, "e2e_shell1", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        timeout=10000,
+    )
