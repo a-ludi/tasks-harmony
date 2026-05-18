@@ -26,21 +26,25 @@
     async function completeLogout() {
       try {
         await fetch('{% url "login" %}');
-        var csrf = document.cookie.split(';').map(function(c) { return c.trim(); })
+        const csrf = document.cookie.split(';').map(function(c) { return c.trim(); })
           .find(function(c) { return c.startsWith('csrftoken='); })
           ?.split('=')[1];
-        if (csrf) {
-          await fetch('{% url "logout" %}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ csrfmiddlewaretoken: csrf }),
-            redirect: 'manual',
-          });
+        if (!csrf) {
+          console.warn('offline logout: csrftoken not available, will retry on next reconnect');
+          return;
         }
-      } finally {
-        localStorage.removeItem('offline_logout_pending');
-        location.reload();
+        await fetch('{% url "logout" %}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ csrfmiddlewaretoken: csrf }),
+          redirect: 'manual',
+        });
+      } catch (err) {
+        console.warn('offline logout: network error, will retry on next reconnect', err);
+        return;
       }
+      localStorage.removeItem('offline_logout_pending');
+      location.reload();
     }
 
     if (navigator.onLine) {
