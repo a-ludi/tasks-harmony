@@ -66,3 +66,18 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function _setProfileFormsDisabled(disabled) {
+    document.querySelectorAll('form input, form select, form textarea, form button[type=submit]').forEach(function(el) {
+      el.disabled = disabled;
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    if (!navigator.onLine) _setProfileFormsDisabled(true);
+  });
+  window.addEventListener('offline', function() { _setProfileFormsDisabled(true); });
+  window.addEventListener('online', function() { setTimeout(function() { location.reload(); }, 100); });
+</script>
+{% endblock %}

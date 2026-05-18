@@ -309,3 +309,56 @@ def test_profile_cached_after_dashboard_load(page: Page, live_server, context):
         "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
         timeout=10000,
     )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_profile_inputs_disabled_when_loaded_offline(page: Page, live_server, context):
+    """Profile form inputs/buttons are disabled when page is loaded while offline."""
+    user, pw = create_test_user("e2e_prof_ro1")
+    login_browser(page, live_server.url, "e2e_prof_ro1", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/accounts/profile/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+    page.reload(wait_until="domcontentloaded")
+    expect(page.locator("form button[type=submit]").first).to_be_disabled()
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_profile_inputs_disabled_on_going_offline(page: Page, live_server, context):
+    """Profile form inputs/buttons are disabled when going offline while on the page."""
+    user, pw = create_test_user("e2e_prof_ro2")
+    login_browser(page, live_server.url, "e2e_prof_ro2", pw)
+    page.goto(f"{live_server.url}/accounts/profile/", wait_until="networkidle")
+
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    expect(page.locator("form button[type=submit]").first).to_be_disabled()
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_profile_reloads_on_reconnect(page: Page, live_server, context):
+    """Going back online on the profile page triggers a reload (refreshes stale CSRF)."""
+    user, pw = create_test_user("e2e_prof_ro3")
+    login_browser(page, live_server.url, "e2e_prof_ro3", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/accounts/profile/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+    page.reload(wait_until="domcontentloaded")
+
+    context.set_offline(False)
+    with page.expect_navigation(timeout=6000):
+        page.evaluate("window.dispatchEvent(new Event('online'))")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("form button[type=submit]").first).to_be_enabled()
