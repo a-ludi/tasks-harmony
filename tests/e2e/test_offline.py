@@ -5,6 +5,24 @@ from chores.models import ChoreDefinition, ChoreInstance
 
 
 @pytest.mark.django_db(transaction=True)
+def test_offline_banner_shown_when_offline(page: Page, live_server, context):
+    """An offline banner appears when going offline and disappears when back online."""
+    user, pw = create_test_user("e2e_banner1")
+    login_browser(page, live_server.url, "e2e_banner1", pw)
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("#offline-banner")).to_be_hidden()
+
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    expect(page.locator("#offline-banner")).to_be_visible()
+
+    context.set_offline(False)
+    page.evaluate("window.dispatchEvent(new Event('online'))")
+    expect(page.locator("#offline-banner")).to_be_hidden()
+
+
+@pytest.mark.django_db(transaction=True)
 def test_offline_dashboard_served_from_cache(page: Page, live_server, context):
     user, pw = create_test_user("e2e_offline1")
     rrule = "DTSTART:20260101T000000Z\nRRULE:FREQ=DAILY"

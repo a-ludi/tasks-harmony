@@ -3,8 +3,8 @@ const APP_SHELL = [
   '/',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
-  'https://unpkg.com/htmx.org@1.9.12',
-  'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js',
+  'https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js',
+  'https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js',
 ];
 
 self.addEventListener('install', event => {

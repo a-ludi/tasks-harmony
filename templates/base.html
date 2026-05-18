@@ -37,6 +37,9 @@
       </div>
     </div>
   </nav>
+  <div id="offline-banner" class="alert alert-warning rounded-0 py-2 mb-0 text-center" role="alert" style="display:none">
+    <strong>Offline</strong> &mdash; simple completions will sync when reconnected. Chores with questions need a connection.
+  </div>
   <div class="container">
     {% for message in messages %}
     <div class="alert alert-{{ message.tags }} alert-dismissible fade show">{{ message }}</div>
@@ -49,12 +52,14 @@
       navigator.serviceWorker.register('/service-worker.js');
     }
     window.addEventListener('offline', () => {
+      document.getElementById('offline-banner').style.display = '';
       document.querySelectorAll('[data-offline-disable]').forEach(btn => {
         btn.disabled = true;
         btn.dataset.offlineDisabled = '1';
       });
     });
     window.addEventListener('online', () => {
+      document.getElementById('offline-banner').style.display = 'none';
       document.querySelectorAll('[data-offline-disabled]').forEach(btn => {
         btn.disabled = false;
         delete btn.dataset.offlineDisabled;
