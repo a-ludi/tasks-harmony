@@ -33,6 +33,8 @@ class ChoreDefinition(models.Model):
     description = models.TextField(blank=True)
     xp_size = models.CharField(max_length=4, choices=XP_SIZE_CHOICES, default="M")
     recurrence = recurrence.fields.RecurrenceField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -48,6 +50,8 @@ class ChoreInstance(models.Model):
     streak_count = models.IntegerField(default=0)
     last_completed_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = [("definition", "owner")]
@@ -71,6 +75,8 @@ class Question(models.Model):
     regex_pattern = models.CharField(max_length=200, blank=True)
     min_value = models.IntegerField(null=True, blank=True)
     max_value = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["order"]
@@ -83,6 +89,8 @@ class QuestionChoice(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="choices")
     label = models.CharField(max_length=200)
     order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["order"]
@@ -95,6 +103,8 @@ class ChoreCompletion(models.Model):
     instance = models.ForeignKey(ChoreInstance, on_delete=models.CASCADE, related_name="completions")
     completed_at = models.DateTimeField()
     xp_earned = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-completed_at"]
@@ -112,6 +122,8 @@ class CompletionAnswer(models.Model):
     enum_value = models.ForeignKey(
         QuestionChoice, on_delete=models.PROTECT, null=True, blank=True, related_name="answers"
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Answer to Q{self.question_id}"

@@ -7,6 +7,8 @@ class XPSettings(models.Model):
     streak_approach_rate = models.FloatField(default=0.1)
     decay_approach_rate = models.FloatField(default=0.05)
     decay_floor = models.FloatField(default=0.5)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "XP Settings"
