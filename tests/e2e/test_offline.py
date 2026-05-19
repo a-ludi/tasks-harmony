@@ -343,6 +343,39 @@ def test_profile_inputs_disabled_on_going_offline(page: Page, live_server, conte
 
 
 @pytest.mark.django_db(transaction=True)
+def test_profile_forms_disabled_on_bfcache_restore_offline(page: Page, live_server, context):
+    """Profile forms are disabled when profile is restored from bfcache while offline.
+
+    profile.html hooks 'offline' and DOMContentLoaded to disable forms, but neither fires
+    on a bfcache restore. A pageshow(persisted=true) listener is required.
+    """
+    user, pw = create_test_user("e2e_prof_bfc1")
+    login_browser(page, live_server.url, "e2e_prof_bfc1", pw)
+    page.goto(f"{live_server.url}/accounts/profile/", wait_until="networkidle")
+
+    # Forms enabled while online
+    expect(page.locator("#profile-forms button[type=submit]").first).to_be_enabled()
+
+    # Go offline — Playwright dispatches offline event; forms are disabled by the offline listener
+    context.set_offline(True)
+    expect(page.locator("#profile-forms button[type=submit]").first).to_be_disabled()
+
+    # Simulate bfcache-frozen state: offline event fired on a different page while profile was
+    # cached. Profile's state at cache-time was "online" (forms enabled).
+    page.evaluate("""
+        document.querySelectorAll('#profile-forms input, #profile-forms select, #profile-forms textarea, #profile-forms button[type=submit]').forEach(function(el) {
+            el.disabled = false;
+        });
+    """)
+    expect(page.locator("#profile-forms button[type=submit]").first).to_be_enabled()
+
+    # Simulate bfcache restore — pageshow listener must re-disable forms
+    page.evaluate("window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted: true, bubbles: false}))")
+    expect(page.locator("#profile-forms button[type=submit]").first).to_be_disabled()
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
 def test_profile_reloads_on_reconnect(page: Page, live_server, context):
     """Going back online on the profile page triggers a reload (refreshes stale CSRF)."""
     user, pw = create_test_user("e2e_prof_ro3")

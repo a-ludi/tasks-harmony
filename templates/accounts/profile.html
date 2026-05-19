@@ -80,6 +80,7 @@
     if (!navigator.onLine) _setProfileFormsDisabled(true);
   });
   window.addEventListener('offline', function() { _setProfileFormsDisabled(true); });
+  window.addEventListener('pageshow', function(e) { if (e.persisted && !navigator.onLine) _setProfileFormsDisabled(true); });
   window.addEventListener('online', function() { setTimeout(function() { location.reload(); }, 100); });
 </script>
 {% endblock %}
