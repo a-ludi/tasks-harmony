@@ -409,3 +409,67 @@ def test_offline_logout_completes_server_side_on_reconnect(page: Page, live_serv
     # Server session is now cleared — profile requires login
     page.goto(f"{live_server.url}/accounts/profile/")
     assert "/accounts/login/" in page.url
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_logout_shows_login_page_not_error(page: Page, live_server, context):
+    """After offline logout, the cached login page is served (not a browser error page)."""
+    user, pw = create_test_user("e2e_logout3")
+    login_browser(page, live_server.url, "e2e_logout3", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    page.locator("#logout-form button[type=submit]").click()
+    page.wait_for_url(f"{live_server.url}/accounts/login/", timeout=5000)
+
+    # Login form must be visible — not a browser error page
+    expect(page.locator("form")).to_be_visible()
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_banner_shown_when_page_loaded_while_offline(page: Page, live_server, context):
+    """Offline banner shows on DOMContentLoaded when page is loaded while already offline."""
+    user, pw = create_test_user("e2e_banner2")
+    login_browser(page, live_server.url, "e2e_banner2", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+    # Reload without dispatching offline event — banner must appear via DOMContentLoaded check
+    page.reload(wait_until="domcontentloaded")
+    expect(page.locator("#offline-banner")).to_be_visible()
+    expect(page.locator("button[data-offline-disable]:has-text('+ New Chore')")).to_be_disabled()
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_logout_pending_banner_shown_on_login_page(page: Page, live_server, context):
+    """When offline_logout_pending is set, login page shows a pending-logout banner."""
+    user, pw = create_test_user("e2e_logout4")
+    login_browser(page, live_server.url, "e2e_logout4", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    page.locator("#logout-form button[type=submit]").click()
+    page.wait_for_url(f"{live_server.url}/accounts/login/", timeout=5000)
+
+    expect(page.locator("#offline-logout-banner")).to_be_visible()
+    expect(page.locator("#retry-logout-btn")).to_be_visible()
+    context.set_offline(False)

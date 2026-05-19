@@ -30,7 +30,7 @@
           .find(function(c) { return c.startsWith('csrftoken='); })
           ?.split('=')[1];
         if (!csrf) {
-          console.warn('offline logout: csrftoken not available, will retry on next reconnect');
+          console.warn('offline logout: csrftoken not available, will retry');
           return;
         }
         await fetch('{% url "logout" %}', {
@@ -40,17 +40,39 @@
           redirect: 'manual',
         });
       } catch (err) {
-        console.warn('offline logout: network error, will retry on next reconnect', err);
+        console.warn('offline logout: network error, will retry', err);
         return;
       }
       localStorage.removeItem('offline_logout_pending');
       location.reload();
     }
 
+    document.addEventListener('DOMContentLoaded', function () {
+      const banner = document.createElement('div');
+      banner.id = 'offline-logout-banner';
+      banner.className = 'alert alert-warning d-flex align-items-center gap-2 mb-3';
+      banner.innerHTML =
+        '<span>Logging out&hellip; Will complete when reconnected.</span>' +
+        '<button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="retry-logout-btn">Retry now</button>';
+      const container = document.querySelector('.container');
+      if (container) container.prepend(banner);
+      document.getElementById('retry-logout-btn').addEventListener('click', completeLogout);
+    });
+
+    const retryInterval = setInterval(function () {
+      if (navigator.onLine) {
+        clearInterval(retryInterval);
+        completeLogout();
+      }
+    }, 5000);
+
     if (navigator.onLine) {
       completeLogout();
     } else {
-      window.addEventListener('online', completeLogout, { once: true });
+      window.addEventListener('online', function () {
+        clearInterval(retryInterval);
+        completeLogout();
+      }, { once: true });
     }
   })();
 </script>

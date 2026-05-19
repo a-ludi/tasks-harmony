@@ -42,6 +42,8 @@
 <script src="/static/js/pending-completions.js"></script>
 <script src="/static/js/offline-complete.js"></script>
 <script>
-  if (navigator.onLine) fetch('/accounts/profile/').catch(() => {});
+  if (navigator.onLine && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(function() { fetch('/accounts/profile/').catch(function() {}); });
+  }
 </script>
 {% endblock %}

@@ -51,7 +51,7 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js');
     }
-    window.addEventListener('offline', () => {
+    function _applyOfflineState() {
       document.getElementById('offline-banner').style.display = '';
       document.querySelectorAll('[data-offline-disable]').forEach(btn => {
         btn.disabled = true;
@@ -61,6 +61,10 @@
           bootstrap.Tooltip.getOrCreateInstance(wrapper, { title: 'Requires a connection' });
         }
       });
+    }
+    window.addEventListener('offline', _applyOfflineState);
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!navigator.onLine) _applyOfflineState();
     });
     window.addEventListener('online', () => {
       document.getElementById('offline-banner').style.display = 'none';
