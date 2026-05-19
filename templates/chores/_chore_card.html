@@ -36,15 +36,13 @@
       {% if status.value == 'overdue' or status.value == 'due' %}
         <div class="d-flex justify-content-end">
           {% if instance.definition.questions.exists %}
-            <span class="d-inline-block" data-offline-wrapper tabindex="0">
-              <button class="btn btn-primary btn-sm"
-                      data-offline-disable
-                      hx-get="{% url 'chore_questions' instance.pk %}"
-                      hx-target="#question-modal-content"
-                      hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('question-modal')).show()">
-                Complete
-              </button>
-            </span>
+            <button class="btn btn-primary btn-sm"
+                    data-questions-url="{% url 'chore_questions' instance.pk %}"
+                    hx-get="{% url 'chore_questions' instance.pk %}"
+                    hx-target="#question-modal-content"
+                    hx-on::after-request="bootstrap.Modal.getOrCreateInstance(document.getElementById('question-modal')).show()">
+              Complete
+            </button>
           {% else %}
             <button x-show="pending" style="display:none"
                     class="btn btn-info btn-sm" disabled>Syncing&hellip;</button>

@@ -89,10 +89,10 @@ def test_offline_dashboard_served_from_cache(page: Page, live_server, context):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_question_complete_button_disabled_when_offline(
+def test_question_complete_button_enabled_when_offline(
     page: Page, live_server, context
 ):
-    """Complete button for chores with questions is still disabled offline."""
+    """Complete button for question chores is NOT disabled offline — it opens a cached modal."""
     user, pw = create_test_user("e2e_offline2")
     from django.utils import timezone
     from chores.models import Question
@@ -108,10 +108,10 @@ def test_question_complete_button_disabled_when_offline(
     page.wait_for_load_state("networkidle")
 
     context.set_offline(True)
-    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    # No data-offline-disable on question Complete button — it should stay enabled
     expect(
-        page.locator("button[data-offline-disable]:has-text('Complete')")
-    ).to_be_disabled()
+        page.locator("button:has-text('Complete')")
+    ).to_be_enabled()
     context.set_offline(False)
 
 

@@ -94,6 +94,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const card = document.getElementById(`chore-${choreId}`);
     if (card) card.dispatchEvent(new CustomEvent('mark-pending'));
   }
+
+  // Pre-warm question modal pages in SW cache so they open when offline.
+  if ('serviceWorker' in navigator && !_isOfflineModeActive()) {
+    document.querySelectorAll('[data-questions-url]').forEach(btn => {
+      fetch(btn.dataset.questionsUrl).catch(() => {});
+    });
+  }
+
   if (!_isOfflineModeActive() && pending.length > 0) {
     await _syncPending();
   }
