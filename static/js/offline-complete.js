@@ -3,6 +3,12 @@
 
 let _syncing = false;
 
+function _isOfflineModeActive() {
+  if (!navigator.onLine) return true;
+  const banner = document.getElementById('offline-banner');
+  return !!banner && banner.style.display !== 'none';
+}
+
 async function _syncPending() {
   // Guard against concurrent invocations (online event + SW postMessage + DOMContentLoaded
   // can all fire close together and each would POST the same IDB entry before removal).
@@ -47,7 +53,7 @@ async function _syncPending() {
 document.addEventListener('htmx:beforeRequest', async (e) => {
   const form = e.detail.elt;
   if (!form.dataset || !('offlineIntercept' in form.dataset)) return;
-  if (navigator.onLine) return;
+  if (!_isOfflineModeActive()) return;
 
   e.preventDefault();
 
@@ -88,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const card = document.getElementById(`chore-${choreId}`);
     if (card) card.dispatchEvent(new CustomEvent('mark-pending'));
   }
-  if (navigator.onLine && pending.length > 0) {
+  if (!_isOfflineModeActive() && pending.length > 0) {
     await _syncPending();
   }
 });

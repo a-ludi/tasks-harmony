@@ -164,6 +164,38 @@ def test_pending_completions_idb_roundtrip(page: Page, live_server, context):
 
 
 @pytest.mark.django_db(transaction=True)
+def test_offline_intercept_uses_banner_state(page: Page, live_server, context):
+    """Offline intercept fires when banner is visible, even if navigator.onLine is True."""
+    from django.utils import timezone
+    user, pw = create_test_user("e2e_banner_intercept1")
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(
+        creator=user, name="BannerChore", xp_size="S", recurrence=rrule
+    )
+    ChoreInstance.objects.create(definition=defn, owner=user)
+    login_browser(page, live_server.url, "e2e_banner_intercept1", pw)
+    page.wait_for_load_state("networkidle")
+
+    # Simulate: navigator.onLine is True but banner is shown (probe detected offline)
+    page.evaluate("document.getElementById('offline-banner').style.display = '';")
+
+    # navigator.onLine is still True; click Complete
+    page.locator("form[data-offline-intercept] button:has-text('Complete')").click()
+
+    # IDB should have the pending entry (intercept fired based on banner)
+    pending_count = page.evaluate(
+        "window.PendingCompletions.getPending().then(p => p.length)"
+    )
+    assert pending_count == 1
+
+    # Cleanup IDB
+    chore_id = page.evaluate(
+        "window.PendingCompletions.getPending().then(p => p[0]?.choreId)"
+    )
+    page.evaluate(f"window.PendingCompletions.removePending({chore_id})")
+
+
+@pytest.mark.django_db(transaction=True)
 def test_pending_completions_idb_stores_answers(page: Page, live_server, context):
     """queueCompletion stores optional answers dict and getPending returns it."""
     user, pw = create_test_user("e2e_idb_ans1")
