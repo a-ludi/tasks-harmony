@@ -77,6 +77,40 @@ document.addEventListener('htmx:beforeRequest', async (e) => {
   if (card) card.dispatchEvent(new CustomEvent('mark-pending'));
 });
 
+// Intercept question form submissions when offline.
+document.addEventListener('htmx:beforeRequest', async (e) => {
+  const form = e.detail.elt;
+  if (!form.dataset || !('offlineInterceptAnswers' in form.dataset)) return;
+  if (!_isOfflineModeActive()) return;
+
+  e.preventDefault();
+
+  const choreId = parseInt(form.dataset.choreId, 10);
+  const formData = new FormData(form);
+  const completedAt = formData.get('completed_at') || new Date().toISOString();
+  const csrfToken = formData.get('csrfmiddlewaretoken');
+
+  const answers = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('question_')) answers[key] = value;
+  }
+
+  await window.PendingCompletions.queueCompletion(choreId, completedAt, csrfToken, answers);
+
+  // Register Background Sync.
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.sync.register('sync-completions');
+    } catch (_) {}
+  }
+
+  // Close the modal and mark card pending.
+  bootstrap.Modal.getInstance(document.getElementById('question-modal'))?.hide();
+  const card = document.getElementById(`chore-${choreId}`);
+  if (card) card.dispatchEvent(new CustomEvent('mark-pending'));
+});
+
 // Sync when the page comes back online.
 window.addEventListener('online', _syncPending);
 

@@ -4,6 +4,8 @@
   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 <form class="d-flex flex-column flex-fill overflow-hidden"
+      data-offline-intercept-answers
+      data-chore-id="{{ instance.pk }}"
       hx-post="{% url 'chore_questions' instance.pk %}"
       hx-target="#chore-{{ instance.pk }}"
       hx-swap="outerHTML"

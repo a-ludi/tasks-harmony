@@ -780,3 +780,56 @@ def test_offline_logout_auto_completes_after_reconnect_retry(
     # Session cleared — profile requires login
     page.goto(f"{live_server.url}/accounts/profile/")
     assert "/accounts/login/" in page.url
+
+
+@pytest.mark.django_db(transaction=True)
+def test_question_completion_offline_submit(page: Page, live_server, context):
+    """Submitting question form offline stores answers in IDB and marks card Pending."""
+    from django.utils import timezone
+    from chores.models import Question
+
+    user, pw = create_test_user("e2e_qoffline1")
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(
+        creator=user, name="QOfflineChore", xp_size="S", recurrence=rrule
+    )
+    q = Question.objects.create(definition=defn, text="How did it go?", type="TEXT", order=1)
+    instance = ChoreInstance.objects.create(definition=defn, owner=user)
+
+    login_browser(page, live_server.url, "e2e_qoffline1", pw)
+    # Warm SW cache: visit dashboard (caches page + pre-warms question modal)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    # Wait for question modal to be pre-warmed in SW cache
+    page.wait_for_function(
+        f"() => caches.open('tasks-harmony-v5').then(c => c.match('/chores/{instance.pk}/questions/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+
+    # Open question modal (served from SW cache)
+    page.locator("button:has-text('Complete')").click()
+    expect(page.locator("#question-modal")).to_be_visible(timeout=5000)
+
+    # Fill in text answer
+    page.locator(f"[name='question_{q.pk}']").fill("Went great!")
+
+    # Submit form — should be intercepted offline
+    page.locator("#question-modal .btn-primary[type=submit]").click()
+
+    # Modal should close and card should show Pending badge
+    expect(page.locator("#question-modal")).to_be_hidden(timeout=5000)
+    expect(page.locator(f"#chore-{instance.pk} .badge")).to_have_text("Pending", timeout=5000)
+
+    # IDB should have the pending entry with answers
+    pending = page.evaluate("""
+        window.PendingCompletions.getPending().then(p => p.map(e => ({
+            choreId: e.choreId, hasAnswers: !!e.answers
+        })))
+    """)
+    assert len(pending) == 1
+    assert pending[0]["choreId"] == instance.pk
+    assert pending[0]["hasAnswers"] is True
+
+    context.set_offline(False)

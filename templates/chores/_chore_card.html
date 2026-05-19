@@ -7,8 +7,8 @@
       <span>{{ instance.definition.name }}</span>
       <div class="d-flex align-items-center gap-2">
         <span class="badge" :class="pending ? 'bg-info text-dark' : statusBadgeClass">
-          <span x-show="!pending">{{ status.value|title }}</span>
-          <span x-show="pending" style="display:none">Pending</span>
+          <template x-if="!pending"><span>{{ status.value|title }}</span></template>
+          <template x-if="pending"><span>Pending</span></template>
         </span>
         <div class="dropdown">
           <button class="btn btn-light px-2" type="button"
