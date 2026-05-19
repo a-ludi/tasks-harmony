@@ -839,7 +839,7 @@ def test_question_completion_offline_submit(page: Page, live_server, context):
 def test_question_completion_syncs_after_reconnect(page: Page, live_server, context):
     """Pending question completion POSTs to /questions/ on reconnect and completes the chore."""
     from django.utils import timezone
-    from chores.models import Question, ChoreCompletion
+    from chores.models import Question
 
     user, pw = create_test_user("e2e_qsync1")
     rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
