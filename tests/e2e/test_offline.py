@@ -476,13 +476,61 @@ def test_offline_logout_pending_banner_shown_on_login_page(page: Page, live_serv
 
 
 @pytest.mark.django_db(transaction=True)
-def test_offline_state_shown_after_back_navigation(page: Page, live_server, context):
-    """Offline banner + disabled buttons appear after back-navigating to a cached page while offline."""
-    user, pw = create_test_user("e2e_nav1")
-    login_browser(page, live_server.url, "e2e_nav1", pw)
+def test_offline_state_shown_on_simulated_bfcache_restore(page: Page, live_server, context):
+    """pageshow(persisted=true) while offline triggers _applyOfflineState — covers real bfcache restores.
+
+    In a real bfcache restore, the page was loaded online (no offline UI applied). While it sat
+    in bfcache, the connection dropped and the 'offline' event fired on the *current* page, not
+    the cached one. When the user navigates back, the cached page is restored: DOMContentLoaded
+    does NOT re-fire. Only 'pageshow' with persisted=true fires.
+
+    Playwright headless never activates bfcache, so page.go_back() always does a full reload.
+    We simulate the bfcache restore directly: go offline (Playwright dispatches the offline event,
+    showing the banner), then manually clear the offline UI as a bfcache-frozen page would have it,
+    then dispatch pageshow(persisted=true) and assert the banner re-appears via the listener.
+    """
+    user, pw = create_test_user("e2e_bfcache1")
+    login_browser(page, live_server.url, "e2e_bfcache1", pw)
+    page.wait_for_load_state("networkidle")
+
+    # Page loaded online; banner hidden
+    expect(page.locator("#offline-banner")).to_be_hidden()
+
+    # Go offline — Playwright dispatches the 'offline' event, banner shows on this page
+    context.set_offline(True)
+    expect(page.locator("#offline-banner")).to_be_visible()
+
+    # Simulate bfcache-frozen state: the offline event fired on a different page while this one
+    # was cached in bfcache. Reset offline UI to match a page that never saw the offline event.
+    page.evaluate("""
+        document.getElementById('offline-banner').style.display = 'none';
+        document.querySelectorAll('[data-offline-disabled]').forEach(btn => {
+            btn.disabled = false;
+            delete btn.dataset.offlineDisabled;
+        });
+    """)
+    expect(page.locator("#offline-banner")).to_be_hidden()
+    expect(page.locator("button[data-offline-disable]:has-text('+ New Chore')")).to_be_enabled()
+
+    # Simulate bfcache restore — the ONLY hook that fires in real Chrome for this case
+    page.evaluate(
+        "window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted: true, bubbles: false}))"
+    )
+
+    # The pageshow listener must call _applyOfflineState() when e.persisted && !navigator.onLine
+    expect(page.locator("#offline-banner")).to_be_visible()
+    expect(page.locator("button[data-offline-disable]:has-text('+ New Chore')")).to_be_disabled()
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_banner_shown_when_navigating_to_cached_page(page: Page, live_server, context):
+    """DOMContentLoaded check shows offline banner when navigating to a different cached page while offline."""
+    user, pw = create_test_user("e2e_nav_offline1")
+    login_browser(page, live_server.url, "e2e_nav_offline1", pw)
     page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
 
-    # Warm dashboard and profile in SW cache while online
+    # Warm both pages in SW cache
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
         "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
@@ -494,17 +542,13 @@ def test_offline_state_shown_after_back_navigation(page: Page, live_server, cont
         timeout=10000,
     )
 
-    # Go back to dashboard while still online (puts dashboard into bfcache in online state)
-    page.go_back(wait_until="networkidle")
-
-    # Now go offline — dashboard is already loaded with online state in bfcache
+    # Go offline — no JS 'offline' event dispatched; banner relies on DOMContentLoaded
     context.set_offline(True)
 
-    # Navigate forward to profile then back to dashboard (bfcache restore)
-    page.goto(f"{live_server.url}/accounts/profile/", wait_until="domcontentloaded")
-    page.go_back(wait_until="domcontentloaded")
+    # Navigate to the dashboard (different page, served from SW cache)
+    page.goto(f"{live_server.url}/", wait_until="domcontentloaded")
 
-    # pageshow event should have triggered _applyOfflineState via persisted=true path
+    # Banner must appear via DOMContentLoaded check (!navigator.onLine)
     expect(page.locator("#offline-banner")).to_be_visible()
     expect(page.locator("button[data-offline-disable]:has-text('+ New Chore')")).to_be_disabled()
     context.set_offline(False)
