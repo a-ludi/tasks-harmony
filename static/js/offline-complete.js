@@ -49,6 +49,20 @@ async function _syncPending() {
   }
 }
 
+async function _queueAndMarkPending(choreId, completedAt, csrfToken, answers) {
+  await window.PendingCompletions.queueCompletion(choreId, completedAt, csrfToken, answers);
+
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.sync.register('sync-completions');
+    } catch (_) {}
+  }
+
+  const card = document.getElementById(`chore-${choreId}`);
+  if (card) card.dispatchEvent(new CustomEvent('mark-pending'));
+}
+
 // Intercept HTMX form submissions when offline.
 document.addEventListener('htmx:beforeRequest', async (e) => {
   const form = e.detail.elt;
@@ -60,21 +74,7 @@ document.addEventListener('htmx:beforeRequest', async (e) => {
   const choreId = parseInt(form.dataset.choreId, 10);
   const tsInput = form.querySelector('[name=completed_at]');
   if (!tsInput.value) tsInput.value = new Date().toISOString();
-  const completedAt = tsInput.value;
-  const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
-
-  await window.PendingCompletions.queueCompletion(choreId, completedAt, csrfToken);
-
-  // Register Background Sync so the SW can trigger sync when connection returns.
-  if ('serviceWorker' in navigator && 'SyncManager' in window) {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.sync.register('sync-completions');
-    } catch (_) {}
-  }
-
-  const card = document.getElementById(`chore-${choreId}`);
-  if (card) card.dispatchEvent(new CustomEvent('mark-pending'));
+  await _queueAndMarkPending(choreId, tsInput.value, form.querySelector('[name=csrfmiddlewaretoken]').value, null);
 });
 
 // Intercept question form submissions when offline.
@@ -89,26 +89,15 @@ document.addEventListener('htmx:beforeRequest', async (e) => {
   const formData = new FormData(form);
   const completedAt = formData.get('completed_at') || new Date().toISOString();
   const csrfToken = formData.get('csrfmiddlewaretoken');
-
   const answers = {};
   for (const [key, value] of formData.entries()) {
     if (key.startsWith('question_')) answers[key] = value;
   }
 
-  await window.PendingCompletions.queueCompletion(choreId, completedAt, csrfToken, answers);
-
-  // Register Background Sync.
-  if ('serviceWorker' in navigator && 'SyncManager' in window) {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.sync.register('sync-completions');
-    } catch (_) {}
+  if (typeof bootstrap !== 'undefined') {
+    bootstrap.Modal.getInstance(document.getElementById('question-modal'))?.hide();
   }
-
-  // Close the modal and mark card pending.
-  bootstrap.Modal.getInstance(document.getElementById('question-modal'))?.hide();
-  const card = document.getElementById(`chore-${choreId}`);
-  if (card) card.dispatchEvent(new CustomEvent('mark-pending'));
+  await _queueAndMarkPending(choreId, completedAt, csrfToken, answers);
 });
 
 // Sync when the page comes back online.

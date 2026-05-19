@@ -825,11 +825,11 @@ def test_question_completion_offline_submit(page: Page, live_server, context):
     # IDB should have the pending entry with answers
     pending = page.evaluate("""
         window.PendingCompletions.getPending().then(p => p.map(e => ({
-            choreId: e.choreId, hasAnswers: !!e.answers
+            choreId: e.choreId, answers: e.answers || null
         })))
     """)
     assert len(pending) == 1
     assert pending[0]["choreId"] == instance.pk
-    assert pending[0]["hasAnswers"] is True
+    assert pending[0]["answers"] == {f"question_{q.pk}": "Went great!"}
 
     context.set_offline(False)
