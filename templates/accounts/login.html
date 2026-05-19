@@ -23,7 +23,10 @@
   (function () {
     if (!localStorage.getItem('offline_logout_pending')) return;
 
+    let _inFlight = false;
     async function completeLogout() {
+      if (_inFlight) return;
+      _inFlight = true;
       try {
         await fetch('{% url "login" %}');
         const csrf = document.cookie.split(';').map(function(c) { return c.trim(); })
@@ -42,6 +45,8 @@
       } catch (err) {
         console.warn('offline logout: network error, will retry', err);
         return;
+      } finally {
+        _inFlight = false;
       }
       localStorage.removeItem('offline_logout_pending');
       location.reload();
@@ -59,9 +64,9 @@
       document.getElementById('retry-logout-btn').addEventListener('click', completeLogout);
     });
 
-    const retryInterval = setInterval(function () {
-      if (navigator.onLine) {
-        clearInterval(retryInterval);
+    // Poll every 5 s; only call if flag still set (completeLogout removes it on success)
+    setInterval(function () {
+      if (navigator.onLine && localStorage.getItem('offline_logout_pending')) {
         completeLogout();
       }
     }, 5000);
@@ -69,10 +74,8 @@
     if (navigator.onLine) {
       completeLogout();
     } else {
-      window.addEventListener('online', function () {
-        clearInterval(retryInterval);
-        completeLogout();
-      }, { once: true });
+      // Re-try on every reconnect until the flag is cleared
+      window.addEventListener('online', completeLogout);
     }
   })();
 </script>

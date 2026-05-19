@@ -66,6 +66,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       if (!navigator.onLine) _applyOfflineState();
     });
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted && !navigator.onLine) _applyOfflineState();
+    });
     window.addEventListener('online', () => {
       document.getElementById('offline-banner').style.display = 'none';
       document.querySelectorAll('[data-offline-disabled]').forEach(btn => {

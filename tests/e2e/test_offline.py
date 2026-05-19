@@ -473,3 +473,66 @@ def test_offline_logout_pending_banner_shown_on_login_page(page: Page, live_serv
     expect(page.locator("#offline-logout-banner")).to_be_visible()
     expect(page.locator("#retry-logout-btn")).to_be_visible()
     context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_state_shown_after_back_navigation(page: Page, live_server, context):
+    """Offline banner + disabled buttons appear after back-navigating to a cached page while offline."""
+    user, pw = create_test_user("e2e_nav1")
+    login_browser(page, live_server.url, "e2e_nav1", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+
+    # Warm dashboard and profile in SW cache while online
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
+        timeout=10000,
+    )
+    page.goto(f"{live_server.url}/accounts/profile/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    # Go back to dashboard while still online (puts dashboard into bfcache in online state)
+    page.go_back(wait_until="networkidle")
+
+    # Now go offline — dashboard is already loaded with online state in bfcache
+    context.set_offline(True)
+
+    # Navigate forward to profile then back to dashboard (bfcache restore)
+    page.goto(f"{live_server.url}/accounts/profile/", wait_until="domcontentloaded")
+    page.go_back(wait_until="domcontentloaded")
+
+    # pageshow event should have triggered _applyOfflineState via persisted=true path
+    expect(page.locator("#offline-banner")).to_be_visible()
+    expect(page.locator("button[data-offline-disable]:has-text('+ New Chore')")).to_be_disabled()
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_offline_logout_auto_completes_after_reconnect_retry(page: Page, live_server, context):
+    """completeLogout retries until it succeeds — even if the first online event fires before CSRF is ready."""
+    user, pw = create_test_user("e2e_logout5")
+    login_browser(page, live_server.url, "e2e_logout5", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    # Offline logout
+    context.set_offline(True)
+    page.evaluate("window.dispatchEvent(new Event('offline'))")
+    page.locator("#logout-form button[type=submit]").click()
+    page.wait_for_url(f"{live_server.url}/accounts/login/", timeout=5000)
+    assert page.evaluate("localStorage.getItem('offline_logout_pending')") == '1'
+
+    # Come back online — the online listener (non-once) fires completeLogout
+    context.set_offline(False)
+    page.wait_for_function("() => !localStorage.getItem('offline_logout_pending')", timeout=10000)
+
+    # Session cleared — profile requires login
+    page.goto(f"{live_server.url}/accounts/profile/")
+    assert "/accounts/login/" in page.url
