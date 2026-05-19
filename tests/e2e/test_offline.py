@@ -78,7 +78,7 @@ def test_offline_dashboard_served_from_cache(page: Page, live_server, context):
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     # Confirm the dashboard URL is in the SW cache before going offline
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -161,6 +161,27 @@ def test_pending_completions_idb_roundtrip(page: Page, live_server, context):
         {"choreId": 42, "completedAt": "2026-01-01T00:00:00Z", "csrfToken": "tok"}
     ]
     assert result["after"] == []
+
+
+@pytest.mark.django_db(transaction=True)
+def test_pending_completions_idb_stores_answers(page: Page, live_server, context):
+    """queueCompletion stores optional answers dict and getPending returns it."""
+    user, pw = create_test_user("e2e_idb_ans1")
+    login_browser(page, live_server.url, "e2e_idb_ans1", pw)
+    page.wait_for_load_state("networkidle")
+
+    result = page.evaluate("""
+        async () => {
+            await window.PendingCompletions.queueCompletion(
+                42, '2026-01-01T00:00:00.000Z', 'tok', { question_7: 'great' }
+            );
+            const pending = await window.PendingCompletions.getPending();
+            const entry = pending.find(p => p.choreId === 42);
+            await window.PendingCompletions.removePending(42);
+            return entry ? entry.answers : null;
+        }
+    """)
+    assert result == {"question_7": "great"}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -316,7 +337,7 @@ def test_offline_pending_state_restored_after_reload(page: Page, live_server, co
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -355,7 +376,7 @@ def test_login_page_in_app_shell_cache(page: Page, live_server, context):
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/login/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -370,7 +391,7 @@ def test_profile_cached_after_dashboard_load(page: Page, live_server, context):
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/profile/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -385,7 +406,7 @@ def test_profile_inputs_disabled_when_loaded_offline(page: Page, live_server, co
     )
     page.goto(f"{live_server.url}/accounts/profile/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/profile/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -457,7 +478,7 @@ def test_profile_reloads_on_reconnect(page: Page, live_server, context):
     )
     page.goto(f"{live_server.url}/accounts/profile/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/profile/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -481,7 +502,7 @@ def test_offline_logout_redirects_to_login_with_flag(page: Page, live_server, co
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/login/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -506,7 +527,7 @@ def test_offline_logout_completes_server_side_on_reconnect(
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/login/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -536,7 +557,7 @@ def test_offline_logout_shows_login_page_not_error(page: Page, live_server, cont
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/login/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -562,7 +583,7 @@ def test_offline_banner_shown_when_page_loaded_while_offline(
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -588,7 +609,7 @@ def test_offline_logout_pending_banner_shown_on_login_page(
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/login/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -672,12 +693,12 @@ def test_offline_banner_shown_when_navigating_to_cached_page(
     # Warm both pages in SW cache
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/').then(r => !!r))",
         timeout=10000,
     )
     page.goto(f"{live_server.url}/accounts/profile/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/profile/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/profile/').then(r => !!r))",
         timeout=10000,
     )
 
@@ -707,7 +728,7 @@ def test_offline_logout_auto_completes_after_reconnect_retry(
     )
     page.goto(f"{live_server.url}/", wait_until="networkidle")
     page.wait_for_function(
-        "() => caches.open('tasks-harmony-v3').then(c => c.match('/accounts/login/').then(r => !!r))",
+        "() => caches.open('tasks-harmony-v5').then(c => c.match('/accounts/login/').then(r => !!r))",
         timeout=10000,
     )
 

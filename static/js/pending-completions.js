@@ -24,11 +24,13 @@ function _openDb() {
 }
 
 window.PendingCompletions = {
-  async queueCompletion(choreId, completedAt, csrfToken) {
+  async queueCompletion(choreId, completedAt, csrfToken, answers = null) {
     const db = await _openDb();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(_STORE, 'readwrite');
-      tx.objectStore(_STORE).put({ choreId, completedAt, csrfToken });
+      const record = { choreId, completedAt, csrfToken };
+      if (answers) record.answers = answers;
+      tx.objectStore(_STORE).put(record);
       tx.oncomplete = resolve;
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
