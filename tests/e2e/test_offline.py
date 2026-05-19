@@ -833,3 +833,55 @@ def test_question_completion_offline_submit(page: Page, live_server, context):
     assert pending[0]["answers"] == {f"question_{q.pk}": "Went great!"}
 
     context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_question_completion_syncs_after_reconnect(page: Page, live_server, context):
+    """Pending question completion POSTs to /questions/ on reconnect and completes the chore."""
+    from django.utils import timezone
+    from chores.models import Question, ChoreCompletion
+
+    user, pw = create_test_user("e2e_qsync1")
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(
+        creator=user, name="QSyncChore", xp_size="S", recurrence=rrule
+    )
+    q = Question.objects.create(definition=defn, text="Rating?", type="TEXT", order=1)
+    instance = ChoreInstance.objects.create(definition=defn, owner=user)
+
+    login_browser(page, live_server.url, "e2e_qsync1", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        f"() => caches.open('tasks-harmony-v5').then(c => c.match('/chores/{instance.pk}/questions/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+
+    # Open modal (SW cache), fill answer, submit offline
+    page.locator("button:has-text('Complete')").click()
+    expect(page.locator("#question-modal")).to_be_visible(timeout=5000)
+    page.locator(f"[name='question_{q.pk}']").fill("Excellent")
+    page.locator("#question-modal .btn-primary[type=submit]").click()
+    expect(page.locator(f"#chore-{instance.pk} .badge")).to_have_text("Pending", timeout=5000)
+
+    # Come back online — sync fires
+    context.set_offline(False)
+    page.wait_for_function(
+        "() => window.PendingCompletions.getPending().then(p => p.length === 0)",
+        timeout=15000,
+    )
+
+    # Give the server a moment to commit
+    page.wait_for_timeout(500)
+
+    # Server should have a ChoreCompletion with a CompletionAnswer
+    from chores.models import CompletionAnswer
+    instance.refresh_from_db()
+    assert instance.last_completed_at is not None
+    completions = list(instance.completions.all())
+    assert len(completions) == 1
+    answers = list(completions[0].answers.all())
+    assert len(answers) == 1
+    assert answers[0].text_value == "Excellent"

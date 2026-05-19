@@ -19,22 +19,28 @@ async function _syncPending() {
     if (!pending.length) return;
 
     let anySuccess = false;
-    for (const { choreId, completedAt, csrfToken } of pending) {
+    for (const { choreId, completedAt, csrfToken, answers } of pending) {
       try {
-        const resp = await fetch(`/chores/${choreId}/complete/`, {
+        const url = answers
+          ? `/chores/${choreId}/questions/`
+          : `/chores/${choreId}/complete/`;
+        const body = new URLSearchParams({
+          completed_at: completedAt,
+          csrfmiddlewaretoken: csrfToken,
+          ...(answers || {}),
+        });
+        const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            completed_at: completedAt,
-            csrfmiddlewaretoken: csrfToken,
-          }),
+          body,
         });
         if (resp.ok) {
+          // For question completions, a 200 with HX-Validation-Error means answers
+          // were invalid. We can't show the modal to fix them, so discard.
           await window.PendingCompletions.removePending(choreId);
-          anySuccess = true;
+          if (!resp.headers.get('HX-Validation-Error')) anySuccess = true;
         } else if (resp.status === 400) {
-          // Server rejected this completion (e.g. timestamp too old >48h). Discard it
-          // so the card doesn't stay stuck in Syncing... forever.
+          // Timestamp too old or other unrecoverable error — discard.
           await window.PendingCompletions.removePending(choreId);
         }
         // Other non-ok statuses (5xx, network error) leave the entry for the next sync.
