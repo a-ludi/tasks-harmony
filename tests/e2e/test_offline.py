@@ -888,6 +888,73 @@ def test_question_completion_syncs_after_reconnect(page: Page, live_server, cont
 
 
 @pytest.mark.django_db(transaction=True)
+def test_question_offline_validation_shows_errors(page: Page, live_server, context):
+    """Offline question form shows validation errors and does not queue invalid answers."""
+    from django.utils import timezone
+    from chores.models import Question
+
+    user, pw = create_test_user("e2e_qval_client1")
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(
+        creator=user, name="ValChore2", xp_size="S", recurrence=rrule
+    )
+    q = Question.objects.create(
+        definition=defn, text="Enter a number", type="INTEGER", order=1,
+        required=True, min_value=1, max_value=10
+    )
+    instance = ChoreInstance.objects.create(definition=defn, owner=user)
+
+    login_browser(page, live_server.url, "e2e_qval_client1", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+    page.wait_for_function(
+        f"() => caches.open('tasks-harmony-v5').then(c => c.match('/chores/{instance.pk}/questions/').then(r => !!r))",
+        timeout=10000,
+    )
+
+    context.set_offline(True)
+
+    # Open modal from SW cache
+    page.locator("button:has-text('Complete')").click()
+    expect(page.locator("#question-modal")).to_be_visible(timeout=5000)
+
+    # Submit with empty required field — should show error, modal stays open
+    page.locator("#question-modal .btn-primary[type=submit]").click()
+    expect(page.locator("#question-modal")).to_be_visible()
+    expect(page.locator(f"#question-modal [data-error-for='{q.pk}']")).to_contain_text("required")
+
+    # IDB should be empty (nothing queued)
+    pending = page.evaluate("window.PendingCompletions.getPending()")
+    assert pending == []
+
+    # Fill with out-of-range value — should show range error
+    page.locator(f"[name='question_{q.pk}']").fill("99")
+    page.locator("#question-modal .btn-primary[type=submit]").click()
+    expect(page.locator("#question-modal")).to_be_visible()
+    expect(page.locator(f"#question-modal [data-error-for='{q.pk}']")).to_contain_text("10")
+
+    # IDB still empty
+    pending = page.evaluate("window.PendingCompletions.getPending()")
+    assert pending == []
+
+    # Fill with valid value — should queue and close modal
+    page.locator(f"[name='question_{q.pk}']").fill("5")
+    page.locator("#question-modal .btn-primary[type=submit]").click()
+    expect(page.locator("#question-modal")).to_be_hidden(timeout=5000)
+
+    pending = page.evaluate("""
+        window.PendingCompletions.getPending().then(p => p.map(e => ({
+            choreId: e.choreId, hasAnswers: !!e.answers
+        })))
+    """)
+    assert len(pending) == 1
+    assert pending[0]["choreId"] == instance.pk
+    assert pending[0]["hasAnswers"] is True
+
+    context.set_offline(False)
+
+
+@pytest.mark.django_db(transaction=True)
 def test_question_completion_validation_error_discards_silently(
     page: Page, live_server, context
 ):

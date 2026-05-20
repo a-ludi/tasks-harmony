@@ -69,6 +69,47 @@ async function _queueAndMarkPending(choreId, completedAt, csrfToken, answers) {
   if (card) card.dispatchEvent(new CustomEvent('mark-pending'));
 }
 
+function _validateQuestionForm(form) {
+  const errors = {};
+  form.querySelectorAll('[data-question-pk]').forEach(div => {
+    const pk = div.dataset.questionPk;
+    const type = div.dataset.questionType;
+    const required = 'questionRequired' in div.dataset;
+    const input = form.querySelector(`[name="question_${pk}"]`);
+    const raw = input ? input.value : '';
+    const isEmpty = raw.trim() === '';
+
+    if (isEmpty) {
+      if (required) errors[pk] = 'This field is required.';
+      return;
+    }
+
+    if (type === 'TEXT') {
+      const pattern = div.dataset.questionRegex;
+      if (pattern && !new RegExp(`^(?:${pattern})$`).test(raw)) {
+        errors[pk] = `Answer does not match required pattern: ${pattern}`;
+      }
+    } else if (type === 'INTEGER') {
+      const val = parseInt(raw, 10);
+      if (isNaN(val)) {
+        errors[pk] = 'Must be a whole number.';
+      } else {
+        const min = 'questionMin' in div.dataset ? parseInt(div.dataset.questionMin, 10) : null;
+        const max = 'questionMax' in div.dataset ? parseInt(div.dataset.questionMax, 10) : null;
+        if (min !== null && val < min) errors[pk] = `Answer must be >= ${min}`;
+        else if (max !== null && val > max) errors[pk] = `Answer must be <= ${max}`;
+      }
+    } else if (type === 'ENUM') {
+      const validIds = Array.from(input.options)
+        .filter(o => o.value)
+        .map(o => parseInt(o.value, 10));
+      if (!validIds.includes(parseInt(raw, 10))) errors[pk] = 'Invalid choice.';
+    }
+    // BOOLEAN: only 'required' applies; if isEmpty catches empty select, nothing else to check
+  });
+  return errors;
+}
+
 // Intercept HTMX form submissions when offline.
 document.addEventListener('htmx:beforeRequest', async (e) => {
   const form = e.detail.elt;
@@ -90,6 +131,17 @@ document.addEventListener('htmx:beforeRequest', async (e) => {
   if (!_isOfflineModeActive()) return;
 
   e.preventDefault();
+
+  // Client-side validation (mirrors server validate_answer).
+  const validationErrors = _validateQuestionForm(form);
+  form.querySelectorAll('[data-error-for]').forEach(el => (el.textContent = ''));
+  if (Object.keys(validationErrors).length > 0) {
+    for (const [pk, msg] of Object.entries(validationErrors)) {
+      const errEl = form.querySelector(`[data-error-for="${pk}"]`);
+      if (errEl) errEl.textContent = msg;
+    }
+    return;
+  }
 
   const choreId = parseInt(form.dataset.choreId, 10);
   const formData = new FormData(form);

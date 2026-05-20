@@ -6,6 +6,7 @@
 <form class="d-flex flex-column flex-fill overflow-hidden"
       data-offline-intercept-answers
       data-chore-id="{{ instance.pk }}"
+      novalidate
       hx-post="{% url 'chore_questions' instance.pk %}"
       hx-target="#chore-{{ instance.pk }}"
       hx-swap="outerHTML"
@@ -14,7 +15,13 @@
   <input type="hidden" name="completed_at" class="js-now">
   <div class="modal-body">
     {% for q in questions %}
-    <div class="mb-3">
+    <div class="mb-3"
+         data-question-pk="{{ q.pk }}"
+         data-question-type="{{ q.type }}"
+         {% if q.required %}data-question-required{% endif %}
+         {% if q.type == "TEXT" and q.regex_pattern %}data-question-regex="{{ q.regex_pattern }}"{% endif %}
+         {% if q.type == "INTEGER" and q.min_value is not None %}data-question-min="{{ q.min_value }}"{% endif %}
+         {% if q.type == "INTEGER" and q.max_value is not None %}data-question-max="{{ q.max_value }}"{% endif %}>
       <label class="form-label">{{ q.text }}{% if q.required %} *{% endif %}</label>
       {% if q.type == "TEXT" %}
         <input type="text" name="question_{{ q.pk }}" class="form-control"
@@ -38,9 +45,7 @@
           {% endfor %}
         </select>
       {% endif %}
-      {% with error=errors|get_item:q.pk %}
-        {% if error %}<div class="text-danger small">{{ error }}</div>{% endif %}
-      {% endwith %}
+      <div class="text-danger small" data-error-for="{{ q.pk }}">{{ errors|get_item:q.pk|default:'' }}</div>
     </div>
     {% endfor %}
   </div>
