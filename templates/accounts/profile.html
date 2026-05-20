@@ -76,11 +76,12 @@
       el.disabled = disabled;
     });
   }
-  document.addEventListener('DOMContentLoaded', function() {
-    if (!navigator.onLine) _setProfileFormsDisabled(true);
-  });
-  window.addEventListener('offline', function() { _setProfileFormsDisabled(true); });
-  window.addEventListener('pageshow', function(e) { if (e.persisted && !navigator.onLine) _setProfileFormsDisabled(true); });
-  window.addEventListener('online', function() { setTimeout(function() { location.reload(); }, 100); });
+  async function _updateProfileForms() {
+    _setProfileFormsDisabled(!(await checkConnectivity()));
+  }
+  document.addEventListener('DOMContentLoaded', _updateProfileForms);
+  window.addEventListener('offline', _updateProfileForms);
+  window.addEventListener('online', _updateProfileForms);
+  window.addEventListener('pageshow', function(e) { if (e.persisted) _updateProfileForms(); });
 </script>
 {% endblock %}

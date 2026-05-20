@@ -60,6 +60,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "config.context_processors.connectivity",
             ],
         },
     },
@@ -127,3 +128,4 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 COMPLETION_TIMESTAMP_MAX_AGE_HOURS = int(os.environ.get("COMPLETION_TIMESTAMP_MAX_AGE_HOURS", "48"))
+CONNECTIVITY_TIMEOUT = 5000  # ms; used by JS connectivity probe

@@ -51,6 +51,19 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js');
     }
+    const _CONNECTIVITY_TIMEOUT = {{ CONNECTIVITY_TIMEOUT }};
+    async function checkConnectivity() {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), _CONNECTIVITY_TIMEOUT);
+      try {
+        const r = await fetch('{% url "ping" %}', { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+        return r.ok;
+      } catch {
+        return false;
+      } finally {
+        clearTimeout(tid);
+      }
+    }
     function _applyOfflineState() {
       document.getElementById('offline-banner').style.display = '';
       document.querySelectorAll('[data-offline-disable]').forEach(btn => {
@@ -62,14 +75,7 @@
         }
       });
     }
-    window.addEventListener('offline', _applyOfflineState);
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!navigator.onLine) _applyOfflineState();
-    });
-    window.addEventListener('pageshow', (e) => {
-      if (e.persisted && !navigator.onLine) _applyOfflineState();
-    });
-    window.addEventListener('online', () => {
+    function _applyOnlineState() {
       document.getElementById('offline-banner').style.display = 'none';
       document.querySelectorAll('[data-offline-disabled]').forEach(btn => {
         btn.disabled = false;
@@ -77,13 +83,28 @@
         const wrapper = btn.closest('[data-offline-wrapper]');
         if (wrapper) bootstrap.Tooltip.getInstance(wrapper)?.dispose();
       });
-    });
-    document.getElementById('logout-form')?.addEventListener('submit', function(e) {
-      if (!navigator.onLine) {
-        e.preventDefault();
-        localStorage.setItem('offline_logout_pending', '1');
-        location.href = '{% url "login" %}';
+    }
+    async function _updateConnectivityState() {
+      if (await checkConnectivity()) {
+        _applyOnlineState();
+      } else {
+        _applyOfflineState();
       }
+    }
+    window.addEventListener('offline', _updateConnectivityState);
+    window.addEventListener('online', _updateConnectivityState);
+    document.addEventListener('DOMContentLoaded', _updateConnectivityState);
+    window.addEventListener('pageshow', (e) => { if (e.persisted) _updateConnectivityState(); });
+    document.getElementById('logout-form')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      checkConnectivity().then(function(online) {
+        if (online) {
+          e.target.submit();
+        } else {
+          localStorage.setItem('offline_logout_pending', '1');
+          location.href = '{% url "login" %}';
+        }
+      });
     });
     // Clean up Bootstrap modal backdrop when modal is reset via HTMX OOB swap
     document.body.addEventListener('htmx:afterSwap', function() {

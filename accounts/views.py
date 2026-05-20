@@ -10,6 +10,12 @@ from django.views.generic import CreateView
 
 from .forms import PersonalInfoForm, RegisterForm
 
+
+def ping(request):
+    response = HttpResponse(status=204)
+    response["Cache-Control"] = "no-store"
+    return response
+
 _REGISTER_RATE_LIMIT = 10   # max POST attempts
 _REGISTER_WINDOW_SECS = 3600  # per hour
 
