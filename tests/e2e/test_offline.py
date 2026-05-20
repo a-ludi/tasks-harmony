@@ -885,3 +885,50 @@ def test_question_completion_syncs_after_reconnect(page: Page, live_server, cont
     answers = list(completions[0].answers.all())
     assert len(answers) == 1
     assert answers[0].text_value == "Excellent"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_question_completion_validation_error_discards_silently(
+    page: Page, live_server, context
+):
+    """Sync discards IDB entry when server returns HX-Validation-Error (invalid answers)."""
+    from django.utils import timezone
+    from chores.models import Question, ChoreCompletion
+
+    user, pw = create_test_user("e2e_qval1")
+    rrule = f"DTSTART:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(
+        creator=user, name="ValChore", xp_size="S", recurrence=rrule
+    )
+    q = Question.objects.create(
+        definition=defn, text="Required Q", type="TEXT", order=1, required=True
+    )
+    instance = ChoreInstance.objects.create(definition=defn, owner=user)
+
+    login_browser(page, live_server.url, "e2e_qval1", pw)
+    page.wait_for_function("() => navigator.serviceWorker.controller !== null", timeout=10000)
+    page.goto(f"{live_server.url}/", wait_until="networkidle")
+
+    # Manually queue a completion with an empty required answer (will fail validation)
+    completed_at = page.evaluate("new Date().toISOString()")
+    csrf = page.evaluate("document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''")
+    page.evaluate(f"""
+        window.PendingCompletions.queueCompletion(
+            {instance.pk},
+            '{completed_at}',
+            '{csrf}',
+            {{"question_{q.pk}": ""}}
+        )
+    """)
+
+    # Trigger sync
+    page.evaluate("window.dispatchEvent(new Event('online'))")
+
+    # IDB should drain (entry discarded after HX-Validation-Error response)
+    page.wait_for_function(
+        "() => window.PendingCompletions.getPending().then(p => p.length === 0)",
+        timeout=10000,
+    )
+
+    # No ChoreCompletion should exist on the server (answers were invalid)
+    assert not ChoreCompletion.objects.filter(instance=instance).exists()

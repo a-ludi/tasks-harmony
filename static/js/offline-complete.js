@@ -39,8 +39,8 @@ async function _syncPending() {
           // were invalid. We can't show the modal to fix them, so discard.
           await window.PendingCompletions.removePending(choreId);
           if (!resp.headers.get('HX-Validation-Error')) anySuccess = true;
-        } else if (resp.status === 400) {
-          // Timestamp too old or other unrecoverable error — discard.
+        } else if (resp.status === 400 || resp.status === 403 || resp.status === 404) {
+          // Unrecoverable: bad timestamp, stale CSRF, or deleted chore — discard.
           await window.PendingCompletions.removePending(choreId);
         }
         // Other non-ok statuses (5xx, network error) leave the entry for the next sync.
