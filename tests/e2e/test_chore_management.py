@@ -77,6 +77,7 @@ def test_question_type_shows_conditional_fields(page: Page, live_server):
     type_select.select_option("INTEGER")
     expect(form.locator("[data-field-conditional='INTEGER']")).to_be_visible()
     expect(form.locator("[data-field-conditional='TEXT']")).to_be_hidden()
+    expect(form.locator("[data-field-conditional='ENUM']")).to_be_hidden()
 
     type_select.select_option("BOOLEAN")
     expect(form.locator("[data-field-conditional='TEXT']")).to_be_hidden()
@@ -86,6 +87,7 @@ def test_question_type_shows_conditional_fields(page: Page, live_server):
     type_select.select_option("ENUM")
     expect(form.locator("[data-field-conditional='ENUM']")).to_be_visible()
     expect(form.locator("[data-field-conditional='TEXT']")).to_be_hidden()
+    expect(form.locator("[data-field-conditional='INTEGER']")).to_be_hidden()
 
 
 @pytest.mark.django_db(transaction=True)
