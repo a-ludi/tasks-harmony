@@ -163,9 +163,11 @@
 
   function updateOrderInputs() {
     const container = document.getElementById('question-formset');
-    Array.from(container.querySelectorAll(':scope > .question-form')).forEach((form, i) => {
-      const orderInput = form.querySelector('input[id$="-order"]');
-      if (orderInput) orderInput.value = i;
+    let i = 0;
+    container.querySelectorAll(':scope > .question-form').forEach(form => {
+        if (form.classList.contains('opacity-50')) return;
+        const orderInput = form.querySelector('input[id$="-order"]');
+        if (orderInput) orderInput.value = i++;
     });
   }
 
@@ -272,7 +274,6 @@
 
   document.querySelectorAll('#question-formset select[id$="-type"]').forEach(sel => {
     updateConditionalFields(sel);
-    initEnumChoicesList(sel.closest('.question-form'));
   });
 
   updateOrderInputs();
