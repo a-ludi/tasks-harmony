@@ -99,12 +99,17 @@ class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
         fields = ["text", "type", "required", "order", "regex_pattern", "min_value", "max_value"]
+        widgets = {
+            "order": forms.HiddenInput(),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk and self.instance.type == "ENUM":
             labels = list(self.instance.choices.order_by("order").values_list("label", flat=True))
             self.fields["choice_labels"].initial = "\n".join(labels)
+        if not self.instance.pk:
+            self.fields["required"].initial = True
 
     def clean_regex_pattern(self):
         pattern = self.cleaned_data.get("regex_pattern", "")

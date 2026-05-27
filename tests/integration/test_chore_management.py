@@ -1,4 +1,5 @@
 import pytest
+import re as _re
 from django.utils import timezone as dj_tz
 from chores.models import ChoreDefinition, ChoreInstance, ChoreCompletion, Question
 
@@ -180,3 +181,25 @@ def test_dashboard_shows_chore_description(client, django_user_model):
     ChoreInstance.objects.create(definition=defn, owner=user)
     response = client.get("/")
     assert b"Clean under sofa every week" in response.content
+
+
+@pytest.mark.django_db
+def test_chore_modal_order_field_is_hidden_input(client, django_user_model):
+    user = django_user_model.objects.create_user(username="ordhid1", password="pw")
+    client.force_login(user)
+    response = client.get("/chores/new/", HTTP_HX_REQUEST="true")
+    content = response.content.decode()
+    match = _re.search(
+        r'<input[^>]+name="questions-__prefix__-order"[^>]*>',
+        content,
+    )
+    assert match, "order input not found in modal HTML"
+    assert 'type="hidden"' in match.group(0), f"order input is not hidden: {match.group(0)}"
+
+
+@pytest.mark.django_db
+def test_chore_modal_question_form_has_form_switch(client, django_user_model):
+    user = django_user_model.objects.create_user(username="sw1", password="pw")
+    client.force_login(user)
+    response = client.get("/chores/new/", HTTP_HX_REQUEST="true")
+    assert b"form-switch" in response.content
