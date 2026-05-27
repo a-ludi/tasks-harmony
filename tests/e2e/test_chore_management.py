@@ -46,15 +46,15 @@ def test_question_arrows_reorder_in_create_modal(page: Page, live_server):
     page.wait_for_selector("#chore-form-modal.show")
 
     page.click("#add-question")
-    page.fill(".question-form:nth-child(1) [name$='-text']", "Alpha")
+    page.locator(".question-form").nth(0).locator("[name$='-text']").fill("Alpha")
     page.click("#add-question")
-    page.fill(".question-form:nth-child(2) [name$='-text']", "Beta")
+    page.locator(".question-form").nth(1).locator("[name$='-text']").fill("Beta")
 
     # Move Alpha down
     page.locator(".question-form").nth(0).locator("button[title='Move down']").click()
 
-    assert page.input_value(".question-form:nth-child(1) [name$='-text']") == "Beta"
-    assert page.input_value(".question-form:nth-child(2) [name$='-text']") == "Alpha"
+    assert page.locator(".question-form").nth(0).locator("[name$='-text']").input_value() == "Beta"
+    assert page.locator(".question-form").nth(1).locator("[name$='-text']").input_value() == "Alpha"
 
 
 @pytest.mark.django_db(transaction=True)
@@ -103,6 +103,7 @@ def test_edit_mode_remove_fades_question_restore_unfades(page: Page, live_server
 
     login_browser(page, live_server.url, "e2e_restore", pw)
 
+    page.wait_for_selector("[aria-label='Card options']")
     page.locator("[aria-label='Card options']").click()
     page.locator(".dropdown-item:has-text('Edit')").click()
     page.wait_for_selector("#chore-form-modal.show")
