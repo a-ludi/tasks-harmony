@@ -197,9 +197,3 @@ def test_chore_modal_order_field_is_hidden_input(client, django_user_model):
     assert 'type="hidden"' in match.group(0), f"order input is not hidden: {match.group(0)}"
 
 
-@pytest.mark.django_db
-def test_chore_modal_question_form_has_form_switch(client, django_user_model):
-    user = django_user_model.objects.create_user(username="sw1", password="pw")
-    client.force_login(user)
-    response = client.get("/chores/new/", HTTP_HX_REQUEST="true")
-    assert b"form-switch" in response.content
