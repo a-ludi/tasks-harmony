@@ -166,3 +166,17 @@ def test_edit_chore_htmx_post_success_returns_hx_redirect(client, django_user_mo
     }, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
     assert response["HX-Redirect"] == "/"
+
+
+@pytest.mark.django_db
+def test_dashboard_shows_chore_description(client, django_user_model):
+    user = django_user_model.objects.create_user(username="desc1", password="pw")
+    client.force_login(user)
+    rrule = "DTSTART:20260101T000000Z\nRRULE:FREQ=DAILY"
+    defn = ChoreDefinition.objects.create(
+        creator=user, name="Vacuum", description="Clean under sofa every week",
+        xp_size="S", recurrence=rrule,
+    )
+    ChoreInstance.objects.create(definition=defn, owner=user)
+    response = client.get("/")
+    assert b"Clean under sofa every week" in response.content
