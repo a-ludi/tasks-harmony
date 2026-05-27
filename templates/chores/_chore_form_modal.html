@@ -23,20 +23,115 @@
     <div id="question-formset">
       {% for qform in formset %}
       <div class="border rounded p-3 mb-2 question-form">
-        {% for field in qform %}{% bs_field field %}{% endfor %}
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-semibold small text-muted">Question</span>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary"
+                    onclick="moveQuestion(this, -1)" title="Move up">
+              <i class="bi bi-arrow-up"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary"
+                    onclick="moveQuestion(this, 1)" title="Move down">
+              <i class="bi bi-arrow-down"></i>
+            </button>
+          </div>
+        </div>
+        {% bs_field qform.text %}
+        <div class="mb-3 form-check form-switch" data-field="required">
+          <input class="form-check-input" type="checkbox"
+                 name="{{ qform.required.html_name }}"
+                 id="{{ qform.required.id_for_label }}"
+                 {% if qform.required.value %}checked{% endif %}>
+          <label class="form-check-label" for="{{ qform.required.id_for_label }}">
+            {{ qform.required.label }}
+          </label>
+          {% if qform.required.errors %}
+            <div class="invalid-feedback d-block">{{ qform.required.errors.0 }}</div>
+          {% endif %}
+        </div>
+        {% bs_field qform.type %}
+        <div data-field-conditional="TEXT">
+          {% bs_field qform.regex_pattern %}
+        </div>
+        <div class="row g-2 mb-3" data-field-conditional="INTEGER">
+          <div class="col">{% bs_field qform.min_value %}</div>
+          <div class="col">{% bs_field qform.max_value %}</div>
+        </div>
+        <div data-field-conditional="ENUM">
+          <div class="mb-3" data-field="choice_labels">
+            <label class="form-label">Choices</label>
+            <div class="enum-choices-list mb-2"></div>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="addEnumChoice(this)">+ Add Choice</button>
+            {% if qform.choice_labels.errors %}
+              <div class="invalid-feedback d-block">{{ qform.choice_labels.errors.0 }}</div>
+            {% endif %}
+          </div>
+          {{ qform.choice_labels.as_hidden }}
+        </div>
+        {{ qform.order }}
         {% if qform.instance.pk %}
           <div class="d-none">{{ qform.DELETE }}</div>
         {% endif %}
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeQuestion(this)">Remove</button>
+        <button type="button" class="btn btn-outline-danger btn-sm mt-2"
+                onclick="removeQuestion(this)"
+                {% if qform.instance.pk %}data-has-delete{% endif %}>
+          Remove
+        </button>
       </div>
       {% endfor %}
     </div>
 
     <div id="empty-question-form" class="d-none">
+      {% with qform=formset.empty_form %}
       <div class="border rounded p-3 mb-2 question-form">
-        {% for field in formset.empty_form %}{% bs_field field %}{% endfor %}
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeQuestion(this)">Remove</button>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-semibold small text-muted">Question</span>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary"
+                    onclick="moveQuestion(this, -1)" title="Move up">
+              <i class="bi bi-arrow-up"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary"
+                    onclick="moveQuestion(this, 1)" title="Move down">
+              <i class="bi bi-arrow-down"></i>
+            </button>
+          </div>
+        </div>
+        {% bs_field qform.text %}
+        <div class="mb-3 form-check form-switch" data-field="required">
+          <input class="form-check-input" type="checkbox"
+                 name="{{ qform.required.html_name }}"
+                 id="{{ qform.required.id_for_label }}"
+                 {% if qform.required.value %}checked{% endif %}>
+          <label class="form-check-label" for="{{ qform.required.id_for_label }}">
+            {{ qform.required.label }}
+          </label>
+        </div>
+        {% bs_field qform.type %}
+        <div data-field-conditional="TEXT">
+          {% bs_field qform.regex_pattern %}
+        </div>
+        <div class="row g-2 mb-3" data-field-conditional="INTEGER">
+          <div class="col">{% bs_field qform.min_value %}</div>
+          <div class="col">{% bs_field qform.max_value %}</div>
+        </div>
+        <div data-field-conditional="ENUM">
+          <div class="mb-3" data-field="choice_labels">
+            <label class="form-label">Choices</label>
+            <div class="enum-choices-list mb-2"></div>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="addEnumChoice(this)">+ Add Choice</button>
+          </div>
+          {{ qform.choice_labels.as_hidden }}
+        </div>
+        {{ qform.order }}
+        <button type="button" class="btn btn-outline-danger btn-sm mt-2"
+                onclick="removeQuestion(this)">
+          Remove
+        </button>
       </div>
+      {% endwith %}
     </div>
 
     <button type="button" class="btn btn-outline-secondary btn-sm mb-3" id="add-question">+ Add Question</button>
@@ -50,42 +145,150 @@
 <script>
   let formIdx = {{ formset.total_form_count }};
 
+  // ── Question ordering ──────────────────────────────────────────────────────
+
+  function moveQuestion(btn, direction) {
+    const form = btn.closest('.question-form');
+    const container = form.parentElement;
+    const forms = Array.from(
+      container.querySelectorAll(':scope > .question-form:not(.opacity-50)')
+    );
+    const idx = forms.indexOf(form);
+    const target = forms[idx + direction];
+    if (!target) return;
+    if (direction === -1) container.insertBefore(form, target);
+    else container.insertBefore(target, form);
+    updateOrderInputs();
+  }
+
+  function updateOrderInputs() {
+    const container = document.getElementById('question-formset');
+    Array.from(container.querySelectorAll(':scope > .question-form')).forEach((form, i) => {
+      const orderInput = form.querySelector('input[id$="-order"]');
+      if (orderInput) orderInput.value = i;
+    });
+  }
+
+  // ── Conditional field visibility ───────────────────────────────────────────
+
+  function updateConditionalFields(typeSelect) {
+    const form = typeSelect.closest('.question-form');
+    const selectedType = typeSelect.value;
+    form.querySelectorAll('[data-field-conditional]').forEach(wrapper => {
+      wrapper.style.display =
+        (selectedType === wrapper.dataset.fieldConditional) ? '' : 'none';
+    });
+    if (selectedType === 'ENUM') initEnumChoicesList(form);
+  }
+
+  // ── Remove / Restore ───────────────────────────────────────────────────────
+
   function removeQuestion(btn) {
     const form = btn.closest('.question-form');
-    const deleteCheckbox = form.querySelector('input[type="checkbox"][id$="-DELETE"]');
-    if (deleteCheckbox) {
-      deleteCheckbox.checked = true;
-      form.classList.add('d-none');
+    if (btn.dataset.hasDelete !== undefined) {
+      const deleteCheckbox = form.querySelector('input[type="checkbox"][id$="-DELETE"]');
+      const isMarked = form.classList.contains('opacity-50');
+      if (isMarked) {
+        if (deleteCheckbox) deleteCheckbox.checked = false;
+        form.classList.remove('opacity-50');
+        btn.textContent = 'Remove';
+      } else {
+        if (deleteCheckbox) deleteCheckbox.checked = true;
+        form.classList.add('opacity-50');
+        btn.textContent = 'Restore';
+      }
     } else {
       form.remove();
+      updateOrderInputs();
     }
   }
 
-  function updateChoicesVisibility(typeSelect) {
-    const form = typeSelect.closest('.question-form');
-    const choicesRow = form.querySelector('[data-field="choice_labels"]');
-    if (choicesRow) {
-      choicesRow.style.display = typeSelect.value === 'ENUM' ? '' : 'none';
-    }
+  // ── ENUM choices list ──────────────────────────────────────────────────────
+
+  function initEnumChoicesList(questionForm) {
+    const hidden = questionForm.querySelector('input[id$="-choice_labels"]');
+    const list = questionForm.querySelector('.enum-choices-list');
+    if (!hidden || !list) return;
+    list.innerHTML = '';
+    const choices = hidden.value ? hidden.value.split('\n').filter(s => s.trim()) : [];
+    choices.forEach(label => _appendEnumChoiceItem(list, label));
   }
+
+  function _appendEnumChoiceItem(list, label) {
+    const item = document.createElement('div');
+    item.className = 'input-group input-group-sm mb-1 enum-choice-item';
+    const safe = (label || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    item.innerHTML =
+      '<input type="text" class="form-control" placeholder="Choice label" value="' + safe + '">' +
+      '<button type="button" class="btn btn-outline-secondary" onclick="moveEnumChoice(this,-1)" title="Move up"><i class="bi bi-arrow-up"></i></button>' +
+      '<button type="button" class="btn btn-outline-secondary" onclick="moveEnumChoice(this,1)" title="Move down"><i class="bi bi-arrow-down"></i></button>' +
+      '<button type="button" class="btn btn-outline-danger" onclick="removeEnumChoice(this)" title="Remove"><i class="bi bi-x"></i></button>';
+    item.querySelector('input').addEventListener('input', () =>
+      syncEnumChoices(list.closest('.question-form'))
+    );
+    list.appendChild(item);
+    syncEnumChoices(list.closest('.question-form'));
+  }
+
+  function syncEnumChoices(questionForm) {
+    const list = questionForm.querySelector('.enum-choices-list');
+    const hidden = questionForm.querySelector('input[id$="-choice_labels"]');
+    if (!list || !hidden) return;
+    hidden.value = Array.from(list.querySelectorAll('.enum-choice-item input'))
+      .map(el => el.value.trim()).filter(s => s).join('\n');
+  }
+
+  function addEnumChoice(btn) {
+    const list = btn.closest('[data-field-conditional="ENUM"]').querySelector('.enum-choices-list');
+    _appendEnumChoiceItem(list, '');
+  }
+
+  function removeEnumChoice(btn) {
+    const item = btn.closest('.enum-choice-item');
+    const qForm = item.closest('.question-form');
+    item.remove();
+    syncEnumChoices(qForm);
+  }
+
+  function moveEnumChoice(btn, direction) {
+    const item = btn.closest('.enum-choice-item');
+    const list = item.parentElement;
+    const items = Array.from(list.querySelectorAll('.enum-choice-item'));
+    const idx = items.indexOf(item);
+    const target = items[idx + direction];
+    if (!target) return;
+    if (direction === -1) list.insertBefore(item, target);
+    else list.insertBefore(target, item);
+    syncEnumChoices(list.closest('.question-form'));
+  }
+
+  // ── Initialization ─────────────────────────────────────────────────────────
 
   document.getElementById('question-formset').addEventListener('change', e => {
     if (e.target.tagName === 'SELECT' && e.target.id.includes('-type')) {
-      updateChoicesVisibility(e.target);
+      updateConditionalFields(e.target);
     }
   });
 
-  document.querySelectorAll('#question-formset select[id$="-type"]').forEach(updateChoicesVisibility);
+  document.querySelectorAll('#question-formset select[id$="-type"]').forEach(sel => {
+    updateConditionalFields(sel);
+    initEnumChoicesList(sel.closest('.question-form'));
+  });
+
+  updateOrderInputs();
 
   document.getElementById('add-question').addEventListener('click', () => {
     const container = document.getElementById('question-formset');
     const tmpl = document.getElementById('empty-question-form').querySelector('.question-form');
     const clone = tmpl.cloneNode(true);
     clone.innerHTML = clone.innerHTML.replace(/__prefix__/g, formIdx);
-    clone.querySelectorAll('input,select,textarea').forEach(el => el.value = '');
+    clone.querySelectorAll('input[type="text"], input[type="number"], textarea')
+         .forEach(el => el.value = '');
     container.appendChild(clone);
     document.getElementById('id_questions-TOTAL_FORMS').value = ++formIdx;
     const newTypeSelect = clone.querySelector('select[id$="-type"]');
-    if (newTypeSelect) updateChoicesVisibility(newTypeSelect);
+    if (newTypeSelect) updateConditionalFields(newTypeSelect);
+    initEnumChoicesList(clone);
+    updateOrderInputs();
   });
 </script>

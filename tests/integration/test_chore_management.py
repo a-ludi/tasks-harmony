@@ -205,3 +205,30 @@ def test_chore_modal_scheduling_fields_in_responsive_grid(client, django_user_mo
     assert b"col-12 col-md-6 col-lg-3" in response.content
 
 
+@pytest.mark.django_db
+def test_chore_modal_question_form_has_form_switch(client, django_user_model):
+    user = django_user_model.objects.create_user(username="sw1", password="pw")
+    client.force_login(user)
+    response = client.get("/chores/new/", HTTP_HX_REQUEST="true")
+    assert b"form-switch" in response.content
+
+
+@pytest.mark.django_db
+def test_chore_modal_question_conditional_field_wrappers(client, django_user_model):
+    user = django_user_model.objects.create_user(username="cond1", password="pw")
+    client.force_login(user)
+    response = client.get("/chores/new/", HTTP_HX_REQUEST="true")
+    content = response.content.decode()
+    assert 'data-field-conditional="INTEGER"' in content
+    assert 'data-field-conditional="TEXT"' in content
+    assert 'data-field-conditional="ENUM"' in content
+
+
+@pytest.mark.django_db
+def test_chore_modal_enum_choices_has_list_ui(client, django_user_model):
+    user = django_user_model.objects.create_user(username="enum1", password="pw")
+    client.force_login(user)
+    response = client.get("/chores/new/", HTTP_HX_REQUEST="true")
+    assert b"enum-choices-list" in response.content
+
+
