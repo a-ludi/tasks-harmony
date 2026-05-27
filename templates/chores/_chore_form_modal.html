@@ -9,7 +9,14 @@
       hx-swap="innerHTML">
   {% csrf_token %}
   <div class="modal-body">
-    {% for field in form %}{% bs_field field %}{% endfor %}
+    {% bs_field form.name %}
+    {% bs_field form.description %}
+    <div class="row g-2 mb-3">
+      <div class="col-12 col-md-6 col-lg-3">{% bs_field form.xp_size %}</div>
+      <div class="col-12 col-md-6 col-lg-3">{% bs_field form.recurrence_freq %}</div>
+      <div class="col-12 col-md-6 col-lg-3">{% bs_field form.recurrence_interval %}</div>
+      <div class="col-12 col-md-6 col-lg-3">{% bs_field form.recurrence_dtstart %}</div>
+    </div>
 
     <h5 class="mt-3">Questions</h5>
     {{ formset.management_form }}
