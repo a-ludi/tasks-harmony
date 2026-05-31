@@ -232,3 +232,37 @@ def test_chore_modal_enum_choices_has_list_ui(client, django_user_model):
     assert b"enum-choices-list" in response.content
 
 
+@pytest.mark.django_db
+def test_new_chore_modal_prefills_start_date_with_today(client, django_user_model):
+    """recurrence_dtstart must have a default so the form submits without user touching the date."""
+    from datetime import date
+    user = django_user_model.objects.create_user(username="dtstart1", password="pw")
+    client.force_login(user)
+    response = client.get("/chores/new/", HTTP_HX_REQUEST="true")
+    today = date.today().isoformat()
+    assert today.encode() in response.content, (
+        f"Expected today's date ({today}) pre-filled in recurrence_dtstart input"
+    )
+
+
+@pytest.mark.django_db
+def test_create_chore_succeeds_without_explicit_start_date(client, django_user_model):
+    """Submitting the form without recurrence_dtstart should succeed when the field has a default."""
+    user = django_user_model.objects.create_user(username="dtstart2", password="pw")
+    client.force_login(user)
+    response = client.post("/chores/new/", {
+        "name": "Default Date Chore",
+        "description": "",
+        "xp_size": "M",
+        "recurrence_freq": "DAILY",
+        "recurrence_interval": "1",
+        # recurrence_dtstart intentionally omitted — should use default
+        "questions-TOTAL_FORMS": "0",
+        "questions-INITIAL_FORMS": "0",
+        "questions-MIN_NUM_FORMS": "0",
+        "questions-MAX_NUM_FORMS": "1000",
+    }, HTTP_HX_REQUEST="true")
+    assert response.status_code == 200
+    assert response.get("HX-Redirect") == "/"
+
+

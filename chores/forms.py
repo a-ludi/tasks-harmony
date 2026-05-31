@@ -53,6 +53,8 @@ class ChoreDefinitionForm(forms.ModelForm):
     recurrence_dtstart = forms.DateField(
         label="Start date",
         widget=forms.DateInput(attrs={"type": "date"}),
+        initial=date.today,
+        required=False,
     )
 
     class Meta:
@@ -74,8 +76,8 @@ class ChoreDefinitionForm(forms.ModelForm):
         cleaned = super().clean()
         freq = cleaned.get("recurrence_freq")
         interval = cleaned.get("recurrence_interval", 1)
-        dtstart = cleaned.get("recurrence_dtstart")
-        if freq and dtstart:
+        dtstart = cleaned.get("recurrence_dtstart") or date.today()
+        if freq:
             date_str = dtstart.strftime("%Y%m%dT000000Z")
             cleaned["recurrence"] = f"DTSTART:{date_str}\nRRULE:FREQ={freq};INTERVAL={interval}"
         return cleaned
