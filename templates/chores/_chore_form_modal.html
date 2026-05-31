@@ -185,6 +185,24 @@
 
   // ── Remove / Restore ───────────────────────────────────────────────────────
 
+  function renumberForms() {
+    const container = document.getElementById('question-formset');
+    const forms = Array.from(container.querySelectorAll(':scope > .question-form'));
+    forms.forEach((form, i) => {
+      form.querySelectorAll('[name]').forEach(el => {
+        el.name = el.name.replace(/^questions-\d+-/, `questions-${i}-`);
+      });
+      form.querySelectorAll('[id^="id_questions-"]').forEach(el => {
+        el.id = el.id.replace(/^id_questions-\d+-/, `id_questions-${i}-`);
+      });
+      form.querySelectorAll('label[for^="id_questions-"]').forEach(el => {
+        el.htmlFor = el.htmlFor.replace(/^id_questions-\d+-/, `id_questions-${i}-`);
+      });
+    });
+    formIdx = forms.length;
+    document.getElementById('id_questions-TOTAL_FORMS').value = forms.length;
+  }
+
   function removeQuestion(btn) {
     const form = btn.closest('.question-form');
     if (btn.dataset.hasDelete !== undefined) {
@@ -201,6 +219,7 @@
       }
     } else {
       form.remove();
+      renumberForms();
       updateOrderInputs();
     }
   }

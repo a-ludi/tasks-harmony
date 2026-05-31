@@ -145,3 +145,27 @@ def test_enum_choices_list_add_remove_reorder(page: Page, live_server):
     form.locator(".enum-choice-item").nth(1).locator("button[title='Remove']").click()
     expect(form.locator(".enum-choice-item")).to_have_count(1)
     assert form.locator(".enum-choice-item input").first.input_value() == "Second"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_remove_new_question_then_create_succeeds(page: Page, live_server):
+    """Adding then removing a question must not leave a ghost form that fails validation."""
+    from chores.models import ChoreDefinition, Question
+    user, pw = create_test_user("e2e_rmq")
+    login_browser(page, live_server.url, "e2e_rmq", pw)
+
+    page.click("text=+ New Chore")
+    page.wait_for_selector("#chore-form-modal.show")
+    page.fill("[name=name]", "No Questions Chore")
+
+    page.click("#add-question")
+    page.locator(".question-form").first.locator("[name$='-text']").fill("Temp question")
+
+    page.locator(".question-form").first.locator("button:has-text('Remove')").click()
+    expect(page.locator("#question-formset .question-form")).to_have_count(0)
+
+    page.click("button:has-text('Create')")
+    page.wait_for_url(f"{live_server.url}/", timeout=5000)
+    expect(page.locator("text=No Questions Chore")).to_be_visible()
+    # Modal should be gone — chore was created without questions
+    expect(page.locator("#chore-form-modal.show")).to_have_count(0)
