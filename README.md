@@ -1,6 +1,6 @@
 # Tasks Harmony
 
-A Django web app where users earn XP for completing recurring chores.
+A progressive web app for tracking recurring chores and earning XP for completing them consistently.
 
 ## Table of Contents
 
@@ -12,54 +12,61 @@ A Django web app where users earn XP for completing recurring chores.
 
 ## Background
 
-Tasks Harmony is a personal chore tracker built around the idea that completing routine tasks consistently deserves recognition. Each chore is defined with an RRULE recurrence schedule (daily, weekly, or any custom pattern). Completing a chore on time builds a streak that multiplies the XP reward; missing a window lets the bonus decay.
+Tasks Harmony is a personal chore tracker built around the idea that completing routine tasks consistently deserves recognition. Each chore has a recurrence window (daily, weekly, or monthly). Completing a chore on time builds a streak that multiplies the XP reward; missing a window resets the streak.
 
-The UI uses HTMX to swap individual chore cards in place without full page reloads. A service worker caches the dashboard for offline viewing, and all action buttons are automatically disabled when the browser goes offline.
+All data is stored locally in IndexedDB — no account or server required. Optionally, state can be synced across devices via WebDAV, and Chore Definition Packs (CDP) can be imported from a URL.
 
-**Tech stack:** Python 3.12, Django 5, PostgreSQL 16, HTMX 1.9, Bootstrap 5, Alpine.js, django-recurrence, WhiteNoise, pytest + Playwright.
+**Tech stack:** React 19, TypeScript 5, Zustand 5, IndexedDB (idb 8), Vite 6, Tailwind CSS 4, Bun.
 
 ## Install
 
-**Prerequisites:** Docker and Docker Compose.
+**Prerequisites:** [Bun](https://bun.sh) ≥ 1.x.
 
 ```bash
-docker compose up -d db
-docker compose run --rm web python manage.py migrate
-docker compose up web
-```
-
-The app is available at `http://localhost:8000`.
-
-To create an admin account:
-
-```bash
-docker compose run --rm web python manage.py createsuperuser
+bun install
 ```
 
 ## Usage
 
-Register an account, then use **+ New Chore** on the dashboard to create a chore. Each chore requires a name, an XP size (XS–XL), and a recurrence rule in RRULE format, for example:
-
-```
-DTSTART:20260101T000000Z
-RRULE:FREQ=DAILY
-```
-
-Chore cards are sorted by urgency — Overdue → Due → Completed → Upcoming. Click **Complete** to record a completion; chores with attached questions open a modal first. XP is credited immediately and your streak counter updates.
-
-### Running tests
+### Dev server
 
 ```bash
-# All tests (unit + integration + E2E)
-docker compose run --rm web pytest tests/ -v
-
-# E2E only
-docker compose run --rm web pytest tests/e2e/ -v
+bun run dev
 ```
+
+Opens at `http://localhost:5173`. The app hot-reloads on file changes.
+
+### Production build
+
+```bash
+bun run build
+```
+
+Output goes to `dist/`. Serve with any static file server:
+
+```bash
+bun run preview   # Vite's built-in preview server
+```
+
+### Tests
+
+```bash
+bun test          # Run all unit tests
+bun run typecheck # TypeScript type-check only
+```
+
+### Features
+
+- **Dashboard** — chores sorted by urgency (Overdue → Due → Completed → Upcoming), with XP preview and streak counter
+- **Completion questions** — attach custom questions to a chore; answers are recorded with each completion
+- **Profile page** — display name, email, XP formula selector, total XP summary
+- **WebDAV sync** — push/pull state to a self-hosted WebDAV server with ETag-based conflict detection
+- **CDP import** — import a Chore Definition Pack from a URL; update it later to pull upstream changes
+- **Offline support** — the app works fully offline; sync and CDP import are deferred until reconnect
 
 ## Contributing
 
-Open an issue to report a bug or propose a feature. Pull requests are welcome — please include tests for any new behaviour and ensure the full suite passes (`pytest tests/ -v`) before submitting.
+Open an issue to report a bug or propose a feature. Pull requests are welcome — please include tests for any new behaviour and ensure the full suite passes (`bun test`) before submitting.
 
 ## License
 
