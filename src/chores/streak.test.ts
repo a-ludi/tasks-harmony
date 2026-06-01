@@ -115,4 +115,18 @@ describe('computeNewStreak', () => {
     const completions = [makeCompletion(new Date(localMidnight('2026-01-09').getTime()).toISOString(), 5)];
     expect(computeNewStreak(chore, completions, now)).toBe(1);
   });
+
+  it('returns 1 when recurrence is malformed (missing startDate) and has prior completions, instead of throwing', () => {
+    const rec = {
+      frequency: 'daily' as const,
+      interval: 1,
+      startDate: '',
+      windowStartTime: '00:00',
+    };
+    const chore = makeChore(rec);
+    const now = localMidnight('2026-01-10');
+    const completions = [makeCompletion(new Date(localMidnight('2026-01-09').getTime()).toISOString(), 5)];
+    // Should return 1 (safe value) instead of throwing
+    expect(computeNewStreak(chore, completions, now)).toBe(1);
+  });
 });
