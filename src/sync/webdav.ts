@@ -34,7 +34,7 @@ export async function pushState(
   if (expectedEtag !== undefined) headers['If-Match'] = expectedEtag;
 
   try {
-    const response = await client.putFileContents(filename, body, { headers, returnRaw: true });
+    const response = await client.putFileContents(filename, body, { headers });
     const rawEtag = typeof response === 'object' && response !== null
       ? (response as { headers?: Record<string, string> }).headers?.etag
       : undefined;
