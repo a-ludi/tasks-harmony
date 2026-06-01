@@ -14,7 +14,7 @@ export default function NavBar() {
 
         <div className="flex items-center gap-4">
           <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
-            {Math.round(totalXP).toLocaleString()} XP
+            {totalXP.toLocaleString()} XP
           </span>
 
           <NavLink
