@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState } from '@/db';
+import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion } from '@/db';
 import { titleToFilename } from '@/cdp/filename';
 import { calculateXP } from '@/xp/calculator';
 import { computeNewStreak } from '@/chores/streak';
@@ -15,6 +15,7 @@ import type {
 } from '@/types';
 import type { IDBPDatabase } from 'idb';
 import type { TasksHarmonyDB } from '@/db/schema';
+import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 
 interface AppState {
   db: IDBPDatabase<TasksHarmonyDB> | null;
@@ -34,6 +35,7 @@ interface AppState {
   recordCompletion: (choreKey: string, answers?: Answer[]) => Promise<void>;
   updateProfile: (profile: UserProfile) => Promise<void>;
   updateSyncState: (state: SyncState) => Promise<void>;
+  saveQuestions: (choreKey: string, drafts: DraftQuestion[]) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -163,5 +165,24 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await putSyncState(db, state);
     set({ syncState: state });
+  },
+
+  saveQuestions: async (choreKey, drafts) => {
+    const { db } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    for (const q of drafts.filter((d) => d._deleted)) {
+      await deleteQuestion(db, q.id);
+    }
+
+    const toSave = drafts
+      .filter((d) => !d._deleted)
+      .map(({ _isNew: _n, _deleted: _d, ...q }) => q);
+    for (const q of toSave) {
+      await putQuestion(db, q);
+    }
+
+    const allQuestions = await getAllQuestions(db);
+    set({ questions: allQuestions });
   },
 }));
