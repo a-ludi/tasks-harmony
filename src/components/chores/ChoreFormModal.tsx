@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
 import type { Chore, XPSize, RecurrenceFrequency } from '@/types';
+import QuestionBuilder from '@/components/questions/QuestionBuilder';
+import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 
 interface Props {
   chore?: Chore;
@@ -28,6 +30,8 @@ interface FormErrors {
 export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const addChore = useAppStore((s) => s.addChore);
   const updateChore = useAppStore((s) => s.updateChore);
+  const saveQuestions = useAppStore((s) => s.saveQuestions);
+  const allQuestions = useAppStore((s) => s.questions);
 
   const isEdit = chore !== undefined;
 
@@ -37,18 +41,18 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const [frequency, setFrequency] = useState<RecurrenceFrequency>(
     chore?.recurrence.frequency ?? 'daily',
   );
-  const [interval, setInterval] = useState<string>(
-    String(chore?.recurrence.interval ?? 1),
-  );
-  const [startDate, setStartDate] = useState(
-    chore?.recurrence.startDate ?? todayString(),
-  );
-  const [windowStartTime, setWindowStartTime] = useState(
-    chore?.recurrence.windowStartTime ?? '00:00',
-  );
+  const [interval, setInterval] = useState<string>(String(chore?.recurrence.interval ?? 1));
+  const [startDate, setStartDate] = useState(chore?.recurrence.startDate ?? todayString());
+  const [windowStartTime, setWindowStartTime] = useState(chore?.recurrence.windowStartTime ?? '00:00');
   const [repeatable, setRepeatable] = useState(chore?.repeatable ?? false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const choreKey = isEdit ? chore!.key : null;
+  const initialQuestions = choreKey ? allQuestions.filter((q) => q.choreKey === choreKey) : [];
+  const [questionDrafts, setQuestionDrafts] = useState<DraftQuestion[]>(() =>
+    initialQuestions.map((q) => ({ ...q })),
+  );
 
   function validate(): FormErrors {
     const errs: FormErrors = {};
@@ -67,10 +71,12 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setErrors({});
     setSubmitting(true);
+
     try {
       if (isEdit && chore) {
         await updateChore({
@@ -81,6 +87,10 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           recurrence: { frequency, interval: Number(interval), startDate, windowStartTime },
           repeatable,
         });
+
+        if (questionDrafts.length > 0 || initialQuestions.length > 0) {
+          await saveQuestions(chore.key, questionDrafts);
+        }
       } else {
         await addChore({
           packId,
@@ -103,10 +113,11 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <h2 className="mb-4 text-lg font-semibold text-gray-900">
           {isEdit ? 'Edit Chore' : 'New Chore'}
         </h2>
+
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="chore-title">
@@ -231,6 +242,30 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
               Repeatable (allow multiple completions per window)
             </label>
           </div>
+
+          {isEdit && (
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-gray-800">Questions</h3>
+                <span className="text-xs text-gray-400">
+                  {questionDrafts.filter((d) => !d._deleted).length > 0
+                    ? `${questionDrafts.filter((d) => !d._deleted).length} question(s)`
+                    : 'None'}
+                </span>
+              </div>
+              <QuestionBuilder
+                choreKey={chore!.key}
+                initialQuestions={initialQuestions}
+                onChange={setQuestionDrafts}
+              />
+            </div>
+          )}
+
+          {!isEdit && (
+            <p className="text-xs text-gray-400 italic">
+              Questions can be added after creating the chore by clicking Edit (&#x270E;).
+            </p>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button
