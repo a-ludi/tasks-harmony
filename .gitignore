@@ -1,3 +1,5 @@
+dist/
+node_modules/
 .claude/
 .node/
 __pycache__/

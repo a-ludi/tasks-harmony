@@ -1,3 +1,4 @@
+import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -17,6 +18,7 @@ export default defineConfig({
         short_name: 'Tasks',
         description: 'Gamified recurring chore tracker',
         theme_color: '#ffffff',
+        background_color: '#ffffff',
         display: 'standalone',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -25,5 +27,5 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: { alias: { '@': '/src' } },
+  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
 });
