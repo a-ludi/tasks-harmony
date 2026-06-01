@@ -88,8 +88,11 @@ export function getChoreStatus(
     }
 
     return 'due';
-  } catch {
-    return 'due';
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('Unknown recurrence frequency:')) {
+      return 'due';
+    }
+    throw e;
   }
 }
 

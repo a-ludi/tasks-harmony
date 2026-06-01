@@ -44,7 +44,6 @@ function makeCompletion(completedAt: string, streak = 1): Completion {
   };
 }
 
-// Use a fixed local midnight for date arithmetic predictability
 function localMidnight(dateStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number);
   return new Date(year, month - 1, day, 0, 0, 0, 0);
@@ -139,6 +138,12 @@ describe('getCurrentWindowIndex', () => {
     const now = localMidnight('2026-01-19');
     expect(getCurrentWindowIndex(rec, now)).toBe(2);
   });
+
+  it('returns 1 for daily/2 two days after startDate', () => {
+    const rec = makeRecurrence('daily', 2, '2026-01-10');
+    const now = localMidnight('2026-01-12');
+    expect(getCurrentWindowIndex(rec, now)).toBe(1);
+  });
 });
 
 // ── getChoreStatus ────────────────────────────────────────────────────────────
@@ -180,17 +185,22 @@ describe('getChoreStatus', () => {
     expect(getChoreStatus(chore, completions, now)).toBe('due');
   });
 
+  it('returns due in first window (index 0) with no completions', () => {
+    const rec = makeRecurrence('daily', 1, '2026-01-10');
+    const chore = makeChore(rec);
+    // Now is window 0 (startDate itself)
+    const now = new Date(localMidnight('2026-01-10').getTime() + 3_600_000);
+    expect(getChoreStatus(chore, [], now)).toBe('due');
+  });
+
   it('returns due (not throw) for malformed recurrence frequency', () => {
     const chore: Chore = {
       ...makeChore(makeRecurrence('daily', 1, '2026-01-10')),
       recurrence: { frequency: 'bogus' as Recurrence['frequency'], interval: 1, startDate: '2026-01-10', windowStartTime: '00:00' },
     };
     const now = localMidnight('2026-01-11');
-    let result: ChoreStatus;
-    expect(() => {
-      result = getChoreStatus(chore, [], now);
-    }).not.toThrow();
-    expect(getChoreStatus(chore, [], now)).toBe('due');
+    const result = getChoreStatus(chore, [], now);
+    expect(result).toBe('due');
   });
 });
 
