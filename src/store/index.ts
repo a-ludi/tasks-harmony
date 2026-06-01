@@ -12,7 +12,6 @@ import type {
   UserProfile,
   SyncState,
   Answer,
-  XPSize,
 } from '@/types';
 import type { IDBPDatabase } from 'idb';
 import type { TasksHarmonyDB } from '@/db/schema';
