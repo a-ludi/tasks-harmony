@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '@/store';
 import { performSync, buildConflictUrl } from '@/sync/sync';
 import { pullState, pushConflictCopy } from '@/sync/webdav';
@@ -24,6 +24,7 @@ function formatRelativeTime(iso: string | undefined): string {
 export function SyncButton() {
   const syncState = useAppStore((s) => s.syncState);
   const updateSyncState = useAppStore((s) => s.updateSyncState);
+  const reload = useAppStore((s) => s.reload);
   const db = useAppStore((s) => s.db);
 
   const [syncing, setSyncing] = useState(false);
@@ -32,12 +33,11 @@ export function SyncButton() {
   const [showUrlInput, setShowUrlInput] = useState(!syncState?.webdavUrl);
   const [conflict, setConflict] = useState<ConflictInfo | null>(null);
   const pendingConflictRef = useRef<ConflictInfo | null>(null);
+  const syncStateRef = useRef(syncState);
+  useEffect(() => { syncStateRef.current = syncState; }, [syncState]);
 
   // syncState not yet loaded
   if (!syncState) return null;
-
-  // Capture a non-null reference for use in async callbacks
-  const currentSyncState = syncState;
 
   async function triggerSync(state: SyncState) {
     if (!db) return;
@@ -60,17 +60,23 @@ export function SyncButton() {
     const info = pendingConflictRef.current;
     setConflict(null);
     pendingConflictRef.current = null;
-    if (!db || !info || !currentSyncState.webdavUrl) return;
+    if (!db || !info || !syncStateRef.current?.webdavUrl) return;
 
     if (choice === 'local') {
-      await triggerSync({ ...currentSyncState, id: 'main', serverEtag: undefined });
+      await triggerSync({ ...syncStateRef.current, id: 'main', serverEtag: undefined });
     } else if (choice === 'remote') {
       try {
         setSyncing(true);
-        const remote = await pullState(currentSyncState.webdavUrl);
+        const remote = await pullState(syncStateRef.current.webdavUrl);
         if (remote) {
           await importAppState(db, remote);
-          updateSyncState({ ...currentSyncState, id: 'main', serverEtag: info.serverEtag, lastSyncedAt: new Date().toISOString(), pendingSync: false });
+          await reload();
+          updateSyncState({
+            ...syncStateRef.current,
+            serverEtag: info.serverEtag,
+            lastSyncedAt: new Date().toISOString(),
+            pendingSync: false,
+          });
         }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to pull remote state');
@@ -81,8 +87,8 @@ export function SyncButton() {
       try {
         setSyncing(true);
         const suffix = buildConflictSuffix(info.detectedAt);
-        await pushConflictCopy(currentSyncState.webdavUrl, info.localState, suffix);
-        const conflictUrl = buildConflictUrl(currentSyncState.webdavUrl, info.detectedAt);
+        await pushConflictCopy(syncStateRef.current.webdavUrl, info.localState, suffix);
+        const conflictUrl = buildConflictUrl(syncStateRef.current.webdavUrl, info.detectedAt);
         setError(`Conflict copy saved to: ${conflictUrl}. Inspect both files on the server, delete the conflict file, and sync again when ready.`);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to write conflict file');
@@ -94,12 +100,12 @@ export function SyncButton() {
 
   function handleSaveUrl() {
     const trimmed = webdavInput.trim();
-    if (!trimmed) return;
-    updateSyncState({ ...currentSyncState, id: 'main', webdavUrl: trimmed });
+    if (!trimmed || !syncStateRef.current) return;
+    updateSyncState({ ...syncStateRef.current, id: 'main', webdavUrl: trimmed });
     setShowUrlInput(false);
   }
 
-  if (!currentSyncState.webdavUrl || showUrlInput) {
+  if (!syncState.webdavUrl || showUrlInput) {
     return (
       <div className="flex items-center gap-2">
         <input type="url" value={webdavInput} onChange={(e) => setWebdavInput(e.target.value)}
@@ -113,15 +119,15 @@ export function SyncButton() {
   return (
     <>
       <div className="flex items-center gap-2">
-        <button onClick={() => triggerSync(currentSyncState)} disabled={syncing}
+        <button onClick={() => triggerSync(syncState)} disabled={syncing}
           className="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Sync now">
           <svg className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0114.13-3.13M20 15a9 9 0 01-14.13 3.13" />
           </svg>
           <span>{syncing ? 'Syncing…' : 'Sync'}</span>
         </button>
-        {currentSyncState.pendingSync && !syncing && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Pending</span>}
-        <span className="text-xs text-gray-500 hidden sm:inline">{formatRelativeTime(currentSyncState.lastSyncedAt)}</span>
+        {syncState.pendingSync && !syncing && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Pending</span>}
+        <span className="text-xs text-gray-500 hidden sm:inline">{formatRelativeTime(syncState.lastSyncedAt)}</span>
         <button onClick={() => setShowUrlInput(true)} className="text-xs text-gray-400 hover:text-gray-600 underline" aria-label="Configure WebDAV URL">Configure</button>
       </div>
       {error && (

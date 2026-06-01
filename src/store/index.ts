@@ -30,6 +30,7 @@ interface AppState {
   syncState: SyncState | null;
 
   init: () => Promise<void>;
+  reload: () => Promise<void>;
   addChore: (data: Omit<Chore, 'key' | 'choreId' | 'createdAt'>) => Promise<void>;
   updateChore: (chore: Chore) => Promise<void>;
   deactivateChore: (key: string) => Promise<void>;
@@ -68,6 +69,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       ]);
 
     set({ db, loaded: true, packs, chores, completions, questions, xpSettings, profile, syncState });
+  },
+
+  reload: async () => {
+    const { db } = get();
+    if (!db) return;
+    const [packs, chores, completions, questions, xpSettings, profile, syncState] =
+      await Promise.all([
+        getPacks(db), getAllChores(db), getAllCompletions(db), getAllQuestions(db),
+        getXPSettings(db), getProfile(db), getSyncState(db),
+      ]);
+    set({ packs, chores, completions, questions, xpSettings, profile: profile ?? null, syncState: syncState ?? null });
   },
 
   addChore: async (data) => {

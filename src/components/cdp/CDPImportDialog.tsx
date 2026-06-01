@@ -49,7 +49,7 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
         </div>
 
         {!isOnline && (
-          <div role="status" className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
+          <div role="alert" className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
             You are offline. CDP import is unavailable until you reconnect.
           </div>
         )}

@@ -35,7 +35,12 @@ export async function performSync(
     return syncState;
   }
 
-  return { ...syncState, serverEtag: result.newEtag, lastSyncedAt: now, pendingSync: false };
+  return {
+    ...syncState,
+    serverEtag: result.newEtag ?? syncState.serverEtag,
+    lastSyncedAt: now,
+    pendingSync: false,
+  };
 }
 
 export function buildConflictUrl(stateUrl: string, isoDatetime: string): string {

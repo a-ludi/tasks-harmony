@@ -2,7 +2,7 @@ import { createClient } from 'webdav';
 import type { AppState } from '@/types';
 
 export type PushResult =
-  | { success: true; newEtag: string }
+  | { success: true; newEtag: string | undefined }
   | { success: false; conflict: true; serverEtag: string };
 
 function clientForUrl(fileUrl: string) {
@@ -40,7 +40,7 @@ export async function pushState(
       : undefined;
     if (rawEtag) return { success: true, newEtag: rawEtag };
     const freshEtag = await getServerEtag(url);
-    return { success: true, newEtag: freshEtag ?? '' };
+    return { success: true, newEtag: freshEtag ?? undefined };
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
     if (status === 412) {
