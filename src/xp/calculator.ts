@@ -15,5 +15,8 @@ export function calculateXP(
     - (maxStreakMultiplier - 1) * Math.exp(-Math.LN2 / streakHalfLife * streakCount);
   const decayMult = decayFloor
     + (1 - decayFloor) * Math.exp(-Math.LN2 / decayHalfLife * streakCount);
+  // Defensive floor of 1: custom XPSettings with a very low multiplier × a small base (e.g.
+  // XXS=0.5) could produce a product < 0.5, which rounds to 0.  Earning 0 XP for completing a
+  // chore would be confusing, so we guarantee at least 1 XP regardless of settings.
   return Math.max(1, Math.round(base * streakMult * decayMult));
 }

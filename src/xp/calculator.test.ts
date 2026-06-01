@@ -31,10 +31,17 @@ describe('calculateXP', () => {
   test('higher streak earns more than lower streak (streakMult dominates at low streaks)', () => {
     expect(calculateXP('M', 14, STANDARD)).toBeGreaterThan(calculateXP('M', 1, STANDARD));
   });
-  test('decay is driven by streak, not total completions per spec §7.3', () => {
-    // totalCompletions must not be a parameter; only streakCount drives the decay factor
-    // Calling with same streak must always yield same result regardless of past completions
-    expect(calculateXP('M', 5, STANDARD)).toBe(calculateXP('M', 5, STANDARD));
+  test('decay is driven by streak — different streak counts produce different XP values', () => {
+    // Verifies streakCount actually influences the decay factor.
+    // If totalCompletions were mistakenly re-introduced as a separate parameter that affected
+    // the result, a caller using streak=1 vs streak=10 would still differ, but the test below
+    // locks in that the *only* variable is streakCount: a low streak should yield lower XP
+    // than a mid-range streak (streak bonus not yet saturated, decay not yet minimal).
+    const atStreak1 = calculateXP('M', 1, STANDARD);
+    const atStreak5 = calculateXP('M', 5, STANDARD);
+    const atStreak10 = calculateXP('M', 10, STANDARD);
+    expect(atStreak5).toBeGreaterThan(atStreak1);
+    expect(atStreak10).toBeGreaterThan(atStreak5);
   });
   test('XP converges toward base × maxStreakMultiplier × decayFloor at extreme streak values', () => {
     // M base=3, maxStreakMultiplier=2, decayFloor=0.5 → 3 * 2 * 0.5 = 3.0 ≈ 3
