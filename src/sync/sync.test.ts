@@ -25,7 +25,7 @@ mock.module('@/sync/state', () => ({
   buildConflictSuffix: (iso: string) => `_conflict_${iso.substring(0, 10)}`,
 }));
 
-const { performSync } = await import('./sync');
+const { performSync, buildConflictUrl } = await import('./sync');
 
 function makeAppState(exportedAt = '2026-05-31T10:00:00.000Z'): AppState {
   return {
@@ -104,5 +104,17 @@ describe('performSync', () => {
     await performSync(db as never, syncState, mock(() => {}));
     const [, , expectedEtag] = capturedArgs[0] as [string, AppState, string];
     expect(expectedEtag).toBe('"knownEtag"');
+  });
+});
+
+describe('buildConflictUrl', () => {
+  it('returns conflict URL with date suffix inserted before .json', () => {
+    const result = buildConflictUrl('https://dav.example.com/tasks-harmony/state.json', '2026-05-31T10:00:00.000Z');
+    expect(result).toBe('https://dav.example.com/tasks-harmony/state_conflict_2026-05-31.json');
+  });
+
+  it('uses only the date portion (YYYY-MM-DD) from ISO datetime', () => {
+    const result = buildConflictUrl('https://dav.example.com/tasks-harmony/state.json', '2026-05-31T23:59:59.999Z');
+    expect(result).toBe('https://dav.example.com/tasks-harmony/state_conflict_2026-05-31.json');
   });
 });

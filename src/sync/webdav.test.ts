@@ -162,3 +162,26 @@ describe('pullState', () => {
     expect(result).toBeNull();
   });
 });
+
+async function pushConflictCopy(url: string, state: AppState, conflictSuffix: string): Promise<void> {
+  const conflictUrl = url.replace(/\.json$/, `${conflictSuffix}.json`);
+  const { client, filename: conflictFilename } = clientForUrl(conflictUrl);
+  const body = JSON.stringify(state, null, 2);
+  await client.putFileContents(conflictFilename, body, {
+    headers: { 'Content-Type': 'application/json' },
+    overwrite: true,
+  });
+}
+
+describe('pushConflictCopy', () => {
+  beforeEach(() => { mockPutFileContents.mockReset(); mockCreateClient.mockClear(); });
+
+  it('calls putFileContents with conflict filename', async () => {
+    const state = makeAppState();
+    mockPutFileContents.mockImplementationOnce(async () => true);
+    await pushConflictCopy('https://dav.example.com/tasks-harmony/state.json', state, '_conflict_2026-05-31');
+    expect(mockPutFileContents).toHaveBeenCalled();
+    const callArgs = mockPutFileContents.mock.calls[0];
+    expect(callArgs?.[0]).toBe('state_conflict_2026-05-31.json');
+  });
+});
