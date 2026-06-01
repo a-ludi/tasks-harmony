@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["schemaVersion", "exportedAt", "packs", "chores", "questions", "completions", "xpSettings", "profile", "syncState"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "exportedAt": { "type": "string" },
+    "packs": { "type": "array" },
+    "chores": { "type": "array" },
+    "questions": { "type": "array" },
+    "completions": { "type": "array" },
+    "xpSettings": { "type": "array" },
+    "profile": { "type": "object", "required": ["id", "displayName", "email", "activeXPSettingsId"] },
+    "syncState": { "type": "object", "required": ["id", "pendingSync"] }
+  },
+  "additionalProperties": false
+}

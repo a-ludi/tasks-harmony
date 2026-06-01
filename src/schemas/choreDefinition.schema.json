@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["title", "xpSize", "frequency", "interval"],
+  "properties": {
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "xpSize": { "type": "string", "enum": ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+    "frequency": { "type": "string", "enum": ["daily", "weekly", "monthly"] },
+    "interval": { "type": "integer", "minimum": 1 },
+    "windowStartTime": { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" },
+    "repeatable": { "type": "boolean" },
+    "questions": { "type": "array" }
+  },
+  "additionalProperties": false
+}

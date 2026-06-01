@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["title"],
+  "properties": {
+    "title": { "type": "string", "minLength": 1 },
+    "author": { "type": "string" },
+    "license": { "type": "string" },
+    "description": { "type": "string" },
+    "revision": { "type": "string" },
+    "revisionHistory": { "type": "string" },
+    "cdpCreatedAt": { "type": "string" },
+    "chores": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}
