@@ -1,13 +1,24 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import type { AppState, SyncState } from '@/types';
 
-const mockExportAppState = mock(async () => makeAppState());
-const mockGetServerEtag = mock(async (_url: string) => null as string | null);
-const mockPushState = mock(async () => ({ success: true as const, newEtag: '"newtag"' }));
-const mockNeedsConflictResolution = mock((_state: SyncState, _etag: string) => false);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockExportAppState = mock(async (): Promise<any> => makeAppState());
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockGetServerEtag = mock(async (_url: string): Promise<any> => null as string | null);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockPushState = mock(async (): Promise<any> => ({ success: true as const, newEtag: '"newtag"' }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockNeedsConflictResolution = mock((_state: SyncState, _etag: string): any => false);
 
 mock.module('@/sync/export', () => ({ exportAppState: mockExportAppState }));
-mock.module('@/sync/webdav', () => ({ getServerEtag: mockGetServerEtag, pushState: mockPushState }));
+mock.module('@/sync/webdav', () => ({
+  getServerEtag: mockGetServerEtag,
+  pushState: mockPushState,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pullState: mock(async (_url: string): Promise<any> => null),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pushConflictCopy: mock(async (): Promise<any> => undefined),
+}));
 mock.module('@/sync/state', () => ({
   needsConflictResolution: mockNeedsConflictResolution,
   canSync: (_s: SyncState) => Boolean(_s.webdavUrl),
@@ -39,7 +50,8 @@ describe('performSync', () => {
 
   it('returns updated SyncState with new etag on successful push', async () => {
     const syncState = makeSyncState({ serverEtag: undefined });
-    const onConflict = mock(() => {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onConflict = mock((_info: any) => {});
     const db = {} as IDBDatabase;
     const result = await performSync(db as never, syncState, onConflict);
     expect(result.pendingSync).toBe(false);
@@ -52,7 +64,8 @@ describe('performSync', () => {
     mockGetServerEtag.mockImplementationOnce(async () => '"remoteTag"');
     mockNeedsConflictResolution.mockImplementationOnce(() => true);
     const syncState = makeSyncState({ serverEtag: '"differentTag"' });
-    const onConflict = mock(() => {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onConflict = mock((_info: any) => {});
     const db = {} as IDBDatabase;
     const result = await performSync(db as never, syncState, onConflict);
     expect(onConflict).toHaveBeenCalledTimes(1);
@@ -65,7 +78,8 @@ describe('performSync', () => {
   it('calls onConflict and returns unchanged state when pushState returns conflict', async () => {
     mockPushState.mockImplementationOnce(async () => ({ success: false as const, conflict: true as const, serverEtag: '"conflictTag"' }));
     const syncState = makeSyncState();
-    const onConflict = mock(() => {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onConflict = mock((_info: any) => {});
     const db = {} as IDBDatabase;
     const result = await performSync(db as never, syncState, onConflict);
     expect(onConflict).toHaveBeenCalledTimes(1);
@@ -74,7 +88,8 @@ describe('performSync', () => {
 
   it('does not call pushState when webdavUrl is absent', async () => {
     const syncState = makeSyncState({ webdavUrl: undefined });
-    const onConflict = mock(() => {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onConflict = mock((_info: any) => {});
     const db = {} as IDBDatabase;
     const result = await performSync(db as never, syncState, onConflict);
     expect(mockPushState).not.toHaveBeenCalled();

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "bun test",
+    "test": "bun test --isolate",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

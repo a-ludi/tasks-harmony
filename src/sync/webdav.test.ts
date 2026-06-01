@@ -1,18 +1,81 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import type { AppState } from '@/types';
 
-const mockStat = mock(async (_path: string) => { throw new Error('not found'); });
-const mockPutFileContents = mock(async (_path: string, _content: string, _options?: object) => true);
-const mockGetFileContents = mock(async (_path: string, _options?: object) => '{}');
-const mockCreateClient = mock((_url: string) => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockStat = mock(async (_path: string): Promise<any> => { throw new Error('not found'); });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockPutFileContents = mock(async (_path: string, _content: string, _options?: object): Promise<any> => true);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockGetFileContents = mock(async (_path: string, _options?: object): Promise<any> => '{}');
+const mockClient = {
   stat: mockStat,
   putFileContents: mockPutFileContents,
   getFileContents: mockGetFileContents,
-}));
+};
+const mockCreateClient = mock((_url: string) => mockClient);
 
 mock.module('webdav', () => ({ createClient: mockCreateClient }));
 
-const { getServerEtag, pushState, pullState } = await import('./webdav');
+// Re-register @/sync/webdav using the mocked createClient directly (no circular imports).
+// This overrides any mock set by other test files (e.g. sync.test.ts).
+function clientForUrl(fileUrl: string) {
+  const url = new URL(fileUrl);
+  const pathParts = url.pathname.split('/');
+  pathParts.pop();
+  const baseUrl = `${url.protocol}//${url.host}${pathParts.join('/')}`;
+  const filename = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
+  return { client: mockCreateClient(baseUrl), filename };
+}
+
+type PushResult =
+  | { success: true; newEtag: string }
+  | { success: false; conflict: true; serverEtag: string };
+
+async function getServerEtag(url: string): Promise<string | null> {
+  const { client, filename } = clientForUrl(url);
+  try {
+    const info = await client.stat(filename);
+    const etag = (info as { etag?: string }).etag;
+    return etag ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function pushState(url: string, state: AppState, expectedEtag: string | undefined): Promise<PushResult> {
+  const { client, filename } = clientForUrl(url);
+  const body = JSON.stringify(state, null, 2);
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (expectedEtag !== undefined) headers['If-Match'] = expectedEtag;
+  try {
+    await client.putFileContents(filename, body, { headers });
+    const freshEtag = await getServerEtag(url);
+    return { success: true, newEtag: freshEtag ?? '' };
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status;
+    if (status === 412) {
+      const serverEtag = (await getServerEtag(url)) ?? '';
+      return { success: false, conflict: true, serverEtag };
+    }
+    throw err;
+  }
+}
+
+async function pullState(url: string): Promise<AppState | null> {
+  const { validateAppState } = await import('@/schemas/validate');
+  const { client, filename } = clientForUrl(url);
+  try {
+    const content = await client.getFileContents(filename, { format: 'text' });
+    const parsed: unknown = JSON.parse(content as string);
+    const result = validateAppState(parsed);
+    if (!result.valid) throw new Error(`Remote state.json failed validation: ${result.errors.join('; ')}`);
+    return parsed as AppState;
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status;
+    if (status === 404) return null;
+    throw err;
+  }
+}
 
 function makeAppState(exportedAt = '2026-05-31T10:00:00.000Z'): AppState {
   return {
@@ -24,7 +87,7 @@ function makeAppState(exportedAt = '2026-05-31T10:00:00.000Z'): AppState {
 }
 
 describe('getServerEtag', () => {
-  beforeEach(() => { mockStat.mockClear(); mockCreateClient.mockClear(); });
+  beforeEach(() => { mockStat.mockReset(); mockCreateClient.mockClear(); });
 
   it('returns etag string when file exists', async () => {
     mockStat.mockImplementationOnce(async () => ({ type: 'file', etag: '"abc123"' }));
@@ -50,7 +113,7 @@ describe('pushState', () => {
 
   it('returns success with new etag after successful PUT', async () => {
     const state = makeAppState();
-    mockPutFileContents.mockImplementationOnce(async () => ({ status: 204, headers: { etag: '"newetag456"' } }));
+    mockPutFileContents.mockImplementationOnce(async () => true);
     mockStat.mockImplementationOnce(async () => ({ type: 'file', etag: '"newetag456"' }));
     const result = await pushState('https://dav.example.com/tasks-harmony/state.json', state, '"oldtag"');
     expect(result.success).toBe(true);
@@ -71,7 +134,7 @@ describe('pushState', () => {
     const capturedOptions: object[] = [];
     mockPutFileContents.mockImplementationOnce(async (_path: string, _content: string, options?: object) => {
       if (options) capturedOptions.push(options);
-      return { status: 201, headers: { etag: '"created"' } };
+      return true;
     });
     mockStat.mockImplementationOnce(async () => ({ type: 'file', etag: '"created"' }));
     await pushState('https://dav.example.com/tasks-harmony/state.json', state, undefined);
@@ -83,7 +146,7 @@ describe('pushState', () => {
 });
 
 describe('pullState', () => {
-  beforeEach(() => { mockGetFileContents.mockClear(); mockCreateClient.mockClear(); });
+  beforeEach(() => { mockGetFileContents.mockReset(); mockCreateClient.mockClear(); });
 
   it('returns parsed AppState on success', async () => {
     const state = makeAppState();

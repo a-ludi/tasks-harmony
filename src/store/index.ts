@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion } from '@/db';
+import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, putPack } from '@/db';
 import { titleToFilename } from '@/cdp/filename';
+import { fetchCDP } from '@/cdp/cdp-import';
 import { calculateXP } from '@/xp/calculator';
 import { computeNewStreak } from '@/chores/streak';
 import type {
@@ -36,6 +37,8 @@ interface AppState {
   updateProfile: (profile: UserProfile) => Promise<void>;
   updateSyncState: (state: SyncState) => Promise<void>;
   saveQuestions: (choreKey: string, drafts: DraftQuestion[]) => Promise<void>;
+  importCDP: (baseUrl: string) => Promise<void>;
+  updateCDP: (packId: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -184,5 +187,29 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const allQuestions = await getAllQuestions(db);
     set({ questions: allQuestions });
+  },
+
+  importCDP: async (baseUrl) => {
+    const { db } = get();
+    if (!db) throw new Error('Database not initialised');
+    const { pack, chores } = await fetchCDP(baseUrl);
+    await putPack(db, pack);
+    for (const chore of chores) await putChore(db, chore);
+    const [updatedPacks, updatedChores] = await Promise.all([getPacks(db), getAllChores(db)]);
+    set({ packs: updatedPacks, chores: updatedChores });
+  },
+
+  updateCDP: async (packId) => {
+    const { db, packs } = get();
+    if (!db) throw new Error('Database not initialised');
+    const pack = packs.find((p) => p.id === packId);
+    if (!pack) throw new Error(`Pack '${packId}' not found in store`);
+    if (!pack.sourceUrl) throw new Error(`Pack '${packId}' has no sourceUrl — cannot update`);
+    const { pack: updatedPack, chores: updatedChores } = await fetchCDP(pack.sourceUrl);
+    for (const chore of updatedChores) await putChore(db, chore);
+    const refreshedPack: Pack = { ...updatedPack, importedAt: pack.importedAt, updatedAt: new Date().toISOString() };
+    await putPack(db, refreshedPack);
+    const [finalPacks, finalChores] = await Promise.all([getPacks(db), getAllChores(db)]);
+    set({ packs: finalPacks, chores: finalChores });
   },
 }));
