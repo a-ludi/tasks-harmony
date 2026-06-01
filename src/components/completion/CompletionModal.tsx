@@ -67,7 +67,7 @@ export default function CompletionModal({ choreKey, questions, onClose }: Props)
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <h2 className="mb-1 text-lg font-semibold text-gray-900">Complete Chore</h2>
         <p className="mb-4 text-sm text-gray-500">
           Please answer the following questions to record your completion.

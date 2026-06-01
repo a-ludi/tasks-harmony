@@ -3,6 +3,7 @@ import { useAppStore } from '@/store';
 import type { Chore, XPSize, RecurrenceFrequency } from '@/types';
 import QuestionBuilder from '@/components/questions/QuestionBuilder';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
+import { validateQuestionDrafts } from './choreFormValidation';
 
 interface Props {
   chore?: Chore;
@@ -25,6 +26,7 @@ interface FormErrors {
   title?: string;
   interval?: string;
   startDate?: string;
+  questions?: string;
 }
 
 export default function ChoreFormModal({ chore, packId, onClose }: Props) {
@@ -73,6 +75,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
     e.preventDefault();
 
     const errs = validate();
+    const regexErr = validateQuestionDrafts(questionDrafts);
+    if (regexErr) errs.questions = regexErr;
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setErrors({});
     setSubmitting(true);
@@ -253,6 +257,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
                     : 'None'}
                 </span>
               </div>
+              {errors.questions && (
+                <p className="mb-2 text-xs text-red-600">{errors.questions}</p>
+              )}
               <QuestionBuilder
                 choreKey={chore!.key}
                 initialQuestions={initialQuestions}

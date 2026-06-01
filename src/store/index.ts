@@ -4,6 +4,7 @@ import { titleToFilename } from '@/cdp/filename';
 import { fetchCDP } from '@/cdp/cdp-import';
 import { calculateXP } from '@/xp/calculator';
 import { computeNewStreak } from '@/chores/streak';
+import { recordCompletionWithTimestamp } from './recordCompletion';
 import type {
   Chore,
   Completion,
@@ -141,6 +142,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!chore) throw new Error(`Chore not found: ${choreKey}`);
 
     const now = new Date();
+    recordCompletionWithTimestamp(now);
 
     const activeSettingsId = profile?.activeXPSettingsId;
     const activeSettings =
