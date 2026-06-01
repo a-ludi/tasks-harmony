@@ -20,6 +20,15 @@ describe('DB', () => {
     expect(names).toContain('Hard Mode');
   });
 
+  test('Standard XP settings default to spec §7.2 values: maxMultiplier=2, decayFloor=0.5', async () => {
+    const db = await openDB(`test-${crypto.randomUUID()}`);
+    const settings = await getXPSettings(db);
+    const standard = settings.find((s) => s.id === 'standard');
+    expect(standard).toBeDefined();
+    expect(standard!.maxStreakMultiplier).toBe(2);
+    expect(standard!.decayFloor).toBe(0.5);
+  });
+
   test('seeds empty profile with standard XP active', async () => {
     const db = await openDB(`test-${crypto.randomUUID()}`);
     const profile = await getProfile(db);

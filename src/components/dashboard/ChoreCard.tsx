@@ -34,9 +34,8 @@ export default function ChoreCard({ chore, completions, xpSettings, profile }: P
     xpSettings.find((s) => s.id === profile?.activeXPSettingsId) ?? xpSettings[0];
 
   const nextStreak = activeSettings ? computeNewStreak(chore, choreCompletions, now) : 1;
-  const nextTotalCompletions = choreCompletions.length;
   const effectiveXP = activeSettings
-    ? calculateXP(chore.xpSize, nextStreak, nextTotalCompletions, activeSettings)
+    ? calculateXP(chore.xpSize, nextStreak, activeSettings)
     : 0;
 
   const sortedCompletions = [...choreCompletions].sort(
