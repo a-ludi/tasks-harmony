@@ -1,5 +1,5 @@
 export type XPSize = 'XXS' | 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL' | 'XXXL';
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
+export type RecurrenceFrequency = 'hourly' | 'daily' | 'weekly' | 'monthly';
 export type QuestionType = 'TEXT' | 'INTEGER' | 'BOOLEAN' | 'ENUM';
 export type ChoreStatus = 'overdue' | 'due' | 'completed' | 'upcoming';
 export type ChoreSyncStatus = 'in-sync' | 'out-of-sync';

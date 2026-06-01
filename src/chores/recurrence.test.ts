@@ -193,14 +193,14 @@ describe('getChoreStatus', () => {
     expect(getChoreStatus(chore, [], now)).toBe('due');
   });
 
-  it('returns due (not throw) for malformed recurrence frequency', () => {
+  it('returns upcoming (not throw) for malformed recurrence frequency', () => {
     const chore: Chore = {
       ...makeChore(makeRecurrence('daily', 1, '2026-01-10')),
       recurrence: { frequency: 'bogus' as Recurrence['frequency'], interval: 1, startDate: '2026-01-10', windowStartTime: '00:00' },
     };
     const now = localMidnight('2026-01-11');
     const result = getChoreStatus(chore, [], now);
-    expect(result).toBe('due');
+    expect(result).toBe('upcoming');
   });
 });
 
@@ -231,4 +231,125 @@ describe('formatRecurrence', () => {
     expect(formatRecurrence(makeRecurrence('monthly', 6, '2026-01-01'))).toBe('Every 6 months');
   });
 
+});
+
+// ── Bug #4: hourly recurrence ─────────────────────────────────────────────────
+
+describe('getWindowStart — hourly', () => {
+  it('index 0 hourly/1 returns startDate at windowStartTime (top of start hour)', () => {
+    const rec = makeRecurrence('hourly', 1, '2026-01-10', '09:00');
+    const result = getWindowStart(rec, 0);
+    const expected = new Date(2026, 0, 10, 9, 0, 0, 0);
+    expect(result.getTime()).toBe(expected.getTime());
+  });
+
+  it('index 3 hourly/1 returns startDate + 3 hours', () => {
+    const rec = makeRecurrence('hourly', 1, '2026-01-10', '09:00');
+    const result = getWindowStart(rec, 3);
+    const expected = new Date(2026, 0, 10, 12, 0, 0, 0);
+    expect(result.getTime()).toBe(expected.getTime());
+  });
+
+  it('index 1 hourly/2 returns startDate + 2 hours (interval respected)', () => {
+    const rec = makeRecurrence('hourly', 2, '2026-01-10', '08:00');
+    const result = getWindowStart(rec, 1);
+    const expected = new Date(2026, 0, 10, 10, 0, 0, 0);
+    expect(result.getTime()).toBe(expected.getTime());
+  });
+
+  it('crosses midnight correctly', () => {
+    const rec = makeRecurrence('hourly', 1, '2026-01-10', '23:00');
+    const result = getWindowStart(rec, 2);
+    const expected = new Date(2026, 0, 11, 1, 0, 0, 0); // Jan 11 01:00
+    expect(result.getTime()).toBe(expected.getTime());
+  });
+});
+
+describe('getCurrentWindowIndex — hourly', () => {
+  it('returns 0 at the start of the first hour window', () => {
+    const rec = makeRecurrence('hourly', 1, '2026-01-10', '09:00');
+    const now = new Date(2026, 0, 10, 9, 0, 0, 0);
+    expect(getCurrentWindowIndex(rec, now)).toBe(0);
+  });
+
+  it('returns 0 partway through the first hour window', () => {
+    const rec = makeRecurrence('hourly', 1, '2026-01-10', '09:00');
+    const now = new Date(2026, 0, 10, 9, 45, 0, 0);
+    expect(getCurrentWindowIndex(rec, now)).toBe(0);
+  });
+
+  it('returns 3 three hours after start', () => {
+    const rec = makeRecurrence('hourly', 1, '2026-01-10', '09:00');
+    const now = new Date(2026, 0, 10, 12, 30, 0, 0);
+    expect(getCurrentWindowIndex(rec, now)).toBe(3);
+  });
+});
+
+describe('formatRecurrence — hourly', () => {
+  it('interval=1 hourly → "Hourly"', () => {
+    expect(formatRecurrence(makeRecurrence('hourly', 1, '2026-01-01'))).toBe('Hourly');
+  });
+
+  it('interval=4 hourly → "Every 4 hours"', () => {
+    expect(formatRecurrence(makeRecurrence('hourly', 4, '2026-01-01'))).toBe('Every 4 hours');
+  });
+});
+
+describe('getChoreStatus — hourly', () => {
+  it('returns completed when there is a completion in the current hour window', () => {
+    const rec = makeRecurrence('hourly', 1, '2026-01-10', '09:00');
+    const chore = makeChore(rec);
+    const now = new Date(2026, 0, 10, 9, 30, 0, 0);
+    // completion at 9:15 — within window 0 (09:00–10:00)
+    const completedAt = new Date(2026, 0, 10, 9, 15, 0, 0).toISOString();
+    expect(getChoreStatus(chore, [makeCompletion(completedAt)], now)).toBe('completed');
+  });
+
+  it('returns due in first hour window with no completions', () => {
+    const rec = makeRecurrence('hourly', 1, '2026-01-10', '09:00');
+    const chore = makeChore(rec);
+    const now = new Date(2026, 0, 10, 9, 30, 0, 0);
+    expect(getChoreStatus(chore, [], now)).toBe('due');
+  });
+});
+
+// ── Bug #7: malformed recurrence doesn't crash ────────────────────────────────
+
+describe('getChoreStatus — malformed recurrence', () => {
+  it('returns upcoming (not throw) when startDate is missing', () => {
+    const chore: Chore = {
+      ...makeChore(makeRecurrence('daily', 1, '2026-01-10')),
+      recurrence: { frequency: 'daily', interval: 1, startDate: undefined as unknown as string, windowStartTime: '00:00' },
+    };
+    const now = localMidnight('2026-01-11');
+    expect(getChoreStatus(chore, [], now)).toBe('upcoming');
+  });
+
+  it('returns upcoming (not throw) when startDate is empty string', () => {
+    const chore: Chore = {
+      ...makeChore(makeRecurrence('daily', 1, '2026-01-10')),
+      recurrence: { frequency: 'daily', interval: 1, startDate: '', windowStartTime: '00:00' },
+    };
+    const now = localMidnight('2026-01-11');
+    expect(getChoreStatus(chore, [], now)).toBe('upcoming');
+  });
+
+  it('returns upcoming (not throw) when frequency is missing', () => {
+    const chore: Chore = {
+      ...makeChore(makeRecurrence('daily', 1, '2026-01-10')),
+      recurrence: { frequency: undefined as unknown as Recurrence['frequency'], interval: 1, startDate: '2026-01-10', windowStartTime: '00:00' },
+    };
+    const now = localMidnight('2026-01-11');
+    expect(getChoreStatus(chore, [], now)).toBe('upcoming');
+  });
+
+  it('getWindowStart throws a descriptive error when startDate is missing', () => {
+    const rec = { frequency: 'daily' as const, interval: 1, startDate: undefined as unknown as string, windowStartTime: '00:00' };
+    expect(() => getWindowStart(rec, 0)).toThrow('malformed recurrence: missing startDate');
+  });
+
+  it('getWindowStart throws a descriptive error when frequency is missing', () => {
+    const rec = { frequency: undefined as unknown as Recurrence['frequency'], interval: 1, startDate: '2026-01-10', windowStartTime: '00:00' };
+    expect(() => getWindowStart(rec, 0)).toThrow('malformed recurrence: missing frequency');
+  });
 });

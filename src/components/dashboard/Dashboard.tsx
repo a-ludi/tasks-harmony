@@ -42,11 +42,15 @@ export default function Dashboard() {
   for (const [status, group] of grouped) {
     if (status === 'overdue' || status === 'due') {
       group.sort((a, b) => {
-        const idxA = getCurrentWindowIndex(a.recurrence, now) ?? 0;
-        const idxB = getCurrentWindowIndex(b.recurrence, now) ?? 0;
-        const endA = getWindowEnd(a.recurrence, idxA).getTime();
-        const endB = getWindowEnd(b.recurrence, idxB).getTime();
-        return endA - endB;
+        try {
+          const idxA = getCurrentWindowIndex(a.recurrence, now) ?? 0;
+          const idxB = getCurrentWindowIndex(b.recurrence, now) ?? 0;
+          const endA = getWindowEnd(a.recurrence, idxA).getTime();
+          const endB = getWindowEnd(b.recurrence, idxB).getTime();
+          return endA - endB;
+        } catch {
+          return 0;
+        }
       });
     } else if (status === 'completed') {
       group.sort((a, b) => {

@@ -1,11 +1,21 @@
 import type { Chore, Completion, ChoreStatus, Recurrence } from '@/types';
 
 export function getWindowStart(recurrence: Recurrence, index: number): Date {
+  if (!recurrence.startDate) {
+    throw new Error('malformed recurrence: missing startDate');
+  }
+  if (!recurrence.frequency) {
+    throw new Error('malformed recurrence: missing frequency');
+  }
+
   const [year, month, day] = recurrence.startDate.split('-').map(Number);
   const [hours, minutes] = recurrence.windowStartTime.split(':').map(Number);
   const base = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
   switch (recurrence.frequency) {
+    case 'hourly':
+      base.setHours(base.getHours() + index * recurrence.interval);
+      break;
     case 'daily':
       base.setDate(base.getDate() + index * recurrence.interval);
       break;
@@ -32,6 +42,7 @@ export function getCurrentWindowIndex(recurrence: Recurrence, now: Date): number
   if (now < startDate) return null;
 
   const approxMs: Record<Recurrence['frequency'], number> = {
+    hourly: 3_600_000,
     daily: 86_400_000,
     weekly: 604_800_000,
     monthly: 2_592_000_000,
@@ -89,20 +100,25 @@ export function getChoreStatus(
 
     return 'due';
   } catch (e) {
-    if (e instanceof Error && e.message.startsWith('Unknown recurrence frequency:')) {
-      return 'due';
+    if (e instanceof Error && (
+      e.message.startsWith('Unknown recurrence frequency:') ||
+      e.message.startsWith('malformed recurrence:')
+    )) {
+      return 'upcoming';
     }
     throw e;
   }
 }
 
 const SINGULAR: Record<Recurrence['frequency'], string> = {
+  hourly: 'Hourly',
   daily: 'Daily',
   weekly: 'Weekly',
   monthly: 'Monthly',
 };
 
 const PLURAL: Record<Recurrence['frequency'], string> = {
+  hourly: 'hours',
   daily: 'days',
   weekly: 'weeks',
   monthly: 'months',
