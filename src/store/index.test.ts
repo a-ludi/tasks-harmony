@@ -26,4 +26,10 @@ describe('recordCompletionWithTimestamp', () => {
     const tooFuture = new Date(Date.now() + 1001);
     expect(() => recordCompletionWithTimestamp(tooFuture)).toThrow(/future/i);
   });
+
+  it('returns the validated timestamp', () => {
+    const now = new Date();
+    const returned = recordCompletionWithTimestamp(now);
+    expect(returned).toBe(now);
+  });
 });

@@ -141,8 +141,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const chore = chores.find((c) => c.key === choreKey);
     if (!chore) throw new Error(`Chore not found: ${choreKey}`);
 
-    const now = new Date();
-    recordCompletionWithTimestamp(now);
+    const now = recordCompletionWithTimestamp(new Date());
 
     const activeSettingsId = profile?.activeXPSettingsId;
     const activeSettings =
