@@ -107,4 +107,12 @@ describe('computeNewStreak', () => {
     const completions = [makeCompletion(completedAt, 2)];
     expect(computeNewStreak(chore, completions, now)).toBe(3);
   });
+
+  it('returns 1 when now is before startDate (currentIdx === null)', () => {
+    const rec = makeRecurrence('daily', 1, '2099-01-01');
+    const chore = makeChore(rec);
+    const now = localMidnight('2026-01-10');
+    const completions = [makeCompletion(new Date(localMidnight('2026-01-09').getTime()).toISOString(), 5)];
+    expect(computeNewStreak(chore, completions, now)).toBe(1);
+  });
 });
