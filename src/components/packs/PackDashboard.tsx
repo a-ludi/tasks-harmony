@@ -1,4 +1,3 @@
-// src/components/packs/PackDashboard.tsx
 import { useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';

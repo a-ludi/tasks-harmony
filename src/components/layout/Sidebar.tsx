@@ -1,4 +1,3 @@
-// src/components/layout/Sidebar.tsx
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAppStore } from '@/store';
