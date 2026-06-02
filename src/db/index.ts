@@ -138,3 +138,15 @@ export const deleteQuestion = (
   id: string,
 ): Promise<void> =>
   db.delete('questions', id);
+
+export const deleteCompletion = (
+  db: IDBPDatabase<TasksHarmonyDB>,
+  id: string,
+): Promise<void> =>
+  db.delete('completions', id);
+
+export const deletePack = (
+  db: IDBPDatabase<TasksHarmonyDB>,
+  id: string,
+): Promise<void> =>
+  db.delete('packs', id);
