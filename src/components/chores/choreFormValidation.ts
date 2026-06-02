@@ -9,7 +9,8 @@ import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 export function validateQuestionDrafts(drafts: DraftQuestion[]): string | null {
   for (const draft of drafts) {
     if (draft._deleted) continue;
-    if (draft.type !== 'TEXT' || !draft.regexPattern) continue;
+    if (draft.type !== 'TEXT') continue;
+    if (!draft.regexPattern) continue;
 
     const result = isSafeRegex(draft.regexPattern);
     if (!result.valid) {

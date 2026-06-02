@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'bun:test';
 import { isSafeRegex, validateAnswer } from './validation';
-import type { Question, Answer, EnumChoice } from '@/types';
+import type { TextQuestion, IntegerQuestion, BooleanQuestion, EnumQuestion, Answer, EnumChoice } from '@/types';
 
-function makeTextQuestion(overrides: Partial<Question> = {}): Question {
+function makeTextQuestion(overrides: Partial<TextQuestion> = {}): TextQuestion {
   return {
     id: 'q-text',
     choreKey: 'personal/test-chore',
@@ -14,7 +14,7 @@ function makeTextQuestion(overrides: Partial<Question> = {}): Question {
   };
 }
 
-function makeIntegerQuestion(overrides: Partial<Question> = {}): Question {
+function makeIntegerQuestion(overrides: Partial<IntegerQuestion> = {}): IntegerQuestion {
   return {
     id: 'q-int',
     choreKey: 'personal/test-chore',
@@ -26,7 +26,7 @@ function makeIntegerQuestion(overrides: Partial<Question> = {}): Question {
   };
 }
 
-function makeBooleanQuestion(overrides: Partial<Question> = {}): Question {
+function makeBooleanQuestion(overrides: Partial<BooleanQuestion> = {}): BooleanQuestion {
   return {
     id: 'q-bool',
     choreKey: 'personal/test-chore',
@@ -38,7 +38,7 @@ function makeBooleanQuestion(overrides: Partial<Question> = {}): Question {
   };
 }
 
-function makeEnumQuestion(choices: EnumChoice[], overrides: Partial<Question> = {}): Question {
+function makeEnumQuestion(choices: EnumChoice[], overrides: Partial<EnumQuestion> = {}): EnumQuestion {
   return {
     id: 'q-enum',
     choreKey: 'personal/test-chore',

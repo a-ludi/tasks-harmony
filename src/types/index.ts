@@ -1,6 +1,5 @@
 export type XPSize = 'XXS' | 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL' | 'XXXL';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
-export type QuestionType = 'TEXT' | 'INTEGER' | 'BOOLEAN' | 'ENUM';
 export type ChoreStatus = 'overdue' | 'due' | 'completed' | 'upcoming';
 export type ChoreSyncStatus = 'in-sync' | 'out-of-sync';
 
@@ -17,18 +16,34 @@ export interface EnumChoice {
   order: number;
 }
 
-export interface Question {
-  id: string;        // UUID
-  choreKey: string;  // `${packId}/${choreId}` — matches Chore.key
-  prompt: string;
-  type: QuestionType;
-  required: boolean;
-  order: number;
-  regexPattern?: string;   // TEXT only
-  minValue?: number;       // INTEGER only
-  maxValue?: number;       // INTEGER only
-  choices?: EnumChoice[];  // ENUM only
+export interface TextQuestion {
+  id: string; choreKey: string; prompt: string; required: boolean; order: number;
+  type: 'TEXT';
+  regexPattern?: string;
 }
+export interface IntegerQuestion {
+  id: string; choreKey: string; prompt: string; required: boolean; order: number;
+  type: 'INTEGER';
+  minValue?: number;
+  maxValue?: number;
+}
+export interface BooleanQuestion {
+  id: string; choreKey: string; prompt: string; required: boolean; order: number;
+  type: 'BOOLEAN';
+}
+export interface EnumQuestion {
+  id: string; choreKey: string; prompt: string; required: boolean; order: number;
+  type: 'ENUM';
+  choices?: EnumChoice[];
+}
+export interface MultiplierQuestion {
+  id: string; choreKey: string; prompt: string; required: boolean; order: number;
+  type: 'MULTIPLIER';
+  xpPerUnit: number;
+  multiplierAnswerType: 'integer' | 'float';
+}
+export type Question = TextQuestion | IntegerQuestion | BooleanQuestion | EnumQuestion | MultiplierQuestion;
+export type QuestionType = Question['type'];
 
 export interface Chore {
   key: string;       // `${packId}/${choreId}` — DB primary key

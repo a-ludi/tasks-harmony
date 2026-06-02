@@ -196,7 +196,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const toSave = drafts
       .filter((d) => !d._deleted)
-      .map(({ _isNew: _n, _deleted: _d, ...q }) => q);
+      .map(({ _isNew: _n, _deleted: _d, ...q }) => q as Question);
     for (const q of toSave) {
       await putQuestion(db, q);
     }

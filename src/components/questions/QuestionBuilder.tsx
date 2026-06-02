@@ -13,6 +13,7 @@ const TYPE_LABELS: Record<string, string> = {
   INTEGER: 'Integer',
   BOOLEAN: 'Yes / No',
   ENUM: 'Multiple Choice',
+  MULTIPLIER: 'Score Multiplier',
 };
 
 export default function QuestionBuilder({ choreKey, initialQuestions, onChange }: Props) {
@@ -165,7 +166,11 @@ export default function QuestionBuilder({ choreKey, initialQuestions, onChange }
 
           {expandedId === draft.id && (
             <div className="border-t border-gray-100 p-3">
-              <QuestionFormFields question={draft} onChange={handleUpdate} />
+              <QuestionFormFields
+                question={draft}
+                onChange={handleUpdate}
+                hasOtherMultiplier={drafts.some((d) => !d._deleted && d.type === 'MULTIPLIER' && d.id !== draft.id)}
+              />
             </div>
           )}
         </div>

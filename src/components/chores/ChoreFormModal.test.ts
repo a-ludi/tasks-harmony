@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { validateQuestionDrafts } from './choreFormValidation';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 
-function makeDraft(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
+function makeDraft(overrides: Record<string, unknown> = {}): DraftQuestion {
   return {
     id: 'q-1',
     choreKey: 'personal/test',
@@ -11,7 +11,7 @@ function makeDraft(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
     required: true,
     order: 0,
     ...overrides,
-  };
+  } as DraftQuestion;
 }
 
 describe('validateQuestionDrafts', () => {
