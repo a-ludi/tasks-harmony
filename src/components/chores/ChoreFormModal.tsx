@@ -4,6 +4,7 @@ import type { Chore, XPSize, RecurrenceFrequency } from '@/types';
 import QuestionBuilder from '@/components/questions/QuestionBuilder';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 import { validateQuestionDrafts } from './choreFormValidation';
+import { XP_BASE } from '@/xp/calculator';
 
 interface Props {
   chore?: Chore;
@@ -98,7 +99,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           await saveQuestions(chore.key, questionDrafts);
         }
       } else {
-        await addChore({
+        const newChoreKey = await addChore({
           packId: selectedPackId,
           title: title.trim(),
           description: description.trim() || undefined,
@@ -107,6 +108,10 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           repeatable,
           active: true,
         });
+        if (questionDrafts.some((d) => !d._deleted)) {
+          const withKey = questionDrafts.map((d) => ({ ...d, choreKey: newChoreKey }));
+          await saveQuestions(newChoreKey, withKey);
+        }
       }
       onClose();
     } finally {
@@ -186,7 +191,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
               onChange={(e) => setXpSize(e.target.value as XPSize)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
             >
-              {XP_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
+              {XP_SIZES.map((size) => (
+                <option key={size} value={size}>{size} ({XP_BASE[size]} XP)</option>
+              ))}
             </select>
           </div>
 
@@ -269,32 +276,24 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
             </label>
           </div>
 
-          {isEdit && (
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-gray-800">Questions</h3>
-                <span className="text-xs text-gray-400">
-                  {questionDrafts.filter((d) => !d._deleted).length > 0
-                    ? `${questionDrafts.filter((d) => !d._deleted).length} question(s)`
-                    : 'None'}
-                </span>
-              </div>
-              {errors.questions && (
-                <p className="mb-2 text-xs text-red-600">{errors.questions}</p>
-              )}
-              <QuestionBuilder
-                choreKey={chore!.key}
-                initialQuestions={initialQuestions}
-                onChange={setQuestionDrafts}
-              />
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-800">Questions</h3>
+              <span className="text-xs text-gray-400">
+                {questionDrafts.filter((d) => !d._deleted).length > 0
+                  ? `${questionDrafts.filter((d) => !d._deleted).length} question(s)`
+                  : 'None'}
+              </span>
             </div>
-          )}
-
-          {!isEdit && (
-            <p className="text-xs text-gray-400 italic">
-              Questions can be added after creating the chore by clicking Edit (&#x270E;).
-            </p>
-          )}
+            {errors.questions && (
+              <p className="mb-2 text-xs text-red-600">{errors.questions}</p>
+            )}
+            <QuestionBuilder
+              choreKey={isEdit ? chore!.key : ''}
+              initialQuestions={isEdit ? initialQuestions : []}
+              onChange={setQuestionDrafts}
+            />
+          </div>
 
           <div className="flex justify-end gap-3 pt-2">
             <button
