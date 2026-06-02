@@ -25,9 +25,13 @@ export default function App() {
     const wasOnline = wasOnlineRef.current;
     wasOnlineRef.current = isOnline;
     if (!wasOnline && isOnline && syncState?.pendingSync && db) {
-      performSync(db, syncState, () => {}).then((updated) => {
+      performSync(db, syncState, () => {
+        // Conflict on auto-sync: leave pendingSync=true, user resolves via SyncButton
+      }).then((updated) => {
         updateSyncState(updated);
-      }).catch(() => {});
+      }).catch(() => {
+        // Leave pendingSync=true; user retries manually
+      });
     }
   }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
 
