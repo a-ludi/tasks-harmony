@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Chore, Completion, XPSettings, UserProfile, ChoreStatus } from '@/types';
 import { useAppStore } from '@/store';
 import { getChoreStatus, formatRecurrence } from '@/chores/recurrence';
@@ -85,7 +86,14 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
             {status === 'completed' && chore.repeatable && (
               <CompleteButton choreKey={chore.key} label="Complete again" />
             )}
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
+              <Link
+                to={`/chores/${encodeURIComponent(chore.key)}/completions`}
+                className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                title="View completions"
+              >
+                Completions
+              </Link>
               <button
                 onClick={() => setShowEditModal(true)}
                 title="Edit chore"
