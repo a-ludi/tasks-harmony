@@ -66,12 +66,15 @@ describe('deletePack', () => {
       _isNew: true,
     } as DraftQuestion]);
 
+    await useAppStore.getState().recordCompletion(choreKey, []);
+
     await useAppStore.getState().deletePack(packId);
 
     const state = useAppStore.getState();
     expect(state.packs.find((p) => p.id === packId)).toBeUndefined();
     expect(state.chores.find((c) => c.packId === packId)).toBeUndefined();
     expect(state.questions.find((q) => q.choreKey === choreKey)).toBeUndefined();
+    expect(state.completions.find((c) => c.choreKey === choreKey)).toBeUndefined();
   });
 
   it('throws when attempting to delete the personal pack', async () => {
