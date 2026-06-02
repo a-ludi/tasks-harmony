@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
+import { useShallow } from 'zustand/shallow';
 import CompletionModal from '@/components/completion/CompletionModal';
 
 interface Props {
@@ -9,8 +10,8 @@ interface Props {
 
 export default function CompleteButton({ choreKey, label = 'Complete' }: Props) {
   const recordCompletion = useAppStore((s) => s.recordCompletion);
-  const questions = useAppStore((s) =>
-    s.questions.filter((q) => q.choreKey === choreKey),
+  const questions = useAppStore(
+    useShallow((s) => s.questions.filter((q) => q.choreKey === choreKey)),
   );
 
   const [processing, setProcessing] = useState(false);
