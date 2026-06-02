@@ -79,4 +79,17 @@ describe('buildCDPZip', () => {
     expect(manifest.author).toBe('Alice');
     expect(manifest.license).toBe('MIT');
   });
+
+  test('omits chore description when absent', () => {
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE]));
+    const chore = jsYaml.load(strFromU8(files['morning-routines/brush-teeth.yaml'])) as Record<string, unknown>;
+    expect(chore.description).toBeUndefined();
+  });
+
+  test('includes chore description when present', () => {
+    const choreWithDesc: Chore = { ...ACTIVE_CHORE, description: 'Do it properly' };
+    const files = unzipSync(buildCDPZip(PACK, [choreWithDesc]));
+    const chore = jsYaml.load(strFromU8(files['morning-routines/brush-teeth.yaml'])) as Record<string, unknown>;
+    expect(chore.description).toBe('Do it properly');
+  });
 });
