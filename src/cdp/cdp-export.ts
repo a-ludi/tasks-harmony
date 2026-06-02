@@ -1,13 +1,13 @@
 import { zipSync, strToU8 } from 'fflate';
 import jsYaml from 'js-yaml';
-import type { Pack, Chore } from '@/types';
+import type { Pack, Chore, UserProfile } from '@/types';
 
-export function buildCDPZip(pack: Pack, chores: Chore[]): Uint8Array {
+export function buildCDPZip(pack: Pack, chores: Chore[], profile: UserProfile): Uint8Array {
   const active = chores.filter((c) => c.active);
   const choreFilenames = active.map((c) => `${c.choreId}.yaml`);
 
   const files: Record<string, Uint8Array> = {
-    [`${pack.id}/__pack__.yaml`]: strToU8(buildPackYaml(pack, choreFilenames)),
+    [`${pack.id}/__pack__.yaml`]: strToU8(buildPackYaml(pack, choreFilenames, profile)),
   };
   for (const chore of active) {
     files[`${pack.id}/${chore.choreId}.yaml`] = strToU8(buildChoreYaml(chore));
@@ -16,11 +16,23 @@ export function buildCDPZip(pack: Pack, chores: Chore[]): Uint8Array {
   return zipSync(files);
 }
 
-function buildPackYaml(pack: Pack, choreFilenames: string[]): string {
+function buildAuthor(profile: UserProfile): string | undefined {
+  const name = profile.displayName.trim();
+  const email = profile.email.trim();
+  if (name && email) return `${name} <${email}>`;
+  if (name) return name;
+  if (email) return `<${email}>`;
+  return undefined;
+}
+
+function buildPackYaml(pack: Pack, choreFilenames: string[], profile: UserProfile): string {
   const data: Record<string, unknown> = { title: pack.manifest.title };
-  if (pack.manifest.author) data.author = pack.manifest.author;
+
+  const author = buildAuthor(profile);
+  if (author) data.author = author;
   if (pack.manifest.license) data.license = pack.manifest.license;
   if (pack.manifest.description) data.description = pack.manifest.description;
+  data.createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   data.chores = choreFilenames;
   return jsYaml.dump(data);
 }

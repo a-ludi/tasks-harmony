@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { unzipSync, strFromU8 } from 'fflate';
 import jsYaml from 'js-yaml';
-import type { Pack, Chore } from '@/types';
+import type { Pack, Chore, UserProfile } from '@/types';
 import { buildCDPZip } from './cdp-export';
 
 const PACK: Pack = {
@@ -31,20 +31,27 @@ const INACTIVE_CHORE: Chore = {
   active: false,
 };
 
+const PROFILE: UserProfile = {
+  id: 'me',
+  displayName: 'Alice',
+  email: 'alice@example.com',
+  activeXPSettingsId: 'default',
+};
+
 describe('buildCDPZip', () => {
   test('returns a Uint8Array', () => {
-    expect(buildCDPZip(PACK, [ACTIVE_CHORE])).toBeInstanceOf(Uint8Array);
+    expect(buildCDPZip(PACK, [ACTIVE_CHORE], PROFILE)).toBeInstanceOf(Uint8Array);
   });
 
   test('__pack__.yaml contains title and chores list', () => {
-    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE]));
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], PROFILE));
     const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
     expect(manifest.title).toBe('Morning Routines');
     expect(manifest.chores).toEqual(['brush-teeth.yaml']);
   });
 
   test('per-chore YAML contains required fields', () => {
-    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE]));
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], PROFILE));
     const chore = jsYaml.load(strFromU8(files['morning-routines/brush-teeth.yaml'])) as Record<string, unknown>;
     expect(chore.title).toBe('Brush Teeth');
     expect(chore.xpSize).toBe('XXS');
@@ -55,16 +62,15 @@ describe('buildCDPZip', () => {
   });
 
   test('excludes inactive chores from zip and chores list', () => {
-    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE, INACTIVE_CHORE]));
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE, INACTIVE_CHORE], PROFILE));
     expect(files['morning-routines/archived.yaml']).toBeUndefined();
     const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
     expect((manifest.chores as string[]).length).toBe(1);
   });
 
   test('omits optional pack manifest fields when absent', () => {
-    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE]));
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], PROFILE));
     const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
-    expect(manifest.author).toBeUndefined();
     expect(manifest.license).toBeUndefined();
     expect(manifest.description).toBeUndefined();
   });
@@ -74,22 +80,57 @@ describe('buildCDPZip', () => {
       ...PACK,
       manifest: { ...PACK.manifest, author: 'Alice', license: 'MIT' },
     };
-    const files = unzipSync(buildCDPZip(packWithExtras, [ACTIVE_CHORE]));
+    const files = unzipSync(buildCDPZip(packWithExtras, [ACTIVE_CHORE], PROFILE));
     const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
-    expect(manifest.author).toBe('Alice');
     expect(manifest.license).toBe('MIT');
   });
 
   test('omits chore description when absent', () => {
-    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE]));
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], PROFILE));
     const chore = jsYaml.load(strFromU8(files['morning-routines/brush-teeth.yaml'])) as Record<string, unknown>;
     expect(chore.description).toBeUndefined();
   });
 
   test('includes chore description when present', () => {
     const choreWithDesc: Chore = { ...ACTIVE_CHORE, description: 'Do it properly' };
-    const files = unzipSync(buildCDPZip(PACK, [choreWithDesc]));
+    const files = unzipSync(buildCDPZip(PACK, [choreWithDesc], PROFILE));
     const chore = jsYaml.load(strFromU8(files['morning-routines/brush-teeth.yaml'])) as Record<string, unknown>;
     expect(chore.description).toBe('Do it properly');
+  });
+});
+
+describe('buildCDPZip — metadata', () => {
+  test('includes author as "Name <email>" when both are set', () => {
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.author).toBe('Alice <alice@example.com>');
+  });
+
+  test('includes only name when email is empty', () => {
+    const noEmail = { ...PROFILE, email: '' };
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], noEmail));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.author).toBe('Alice');
+  });
+
+  test('includes only email in angle brackets when name is empty', () => {
+    const noName = { ...PROFILE, displayName: '' };
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], noName));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.author).toBe('<alice@example.com>');
+  });
+
+  test('omits author when both name and email are empty', () => {
+    const noIdentity = { ...PROFILE, displayName: '', email: '' };
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], noIdentity));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.author).toBeUndefined();
+  });
+
+  test('includes createdAt as an ISO string', () => {
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(typeof manifest.createdAt).toBe('string');
+    expect(manifest.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 });
