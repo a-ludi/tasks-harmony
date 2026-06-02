@@ -24,7 +24,7 @@ export function ProfilePage() {
   const activeSettings: XPSettings | undefined = xpSettings.find((s) => s.id === activeXPSettingsId);
 
   function handleSave() {
-    if (!isValidEmail(email)) { setEmailError('Please enter a valid email address.'); return; }
+    if (!isValidEmail(email)) { setEmailError('Please enter a valid email address.'); setEmail(profile?.email ?? ''); return; }
     setEmailError(null);
     const updatedProfile: UserProfile = { ...profile!, displayName: displayName.trim(), email: email.trim(), activeXPSettingsId };
     updateProfile(updatedProfile);
@@ -42,6 +42,7 @@ export function ProfilePage() {
           <span className="text-gray-500">total XP</span>
         </div>
         {activeSettings && <p className="mt-1 text-sm text-gray-600">Active formula: <span className="font-medium">{activeSettings.name}</span></p>}
+        {profile.email && <p className="mt-1 text-sm text-gray-600">Email: <span className="font-medium">{profile.email}</span></p>}
       </section>
 
       <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-4">

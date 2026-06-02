@@ -46,6 +46,8 @@ test('Profile page shows required stats', async ({ page }) => {
   await expect(page.getByText('240', { exact: true })).toBeVisible();
   // Active formula label shows "Standard"
   await expect(page.locator('p').filter({ hasText: 'Active formula' })).toContainText('Standard');
+  // Email is shown in stats
+  await expect(page.getByText('alice@example.com')).toBeVisible();
 });
 
 test('Update display name successfully', async ({ page }) => {
@@ -77,7 +79,7 @@ test('Invalid email is rejected', async ({ page }) => {
   await page.getByRole('button', { name: 'Save changes' }).click();
 
   await expect(page.getByText('Please enter a valid email address')).toBeVisible();
-  await expect(page.locator('#email')).toHaveValue('not-an-email');
+  await expect(page.locator('#email')).toHaveValue('alice@example.com');
   // Success alert should NOT appear
   await expect(page.getByRole('alert')).not.toBeVisible();
 });
