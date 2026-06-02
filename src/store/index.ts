@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, putPack } from '@/db';
+import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, deleteChore, putPack, deleteCompletion, deletePack as dbDeletePack, getChoresByPack, getQuestions, getCompletionsByChore } from '@/db';
 import { titleToFilename } from '@/cdp/filename';
 import { slugifyPackId } from '@/cdp/packId';
 import { fetchCDP } from '@/cdp/cdp-import';
@@ -9,6 +9,7 @@ import { recordCompletionWithTimestamp } from './recordCompletion';
 import type {
   Chore,
   Completion,
+  MultiplierQuestion,
   Pack,
   Question,
   XPSettings,
@@ -33,7 +34,7 @@ interface AppState {
 
   init: () => Promise<void>;
   reload: () => Promise<void>;
-  addChore: (data: Omit<Chore, 'key' | 'choreId' | 'createdAt'>) => Promise<void>;
+  addChore: (data: Omit<Chore, 'key' | 'choreId' | 'createdAt'>) => Promise<string>;
   updateChore: (chore: Chore) => Promise<void>;
   deactivateChore: (key: string) => Promise<void>;
   recordCompletion: (choreKey: string, answers?: Answer[]) => Promise<void>;
@@ -44,6 +45,7 @@ interface AppState {
   updateCDP: (packId: string) => Promise<void>;
   addPack: (name: string) => Promise<string>;
   renamePack: (packId: string, newTitle: string) => Promise<void>;
+  deletePack: (packId: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -111,6 +113,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await putChore(db, newChore);
     set((state) => ({ chores: [...state.chores, newChore] }));
+    return newChore.key;
   },
 
   updateChore: async (chore) => {
@@ -155,7 +158,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const streak = computeNewStreak(chore, choreCompletions, now);
     const totalCompletions = choreCompletions.length;
-    const xpEarned = calculateXP(chore.xpSize, streak, totalCompletions, activeSettings);
+    const { questions } = get();
+    let xpEarned = calculateXP(chore.xpSize, streak, totalCompletions, activeSettings);
+    const multiplierQ = questions.find(
+      (q): q is MultiplierQuestion => q.choreKey === choreKey && q.type === 'MULTIPLIER',
+    );
+    if (multiplierQ) {
+      const mulAnswer = answers.find((a) => a.questionId === multiplierQ.id);
+      if (mulAnswer && typeof mulAnswer.value === 'number' && mulAnswer.value > 0) {
+        xpEarned = Math.round(xpEarned * multiplierQ.xpPerUnit * mulAnswer.value);
+      }
+    }
 
     const newCompletion: Completion = {
       id: crypto.randomUUID(),
@@ -263,6 +276,35 @@ export const useAppStore = create<AppState>((set, get) => ({
     await putPack(db, updated);
     set((state) => ({
       packs: state.packs.map((p) => (p.id === packId ? updated : p)),
+    }));
+  },
+
+  deletePack: async (packId) => {
+    const { db } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    const pack = get().packs.find((p) => p.id === packId);
+    if (!pack) throw new Error(`Pack '${packId}' not found`);
+    if (pack.isPersonal) throw new Error('Cannot delete the personal pack');
+
+    const packChores = await getChoresByPack(db, packId);
+    for (const chore of packChores) {
+      const choreCompletions = await getCompletionsByChore(db, chore.key);
+      for (const c of choreCompletions) await deleteCompletion(db, c.id);
+
+      const choreQuestions = await getQuestions(db, chore.key);
+      for (const q of choreQuestions) await deleteQuestion(db, q.id);
+
+      await deleteChore(db, chore.key);
+    }
+    await dbDeletePack(db, packId);
+
+    const packChoreKeys = new Set(packChores.map((c) => c.key));
+    set((state) => ({
+      packs: state.packs.filter((p) => p.id !== packId),
+      chores: state.chores.filter((c) => c.packId !== packId),
+      questions: state.questions.filter((q) => !packChoreKeys.has(q.choreKey)),
+      completions: state.completions.filter((c) => !packChoreKeys.has(c.choreKey)),
     }));
   },
 }));
