@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, putPack } from '@/db';
 import { titleToFilename } from '@/cdp/filename';
+import { slugifyPackId } from '@/cdp/packId';
 import { fetchCDP } from '@/cdp/cdp-import';
 import { calculateXP } from '@/xp/calculator';
 import { computeNewStreak } from '@/chores/streak';
@@ -41,6 +42,8 @@ interface AppState {
   saveQuestions: (choreKey: string, drafts: DraftQuestion[]) => Promise<void>;
   importCDP: (baseUrl: string) => Promise<void>;
   updateCDP: (packId: string) => Promise<void>;
+  addPack: (name: string) => Promise<string>;
+  renamePack: (packId: string, newTitle: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -224,5 +227,42 @@ export const useAppStore = create<AppState>((set, get) => ({
     await putPack(db, refreshedPack);
     const [finalPacks, finalChores] = await Promise.all([getPacks(db), getAllChores(db)]);
     set({ packs: finalPacks, chores: finalChores });
+  },
+
+  addPack: async (name) => {
+    const { db, packs } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    const packId = slugifyPackId(name, packs.map((p) => p.id));
+    const now = new Date().toISOString();
+    const newPack: Pack = {
+      id: packId,
+      manifest: { title: name },
+      isPersonal: false,
+      importedAt: now,
+      updatedAt: now,
+    };
+
+    await putPack(db, newPack);
+    set((state) => ({ packs: [...state.packs, newPack] }));
+    return packId;
+  },
+
+  renamePack: async (packId, newTitle) => {
+    const { db, packs } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    const pack = packs.find((p) => p.id === packId);
+    if (!pack) throw new Error(`Pack '${packId}' not found`);
+    const updated: Pack = {
+      ...pack,
+      manifest: { ...pack.manifest, title: newTitle },
+      updatedAt: new Date().toISOString(),
+    };
+
+    await putPack(db, updated);
+    set((state) => ({
+      packs: state.packs.map((p) => (p.id === packId ? updated : p)),
+    }));
   },
 }));
