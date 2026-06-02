@@ -33,6 +33,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const addChore = useAppStore((s) => s.addChore);
   const updateChore = useAppStore((s) => s.updateChore);
   const saveQuestions = useAppStore((s) => s.saveQuestions);
+  const packs = useAppStore((s) => s.packs);
   const allQuestions = useAppStore((s) => s.questions);
 
   const isEdit = chore !== undefined;
@@ -49,6 +50,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const [repeatable, setRepeatable] = useState(chore?.repeatable ?? false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [selectedPackId, setSelectedPackId] = useState(packId);
 
   const choreKey = isEdit ? chore!.key : null;
   const initialQuestions = choreKey ? allQuestions.filter((q) => q.choreKey === choreKey) : [];
@@ -97,7 +99,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         }
       } else {
         await addChore({
-          packId,
+          packId: selectedPackId,
           title: title.trim(),
           description: description.trim() || undefined,
           xpSize,
@@ -152,6 +154,25 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               placeholder="Add extra details…"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Pack</label>
+            {isEdit ? (
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                {packs.find((p) => p.id === chore?.packId)?.manifest.title ?? chore?.packId}
+              </p>
+            ) : (
+              <select
+                value={selectedPackId}
+                onChange={(e) => setSelectedPackId(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                {packs.map((p) => (
+                  <option key={p.id} value={p.id}>{p.manifest.title}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div>
