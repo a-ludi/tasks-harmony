@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'bun:test';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { validateAnswer } from '@/questions/validation';
+import type { MultiplierQuestion } from '@/types';
 
 const source = readFileSync(
   join(import.meta.dir, 'CompletionModal.tsx'),
@@ -16,5 +18,26 @@ describe('CompletionModal layout', () => {
       (cls) => cls.includes('max-h-') && cls.includes('overflow-y-auto'),
     );
     expect(scrollableContainer).toBeDefined();
+  });
+});
+
+describe('AnswerField MULTIPLIER validation integration', () => {
+  const q: MultiplierQuestion = {
+    id: 'q-1',
+    choreKey: 'personal/chore',
+    prompt: 'Reps',
+    type: 'MULTIPLIER',
+    required: true,
+    order: 0,
+    xpPerUnit: 0.5,
+    multiplierAnswerType: 'float',
+  };
+
+  it('rejects zero', () => {
+    expect(validateAnswer({ questionId: q.id, value: 0 }, q)).toMatch(/positive/i);
+  });
+
+  it('accepts a positive float', () => {
+    expect(validateAnswer({ questionId: q.id, value: 1.5 }, q)).toBeNull();
   });
 });

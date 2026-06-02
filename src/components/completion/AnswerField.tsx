@@ -70,6 +70,25 @@ export default function AnswerField({ question, value, error, onChange }: Props)
       );
     }
 
+    if (question.type === 'MULTIPLIER') {
+      const isFloat = question.multiplierAnswerType === 'float';
+      return (
+        <div>
+          <input
+            type="number"
+            value={typeof value === 'number' ? value : ''}
+            min={isFloat ? '0.0001' : '1'}
+            step={isFloat ? 'any' : '1'}
+            onChange={(e) => onChange(e.target.value !== '' ? Number(e.target.value) : null)}
+            className={baseInputClass}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            × {String(question.xpPerUnit).replace(/\.?0+$/, '')}
+          </p>
+        </div>
+      );
+    }
+
     return null;
   }
 
