@@ -25,6 +25,7 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
   const completions = useAppStore((s) => s.completions);
   const xpSettings = useAppStore((s) => s.xpSettings);
   const profile = useAppStore((s) => s.profile);
+  const packs = useAppStore((s) => s.packs);
 
   const [showNewChoreModal, setShowNewChoreModal] = useState(false);
 
@@ -111,6 +112,7 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
                   completions={completions.filter((c) => c.choreKey === chore.key)}
                   xpSettings={xpSettings}
                   profile={profile}
+                  packTitle={packs.find((p) => p.id === chore.packId)?.manifest.title}
                 />
               ))}
             </div>

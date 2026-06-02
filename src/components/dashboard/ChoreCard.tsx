@@ -13,6 +13,7 @@ interface Props {
   completions: Completion[];
   xpSettings: XPSettings[];
   profile: UserProfile | null;
+  packTitle?: string;
 }
 
 const BORDER_COLOR: Record<ChoreStatus, string> = {
@@ -22,7 +23,7 @@ const BORDER_COLOR: Record<ChoreStatus, string> = {
   upcoming: 'border-l-slate-300',
 };
 
-export default function ChoreCard({ chore, completions, xpSettings, profile }: Props) {
+export default function ChoreCard({ chore, completions, xpSettings, profile, packTitle }: Props) {
   const deactivateChore = useAppStore((s) => s.deactivateChore);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -59,6 +60,10 @@ export default function ChoreCard({ chore, completions, xpSettings, profile }: P
               <h3 className="font-semibold text-gray-900 leading-tight">{chore.title}</h3>
               <StatusBadge status={status} />
             </div>
+
+            {packTitle && (
+              <p className="text-xs text-gray-400">{packTitle}</p>
+            )}
 
             {chore.description && (
               <p className="mb-2 text-sm text-gray-500 line-clamp-2">{chore.description}</p>
