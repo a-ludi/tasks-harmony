@@ -48,14 +48,20 @@ test('each card shows required fields', async ({ page }) => {
 
 test('complete a due chore without a page reload', async ({ page }) => {
   const xpBadge = page.locator('nav').getByText(/XP/);
-  const xpBefore = await xpBadge.textContent();
+  const xpBeforeText = await xpBadge.textContent() ?? '0 XP';
+  const xpBefore = parseInt(xpBeforeText.replace(/[^0-9]/g, ''), 10);
+
+  let pageReloaded = false;
+  page.on('load', () => { pageReloaded = true; });
 
   const card = page.getByTestId('chore-card').filter({ hasText: 'Floss teeth' });
   await card.getByRole('button', { name: 'Complete' }).click();
 
   await expect(card.getByText('Completed')).toBeVisible();
-  const xpAfter = await xpBadge.textContent();
-  expect(xpAfter).not.toBe(xpBefore);
+  const xpAfterText = await xpBadge.textContent() ?? '0 XP';
+  const xpAfter = parseInt(xpAfterText.replace(/[^0-9]/g, ''), 10);
+  expect(xpAfter).toBeGreaterThan(xpBefore);
+  expect(pageReloaded).toBe(false);
 });
 
 test('completed chore has no Complete button', async ({ page }) => {
