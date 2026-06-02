@@ -1,2 +1,3 @@
 [test]
 parallelism = 1
+exclude = ["e2e/**"]

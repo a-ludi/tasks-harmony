@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "bun test --isolate",
+    "test": "bun test --isolate src/",
     "test:e2e": "bunx playwright test",
     "typecheck": "tsc --noEmit"
   },
