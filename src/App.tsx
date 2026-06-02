@@ -6,6 +6,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { ProfilePage } from '@/components/profile/ProfilePage';
 import NewPackDialog from '@/components/packs/NewPackDialog';
+import PackDashboard from '@/components/packs/PackDashboard';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { performSync } from '@/sync/sync';
 
@@ -83,6 +84,7 @@ export default function App() {
           <div className="mx-auto max-w-2xl">
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/packs/:packId" element={<PackDashboard />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Routes>
           </div>

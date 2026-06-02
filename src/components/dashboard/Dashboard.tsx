@@ -14,8 +14,14 @@ const SECTION_LABELS: Record<ChoreStatus, string> = {
 
 const SECTION_ORDER: ChoreStatus[] = ['overdue', 'due', 'completed', 'upcoming'];
 
-export default function Dashboard() {
-  const chores = useAppStore((s) => s.chores);
+interface DashboardProps {
+  chores?: Chore[];
+  currentPackId?: string;
+}
+
+export default function Dashboard({ chores: choresProp, currentPackId }: DashboardProps = {}) {
+  const storeChores = useAppStore((s) => s.chores);
+  const chores = choresProp ?? storeChores;
   const completions = useAppStore((s) => s.completions);
   const xpSettings = useAppStore((s) => s.xpSettings);
   const profile = useAppStore((s) => s.profile);
@@ -112,7 +118,7 @@ export default function Dashboard() {
 
       {showNewChoreModal && (
         <ChoreFormModal
-          packId="personal"
+          packId={currentPackId ?? 'personal'}
           onClose={() => setShowNewChoreModal(false)}
         />
       )}
