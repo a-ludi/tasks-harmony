@@ -2,9 +2,11 @@ import { isSafeRegex } from '@/questions/validation';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 
 /**
- * Validates regex patterns on all active (non-deleted) question drafts.
- * Returns an error message string if any draft has an invalid or unsafe regex,
- * or null if all patterns are valid.
+ * Validates all active (non-deleted) question drafts:
+ * - Enforces at most one MULTIPLIER question per chore.
+ * - Validates that xpPerUnit > 0 for MULTIPLIER questions.
+ * - Validates regex patterns on TEXT questions.
+ * Returns an error message string if any rule is violated, or null if all drafts are valid.
  */
 export function validateQuestionDrafts(drafts: DraftQuestion[]): string | null {
   const active = drafts.filter((d) => !d._deleted);
