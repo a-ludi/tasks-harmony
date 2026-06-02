@@ -23,6 +23,7 @@ export async function seedDatabase(
   await page.evaluate(async (data) => {
     await new Promise<void>((resolve, reject) => {
       const req = indexedDB.open('tasks-harmony', 1);
+      req.onupgradeneeded = () => { /* schema created by app on first page.goto */ };
       req.onsuccess = () => {
         const db = req.result;
         const storeNames = Object.keys(data);
@@ -56,7 +57,7 @@ export async function seedAndReload(
 }
 
 export function makeChore(overrides: Record<string, unknown>): Record<string, unknown> {
-  return {
+  const merged = {
     choreId: 'default-chore',
     packId: 'personal',
     title: 'Untitled',
@@ -66,7 +67,10 @@ export function makeChore(overrides: Record<string, unknown>): Record<string, un
     active: true,
     createdAt: new Date().toISOString(),
     ...overrides,
-    key: overrides.key ?? `personal/${overrides.choreId ?? 'default-chore'}`,
+  };
+  return {
+    ...merged,
+    key: overrides.key ?? `${merged.packId}/${merged.choreId}`,
   };
 }
 

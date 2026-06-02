@@ -6,10 +6,12 @@ function findHeadlessShell(): string | undefined {
   const cacheHome = process.env.XDG_CACHE_HOME ?? path.join(process.env.HOME ?? '/root', '.cache');
   const base = path.join(cacheHome, 'ms-playwright');
   if (!fs.existsSync(base)) return undefined;
-  const dirs = fs.readdirSync(base).filter((d) => d.startsWith('chromium_headless_shell-'));
+  const dirs = fs.readdirSync(base)
+    .filter((d) => d.startsWith('chromium_headless_shell-'))
+    .sort();
   if (dirs.length === 0) return undefined;
   const candidate = path.join(
-    base, dirs[0], 'chrome-headless-shell-linux64', 'chrome-headless-shell',
+    base, dirs.at(-1)!, 'chrome-headless-shell-linux64', 'chrome-headless-shell',
   );
   return fs.existsSync(candidate) ? candidate : undefined;
 }

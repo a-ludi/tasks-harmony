@@ -22,3 +22,5 @@ media/
 .ripgreprc
 .zprofile
 .zshrc
+playwright-report/
+test-results/
