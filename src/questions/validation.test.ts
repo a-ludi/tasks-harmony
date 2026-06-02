@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { isSafeRegex, validateAnswer } from './validation';
-import type { TextQuestion, IntegerQuestion, BooleanQuestion, EnumQuestion, Answer, EnumChoice } from '@/types';
+import type { TextQuestion, IntegerQuestion, BooleanQuestion, EnumQuestion, Answer, EnumChoice, MultiplierQuestion } from '@/types';
 
 function makeTextQuestion(overrides: Partial<TextQuestion> = {}): TextQuestion {
   return {
@@ -229,5 +229,50 @@ describe('validateAnswer', () => {
     const q = makeEnumQuestion(choices, { required: true });
     const a = makeAnswer(q.id, null);
     expect(validateAnswer(a, q)).toBe('This field is required');
+  });
+});
+
+function makeMultiplierQuestion(overrides: Partial<MultiplierQuestion> = {}): MultiplierQuestion {
+  return {
+    id: 'q-mult',
+    choreKey: 'personal/test-chore',
+    prompt: 'How many reps?',
+    type: 'MULTIPLIER',
+    required: true,
+    order: 4,
+    xpPerUnit: 0.5,
+    multiplierAnswerType: 'integer',
+    ...overrides,
+  };
+}
+
+describe('validateAnswer — MULTIPLIER', () => {
+  it('returns null when answer is a positive integer', () => {
+    const q = makeMultiplierQuestion();
+    expect(validateAnswer({ questionId: q.id, value: 5 }, q)).toBeNull();
+  });
+
+  it('returns null when answer is a positive float and answerType is float', () => {
+    const q = makeMultiplierQuestion({ multiplierAnswerType: 'float' });
+    expect(validateAnswer({ questionId: q.id, value: 1.5 }, q)).toBeNull();
+  });
+
+  it('returns error when answer is zero', () => {
+    const q = makeMultiplierQuestion();
+    const result = validateAnswer({ questionId: q.id, value: 0 }, q);
+    expect(result).not.toBeNull();
+    expect(result).toMatch(/positive/i);
+  });
+
+  it('returns error when answer is negative', () => {
+    const q = makeMultiplierQuestion();
+    const result = validateAnswer({ questionId: q.id, value: -1 }, q);
+    expect(result).not.toBeNull();
+    expect(result).toMatch(/positive/i);
+  });
+
+  it('returns error when required and value is null', () => {
+    const q = makeMultiplierQuestion({ required: true });
+    expect(validateAnswer({ questionId: q.id, value: null }, q)).toBe('This field is required');
   });
 });

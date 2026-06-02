@@ -58,3 +58,53 @@ describe('validateQuestionDrafts', () => {
     expect(result).toMatch(/backtracking/i);
   });
 });
+
+function makeMultiplierDraft(overrides: Record<string, unknown> = {}): DraftQuestion {
+  return {
+    id: 'q-mult',
+    choreKey: 'personal/test',
+    prompt: 'How many?',
+    type: 'MULTIPLIER',
+    required: true,
+    order: 0,
+    xpPerUnit: 1,
+    multiplierAnswerType: 'integer',
+    ...overrides,
+  } as DraftQuestion;
+}
+
+describe('validateQuestionDrafts — MULTIPLIER constraint', () => {
+  it('returns null when there is exactly one MULTIPLIER question', () => {
+    expect(validateQuestionDrafts([makeMultiplierDraft()])).toBeNull();
+  });
+
+  it('returns error when there are two active MULTIPLIER questions', () => {
+    const drafts = [
+      makeMultiplierDraft({ id: 'q-1' }),
+      makeMultiplierDraft({ id: 'q-2', order: 1 }),
+    ];
+    const result = validateQuestionDrafts(drafts);
+    expect(result).not.toBeNull();
+    expect(result).toMatch(/multiplier/i);
+  });
+
+  it('ignores deleted MULTIPLIER when counting', () => {
+    const drafts = [
+      makeMultiplierDraft({ id: 'q-1' }),
+      makeMultiplierDraft({ id: 'q-2', order: 1, _deleted: true }),
+    ];
+    expect(validateQuestionDrafts(drafts)).toBeNull();
+  });
+
+  it('returns error when xpPerUnit is zero', () => {
+    const result = validateQuestionDrafts([makeMultiplierDraft({ xpPerUnit: 0 })]);
+    expect(result).not.toBeNull();
+    expect(result).toMatch(/weight/i);
+  });
+
+  it('returns error when xpPerUnit is negative', () => {
+    const result = validateQuestionDrafts([makeMultiplierDraft({ xpPerUnit: -1 })]);
+    expect(result).not.toBeNull();
+    expect(result).toMatch(/weight/i);
+  });
+});

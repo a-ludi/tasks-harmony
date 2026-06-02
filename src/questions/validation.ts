@@ -57,5 +57,11 @@ export function validateAnswer(answer: Answer, question: Question): string | nul
       return 'Invalid choice — value is not one of the allowed options';
   }
 
+  if (question.type === 'MULTIPLIER') {
+    if (typeof value !== 'number' || value <= 0) {
+      return 'Answer must be a positive number';
+    }
+  }
+
   return null;
 }
