@@ -6,6 +6,7 @@ import Dashboard from '@/components/dashboard/Dashboard';
 import { ProfilePage } from '@/components/profile/ProfilePage';
 import NewPackDialog from '@/components/packs/NewPackDialog';
 import PackDashboard from '@/components/packs/PackDashboard';
+import CompletionsPage from '@/components/completion/CompletionsPage';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { performSync } from '@/sync/sync';
 
@@ -90,6 +91,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/packs/:packId" element={<PackDashboard />} />
+              <Route path="/chores/:encodedChoreKey/completions" element={<CompletionsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Routes>
           </div>
