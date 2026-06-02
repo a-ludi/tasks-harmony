@@ -18,6 +18,9 @@ export default function App() {
   const updateSyncState = useAppStore((s) => s.updateSyncState);
   const db = useAppStore((s) => s.db);
 
+  const completions = useAppStore((s) => s.completions);
+  const totalXP = completions.reduce((sum, c) => sum + c.xpEarned, 0);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewPackDialog, setShowNewPackDialog] = useState(false);
 
@@ -77,6 +80,9 @@ export default function App() {
           <Link to="/" className="font-bold text-gray-900">
             Tasks Harmony
           </Link>
+          <span className="ml-auto rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
+            {totalXP.toLocaleString()} XP
+          </span>
         </header>
 
         <main className="flex-1 px-4">
