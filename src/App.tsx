@@ -5,6 +5,7 @@ import { useAppStore } from '@/store';
 import Sidebar from '@/components/layout/Sidebar';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { ProfilePage } from '@/components/profile/ProfilePage';
+import NewPackDialog from '@/components/packs/NewPackDialog';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { performSync } from '@/sync/sync';
 
@@ -18,6 +19,7 @@ export default function App() {
   const db = useAppStore((s) => s.db);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showNewPackDialog, setShowNewPackDialog] = useState(false);
 
   useEffect(() => { init(); }, [init]);
 
@@ -59,7 +61,7 @@ export default function App() {
       >
         <Sidebar
           onClose={() => setSidebarOpen(false)}
-          onNewPack={() => {}}
+          onNewPack={() => setShowNewPackDialog(true)}
         />
       </aside>
 
@@ -86,6 +88,10 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {showNewPackDialog && (
+        <NewPackDialog onClose={() => setShowNewPackDialog(false)} />
+      )}
     </div>
   );
 }
