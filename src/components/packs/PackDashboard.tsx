@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { buildCDPZip } from '@/cdp/cdp-export';
@@ -9,6 +9,9 @@ export default function PackDashboard() {
   const packs = useAppStore((s) => s.packs);
   const chores = useAppStore((s) => s.chores);
   const renamePack = useAppStore((s) => s.renamePack);
+  const deletePack = useAppStore((s) => s.deletePack);
+  const profile = useAppStore((s) => s.profile);
+  const navigate = useNavigate();
 
   const pack = packs.find((p) => p.id === packId);
   const packChores = chores.filter((c) => c.packId === packId);
@@ -25,8 +28,8 @@ export default function PackDashboard() {
   }
 
   function handleExport() {
-    if (!pack) return;
-    const zipBytes = buildCDPZip(pack, packChores);
+    if (!pack || !profile) return;
+    const zipBytes = buildCDPZip(pack, packChores, profile);
     const blob = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -34,6 +37,16 @@ export default function PackDashboard() {
     a.download = `${pack.id}.zip`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+
+  async function handleDelete() {
+    if (!pack) return;
+    const confirmed = window.confirm(
+      `Delete "${pack.manifest.title}" and all its chores? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    await deletePack(pack.id);
+    navigate('/');
   }
 
   return (
@@ -76,12 +89,22 @@ export default function PackDashboard() {
             </button>
           </>
         )}
-        <button
-          onClick={handleExport}
-          className="ml-auto rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          Download as CDP
-        </button>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={handleExport}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            Download as CDP
+          </button>
+          {!pack.isPersonal && (
+            <button
+              onClick={handleDelete}
+              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+            >
+              Delete Pack
+            </button>
+          )}
+        </div>
       </div>
 
       <Dashboard chores={packChores} currentPackId={pack.id} />
