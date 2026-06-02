@@ -76,10 +76,12 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
   return (
     <div className="space-y-6 pb-8">
       <div className="flex items-center justify-between pt-4">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        {!currentPackId && (
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        )}
         <button
           onClick={() => setShowNewChoreModal(true)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800 transition-colors"
+          className={`rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800 transition-colors ${currentPackId ? 'ml-auto' : ''}`}
         >
           + New Chore
         </button>

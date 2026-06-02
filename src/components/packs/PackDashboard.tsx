@@ -34,7 +34,7 @@ export default function PackDashboard() {
     a.href = url;
     a.download = `${pack.id}.zip`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 
   return (
