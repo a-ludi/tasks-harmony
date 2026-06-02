@@ -74,7 +74,7 @@
 
 **As the user, I want to create a chore without leaving the dashboard, so that setup is fast.**
 
-- I fill in: name, optional description, XP size (XXS / XS / S / M / L / XL / XXL / XXXL, representing a Fibonacci-like scale of effort), recurrence frequency (hourly / daily / weekly / monthly), interval (every N periods), and start date.
+- I fill in: name, optional description, XP size (XXS / XS / S / M / L / XL / XXL / XXXL, representing a Fibonacci-like scale of effort), recurrence frequency (daily / weekly / monthly), interval (every N periods), and start date.
 - The start date defaults to today when not specified explicitly.
 - Edge case: if the form has validation errors, they are shown inline and no chore is created.
 
@@ -164,7 +164,7 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 **As the user, I want each chore to have a clear effort level, so that harder chores reward more XP.**
 
 - XP size maps to a base XP value on a Fibonacci-like scale:
-  XXS → 0.5, XS → 1, S → 2, M → 3, L → 5, XL → 8, XXL → 13, XXXL → 21.
+  XXS → 2, XS → 3, S → 5, M → 8, L → 13, XL → 21, XXL → 34, XXXL → 55.
 - Final XP per completion is rounded to the nearest integer.
 
 ### 7.2 Streak bonus
@@ -172,14 +172,14 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 **As the user, I want consistent streaks to boost my XP, so that habit-building is rewarded.**
 
 - At streak = 0, I earn exactly the base XP.
-- As my streak grows, a multiplier climbs toward a configured maximum (default 2×), approaching it asymptotically.
+- As my streak grows, a multiplier climbs toward a configured maximum (default 2.5×), approaching it asymptotically.
 
 ### 7.3 Decay plateau
 
-**As the user, I want the bonus to level off at a high streak, so that the system stays balanced.**
+**As the user, I want the bonus to level off over time, so that the system stays balanced.**
 
-- Simultaneously, a decay factor falls toward a configured floor (default 0.5×) as the streak grows.
-- The result: XP rises steeply at first, then plateaus. Long-term maximum converges to roughly `base × max_multiplier × decay_floor`.
+- Simultaneously, a decay factor falls toward a configured floor (default 0.6×) as my **total lifetime completions** of that chore grow.
+- The result: a new chore earns boosted XP that tapers off as it becomes routine. Long-term maximum converges to roughly `base × max_multiplier × decay_floor`.
 
 ### 7.4 Streak break
 
@@ -197,8 +197,8 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 
 **As the user, I want to choose from named XP formula configurations, so that I can tune the difficulty to my taste.**
 
-- Each configuration has a name (e.g., "Standard", "Hard Mode") and its own values for maximum multiplier, decay floor, and approach rates.
-- A "Standard" configuration exists by default and is pre-selected.
+- Each configuration has a name (e.g., "Standard", "Hard Mode") and its own values for maximum streak multiplier, decay floor, and half-life rates.
+- A "Standard" configuration exists by default and is pre-selected, with `maxStreakMultiplier = 2.5` and `decayFloor = 0.6`.
 - The active configuration is shown on the profile page (see §1.3).
 
 ---
