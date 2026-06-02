@@ -26,8 +26,8 @@ export async function seed(db: IDBPDatabase<TasksHarmonyDB>): Promise<void> {
     await settings.put({
       id: 'standard',
       name: 'Standard',
-      maxStreakMultiplier: 2,
-      decayFloor: 0.5,
+      maxStreakMultiplier: 2.5,
+      decayFloor: 0.6,
       streakHalfLife: 7,
       decayHalfLife: 56,
     });

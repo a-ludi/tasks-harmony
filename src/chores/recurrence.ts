@@ -13,9 +13,6 @@ export function getWindowStart(recurrence: Recurrence, index: number): Date {
   const base = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
   switch (recurrence.frequency) {
-    case 'hourly':
-      base.setHours(base.getHours() + index * recurrence.interval);
-      break;
     case 'daily':
       base.setDate(base.getDate() + index * recurrence.interval);
       break;
@@ -42,7 +39,6 @@ export function getCurrentWindowIndex(recurrence: Recurrence, now: Date): number
   if (now < startDate) return null;
 
   const approxMs: Record<Recurrence['frequency'], number> = {
-    hourly: 3_600_000,
     daily: 86_400_000,
     weekly: 604_800_000,
     monthly: 2_592_000_000,
@@ -111,14 +107,12 @@ export function getChoreStatus(
 }
 
 const SINGULAR: Record<Recurrence['frequency'], string> = {
-  hourly: 'Hourly',
   daily: 'Daily',
   weekly: 'Weekly',
   monthly: 'Monthly',
 };
 
 const PLURAL: Record<Recurrence['frequency'], string> = {
-  hourly: 'hours',
   daily: 'days',
   weekly: 'weeks',
   monthly: 'months',

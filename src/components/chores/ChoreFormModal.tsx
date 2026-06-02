@@ -12,7 +12,7 @@ interface Props {
 }
 
 const XP_SIZES: XPSize[] = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
-const FREQUENCIES: RecurrenceFrequency[] = ['hourly', 'daily', 'weekly', 'monthly'];
+const FREQUENCIES: RecurrenceFrequency[] = ['daily', 'weekly', 'monthly'];
 
 function todayString(): string {
   const now = new Date();

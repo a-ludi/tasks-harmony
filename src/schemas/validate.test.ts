@@ -43,9 +43,6 @@ describe('validateChoreDefinition', () => {
   test('invalid frequency fails', () => {
     expect(validateChoreDefinition({ title: 'X', xpSize: 'S', frequency: 'bogus', interval: 1 }).valid).toBe(false);
   });
-  test('hourly frequency is valid', () => {
-    expect(validateChoreDefinition({ title: 'X', xpSize: 'S', frequency: 'hourly', interval: 1 }).valid).toBe(true);
-  });
   test('invalid windowStartTime pattern fails', () => {
     expect(validateChoreDefinition({ title: 'X', xpSize: 'S', frequency: 'daily', interval: 1, windowStartTime: '25:00' }).valid).toBe(false);
   });

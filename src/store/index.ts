@@ -151,7 +151,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const choreCompletions = completions.filter((c) => c.choreKey === choreKey);
 
     const streak = computeNewStreak(chore, choreCompletions, now);
-    const xpEarned = calculateXP(chore.xpSize, streak, activeSettings);
+    const totalCompletions = choreCompletions.length;
+    const xpEarned = calculateXP(chore.xpSize, streak, totalCompletions, activeSettings);
 
     const newCompletion: Completion = {
       id: crypto.randomUUID(),
