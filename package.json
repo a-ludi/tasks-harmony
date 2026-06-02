@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "bun test --isolate",
+    "test:e2e": "bunx playwright test",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
