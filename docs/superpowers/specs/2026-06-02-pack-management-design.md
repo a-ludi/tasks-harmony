@@ -63,6 +63,12 @@ If `:packId` does not match any pack in the store, the route redirects to `/`.
 
 The rename control is a small ✏️ button beside the pack title. Clicking it switches the title to an inline text input with Save/Cancel. On save, `renamePack` is called.
 
+### Pack label on chore cards
+
+`ChoreCard` gains a small pack label (the pack's `manifest.title`) displayed below the chore title. The label is shown on all views — including the pack-filtered dashboard — since `ChoreCard` does not need to know which route it is rendered from, and the label provides useful context everywhere.
+
+`ChoreCard` receives the pack title as a new optional prop `packTitle?: string`. The `Dashboard` and `PackDashboard` components look up each chore's pack title from the store's `packs` array and pass it down.
+
 ---
 
 ## 3. Pack Creation
@@ -185,5 +191,7 @@ No schema changes to IndexedDB — the `packs` store already exists.
 | `src/components/layout/NavBar.tsx` | Delete/replace | Superseded by Sidebar.tsx |
 | `src/App.tsx` | Modify | Use sidebar layout, add `/packs/:packId` route |
 | `src/components/chores/ChoreFormModal.tsx` | Modify | Add pack selector (create) / pack display (edit) |
+| `src/components/dashboard/ChoreCard.tsx` | Modify | Add `packTitle?: string` prop; render small pack label |
+| `src/components/dashboard/Dashboard.tsx` | Modify | Look up and pass `packTitle` to each `ChoreCard` |
 | `src/store/index.ts` | Modify | Add `addPack`, `renamePack` actions |
 | `package.json` | Modify | Add `fflate` dependency |
