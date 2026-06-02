@@ -24,3 +24,6 @@ media/
 .zshrc
 playwright-report/
 test-results/
+.agents/
+.playwright/
+.playwright-cli/
