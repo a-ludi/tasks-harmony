@@ -203,6 +203,20 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 
 ---
 
+## 8. Completions History
+
+**As the user, I want to review the history of completions for a chore, so that I can see what I have recorded over time.**
+
+- Each chore card links to its completions history page.
+- The page shows a table, one row per completion, sorted newest first.
+- Columns: **Completed at** (local date/time), one column per question in question order, **XP earned**.
+- If no completions exist, a message indicates this.
+- ENUM answers are displayed as the human-readable choice label, not the internal identifier.
+- If the stored identifier no longer matches any current choice (e.g., the choice was deleted), the raw value is shown as a fallback.
+- BOOLEAN answers are displayed as `true` or `false`.
+
+---
+
 ## Appendix: Edge Case Index
 
 | Edge case | Section |
