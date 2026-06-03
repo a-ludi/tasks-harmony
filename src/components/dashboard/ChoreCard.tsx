@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Chore, Completion, XPSettings, UserProfile, ChoreStatus } from '@/types';
+import { useShallow } from 'zustand/shallow';
+import type { Chore, Completion, XPSettings, UserProfile, ChoreStatus, QuickAnswerSet } from '@/types';
 import { useAppStore } from '@/store';
 import { getChoreStatus, formatRecurrence } from '@/chores/recurrence';
 import { computeNewStreak } from '@/chores/streak';
 import { calculateXP } from '@/xp/calculator';
+import { getAnswerDisplay } from '@/questions/display';
 import StatusBadge from './StatusBadge';
 import CompleteButton from '@/components/chores/CompleteButton';
 import ChoreFormModal from '@/components/chores/ChoreFormModal';
@@ -27,6 +29,24 @@ const BORDER_COLOR: Record<ChoreStatus, string> = {
 export default function ChoreCard({ chore, completions, xpSettings, profile, packTitle }: Props) {
   const deactivateChore = useAppStore((s) => s.deactivateChore);
   const [showEditModal, setShowEditModal] = useState(false);
+  const quickAnswerSets = useAppStore(
+    useShallow((s) => s.quickAnswerSets.filter((set) => set.choreKey === chore.key)),
+  );
+  const questions = useAppStore(
+    useShallow((s) => s.questions.filter((q) => q.choreKey === chore.key)),
+  );
+  const recordCompletion = useAppStore((s) => s.recordCompletion);
+  const [quickCompleting, setQuickCompleting] = useState<string | null>(null);
+
+  async function handleQuickComplete(set: QuickAnswerSet) {
+    if (quickCompleting) return;
+    setQuickCompleting(set.id);
+    try {
+      await recordCompletion(chore.key, set.answers);
+    } finally {
+      setQuickCompleting(null);
+    }
+  }
 
   const now = new Date();
   const choreCompletions = completions.filter((c) => c.choreKey === chore.key);
@@ -111,6 +131,42 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
             </div>
           </div>
         </div>
+
+        {quickAnswerSets.length > 0 && (status === 'due' || status === 'overdue' || (status === 'completed' && chore.repeatable)) && (
+          <div className="mt-2 flex flex-wrap gap-2 border-t border-gray-100 pt-2">
+            {quickAnswerSets.map((set) => {
+              const tooltipRows = [...questions]
+                .sort((a, b) => a.order - b.order)
+                .map((q) => ({
+                  prompt: q.prompt,
+                  display: getAnswerDisplay(set.answers, q) || '—',
+                }));
+
+              return (
+                <div key={set.id} className="group relative">
+                  <button
+                    onClick={() => handleQuickComplete(set)}
+                    disabled={!!quickCompleting}
+                    className="rounded-full border border-green-300 bg-green-50 px-3 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 disabled:opacity-50"
+                  >
+                    {quickCompleting === set.id ? 'Saving…' : `⚡ ${set.label}`}
+                  </button>
+                  {tooltipRows.length > 0 && (
+                    <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 hidden min-w-40 rounded-lg border border-gray-200 bg-white p-2 shadow-lg group-hover:block">
+                      <p className="mb-1 text-xs font-semibold text-gray-500">{set.label}</p>
+                      {tooltipRows.map((row) => (
+                        <div key={row.prompt} className="flex justify-between gap-3 text-xs">
+                          <span className="text-gray-500">{row.prompt}</span>
+                          <span className="font-medium text-gray-700">{row.display}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {showEditModal && (
