@@ -140,6 +140,10 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
         <SyncButton />
       </div>
 
+      <footer className="mt-auto pt-4 text-xs text-gray-300 select-none">
+        v{__APP_VERSION__} · {__BUILD_DATE__}
+      </footer>
+
       {showCDPDialog && <CDPImportDialog onClose={() => setShowCDPDialog(false)} />}
     </nav>
   );

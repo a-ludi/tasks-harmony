@@ -1,8 +1,12 @@
-import path from 'path';
+import { resolve } from 'path';
+import { createRequire } from 'module';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+const require = createRequire(import.meta.url);
+const { version } = require('./package.json');
 
 export default defineConfig({
   plugins: [
@@ -28,5 +32,9 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
+  resolve: { alias: { '@': resolve(__dirname, 'src') } },
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString().substring(0, 10)),
+  },
 });
