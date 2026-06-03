@@ -3,6 +3,7 @@ import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { buildCDPZip } from '@/cdp/cdp-export';
+import { calculatePackXP } from '@/xp/packXP';
 
 export default function PackDashboard() {
   const { packId } = useParams<{ packId: string }>();
@@ -14,8 +15,11 @@ export default function PackDashboard() {
   const profile = useAppStore((s) => s.profile);
   const navigate = useNavigate();
 
+  const completions = useAppStore((s) => s.completions);
+
   const pack = packs.find((p) => p.id === packId);
   const packChores = chores.filter((c) => c.packId === packId);
+  const packXP = calculatePackXP(packId ?? '', chores, completions);
   const packChoreKeys = new Set(packChores.map((c) => c.key));
   const packQuestions = questions.filter((q) => packChoreKeys.has(q.choreKey));
 
@@ -90,6 +94,9 @@ export default function PackDashboard() {
             >
               ✏️
             </button>
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
+              {packXP.toLocaleString()} XP
+            </span>
           </>
         )}
         <div className="ml-auto flex gap-2">
