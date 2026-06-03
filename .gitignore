@@ -27,3 +27,5 @@ test-results/
 .agents/
 .playwright/
 .playwright-cli/
+public/
+dev-dist/
