@@ -2,6 +2,7 @@
 
 ## Next Sprint
 
+- **I06** Setup CI/CD via GitHub Actions
 - **B01** Left sidebar not resizable in desktop mode
 - **B02** WebDAV import field and save button hidden when sidebar is too narrow
 - **B03** Questions not included in CDP export (adjust import if necessary)
@@ -25,6 +26,7 @@
 - **I03** XP preview in chore/question edit mode (projected XP with current multiplier settings)
 - **I04** Track and display XP per pack
 - **I05** Full security audit
+- **I06** Setup CI/CD via GitHub Actions
 
 ## Features
 
