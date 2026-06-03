@@ -10,7 +10,44 @@
     "interval": { "type": "integer", "minimum": 1 },
     "windowStartTime": { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" },
     "repeatable": { "type": "boolean" },
-    "questions": { "type": "array" }
+    "questions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/question" }
+    }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "definitions": {
+    "enumChoice": {
+      "type": "object",
+      "required": ["id", "label", "order"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "order": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "question": {
+      "type": "object",
+      "required": ["id", "type", "prompt", "required", "order"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["TEXT", "INTEGER", "BOOLEAN", "ENUM", "MULTIPLIER"] },
+        "prompt": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" },
+        "order": { "type": "integer" },
+        "active": { "type": "boolean" },
+        "regexPattern": { "type": "string" },
+        "minValue": { "type": "number" },
+        "maxValue": { "type": "number" },
+        "choices": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/enumChoice" }
+        },
+        "xpPerUnit": { "type": "number" },
+        "multiplierAnswerType": { "type": "string", "enum": ["integer", "float"] }
+      },
+      "additionalProperties": false
+    }
+  }
 }
