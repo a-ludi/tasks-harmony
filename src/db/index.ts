@@ -4,32 +4,38 @@ import type { TasksHarmonyDB } from './schema';
 import { seed } from './seed';
 import type {
   Pack, Chore, Question, Completion,
-  XPSettings, UserProfile, SyncState,
+  XPSettings, UserProfile, SyncState, QuickAnswerSet,
 } from '@/types';
 
 const DB_NAME = 'tasks-harmony';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export async function openDB(
   name = DB_NAME,
 ): Promise<IDBPDatabase<TasksHarmonyDB>> {
   const db = await idbOpen<TasksHarmonyDB>(name, DB_VERSION, {
-    upgrade(db) {
-      db.createObjectStore('packs', { keyPath: 'id' });
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        db.createObjectStore('packs', { keyPath: 'id' });
 
-      const chores = db.createObjectStore('chores', { keyPath: 'key' });
-      chores.createIndex('by-pack', 'packId');
+        const chores = db.createObjectStore('chores', { keyPath: 'key' });
+        chores.createIndex('by-pack', 'packId');
 
-      const questions = db.createObjectStore('questions', { keyPath: 'id' });
-      questions.createIndex('by-chore', 'choreKey');
+        const questions = db.createObjectStore('questions', { keyPath: 'id' });
+        questions.createIndex('by-chore', 'choreKey');
 
-      const completions = db.createObjectStore('completions', { keyPath: 'id' });
-      completions.createIndex('by-chore', 'choreKey');
-      completions.createIndex('by-date', 'completedAt');
+        const completions = db.createObjectStore('completions', { keyPath: 'id' });
+        completions.createIndex('by-chore', 'choreKey');
+        completions.createIndex('by-date', 'completedAt');
 
-      db.createObjectStore('xpSettings', { keyPath: 'id' });
-      db.createObjectStore('profile', { keyPath: 'id' });
-      db.createObjectStore('syncState', { keyPath: 'id' });
+        db.createObjectStore('xpSettings', { keyPath: 'id' });
+        db.createObjectStore('profile', { keyPath: 'id' });
+        db.createObjectStore('syncState', { keyPath: 'id' });
+      }
+      if (oldVersion < 2) {
+        const qas = db.createObjectStore('quickAnswerSets', { keyPath: 'id' });
+        qas.createIndex('by-chore', 'choreKey');
+      }
     },
   });
   await seed(db);
@@ -150,3 +156,26 @@ export const deletePack = (
   id: string,
 ): Promise<void> =>
   db.delete('packs', id);
+
+export const getAllQuickAnswerSets = (
+  db: IDBPDatabase<TasksHarmonyDB>,
+): Promise<QuickAnswerSet[]> =>
+  db.getAll('quickAnswerSets');
+
+export const getQuickAnswerSetsByChore = (
+  db: IDBPDatabase<TasksHarmonyDB>,
+  choreKey: string,
+): Promise<QuickAnswerSet[]> =>
+  db.getAllFromIndex('quickAnswerSets', 'by-chore', choreKey);
+
+export const putQuickAnswerSet = (
+  db: IDBPDatabase<TasksHarmonyDB>,
+  qas: QuickAnswerSet,
+): Promise<string> =>
+  db.put('quickAnswerSets', qas);
+
+export const deleteQuickAnswerSet = (
+  db: IDBPDatabase<TasksHarmonyDB>,
+  id: string,
+): Promise<void> =>
+  db.delete('quickAnswerSets', id);
