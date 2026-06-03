@@ -5,6 +5,7 @@ import QuestionBuilder from '@/components/questions/QuestionBuilder';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 import { validateQuestionDrafts } from './choreFormValidation';
 import { XP_BASE } from '@/xp/calculator';
+import { buildXPPreview } from '@/xp/xpPreview';
 
 interface Props {
   chore?: Chore;
@@ -36,6 +37,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const saveQuestions = useAppStore((s) => s.saveQuestions);
   const packs = useAppStore((s) => s.packs);
   const allQuestions = useAppStore((s) => s.questions);
+  const xpSettings = useAppStore((s) => s.xpSettings);
+  const profile = useAppStore((s) => s.profile);
 
   const isEdit = chore !== undefined;
 
@@ -52,6 +55,11 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState(packId);
+
+  const activeSettings =
+    xpSettings.find((s) => s.id === profile?.activeXPSettingsId) ?? xpSettings[0];
+
+  const xpPreview = activeSettings ? buildXPPreview(xpSize, activeSettings) : null;
 
   const choreKey = isEdit ? chore!.key : null;
   const initialQuestions = choreKey ? allQuestions.filter((q) => q.choreKey === choreKey) : [];
@@ -195,6 +203,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
                 <option key={size} value={size}>{size} ({XP_BASE[size]} XP)</option>
               ))}
             </select>
+            {xpPreview && (
+              <p className="mt-1 text-xs text-indigo-600">{xpPreview}</p>
+            )}
           </div>
 
           <div>
