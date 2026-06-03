@@ -221,11 +221,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   importCDP: async (baseUrl) => {
     const { db } = get();
     if (!db) throw new Error('Database not initialised');
-    const { pack, chores } = await fetchCDP(baseUrl);
+    const { pack, chores, questions } = await fetchCDP(baseUrl);
     await putPack(db, pack);
     for (const chore of chores) await putChore(db, chore);
-    const [updatedPacks, updatedChores] = await Promise.all([getPacks(db), getAllChores(db)]);
-    set({ packs: updatedPacks, chores: updatedChores });
+    for (const question of questions) await putQuestion(db, question);
+    const [updatedPacks, updatedChores, updatedQuestions] = await Promise.all([
+      getPacks(db), getAllChores(db), getAllQuestions(db),
+    ]);
+    set({ packs: updatedPacks, chores: updatedChores, questions: updatedQuestions });
   },
 
   updateCDP: async (packId) => {
@@ -234,12 +237,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const pack = packs.find((p) => p.id === packId);
     if (!pack) throw new Error(`Pack '${packId}' not found in store`);
     if (!pack.sourceUrl) throw new Error(`Pack '${packId}' has no sourceUrl — cannot update`);
-    const { pack: updatedPack, chores: updatedChores } = await fetchCDP(pack.sourceUrl);
+    const { pack: updatedPack, chores: updatedChores, questions: updatedQuestions } = await fetchCDP(pack.sourceUrl);
     for (const chore of updatedChores) await putChore(db, chore);
+    for (const question of updatedQuestions) await putQuestion(db, question);
     const refreshedPack: Pack = { ...updatedPack, importedAt: pack.importedAt, updatedAt: new Date().toISOString() };
     await putPack(db, refreshedPack);
-    const [finalPacks, finalChores] = await Promise.all([getPacks(db), getAllChores(db)]);
-    set({ packs: finalPacks, chores: finalChores });
+    const [finalPacks, finalChores, finalQuestions] = await Promise.all([
+      getPacks(db), getAllChores(db), getAllQuestions(db),
+    ]);
+    set({ packs: finalPacks, chores: finalChores, questions: finalQuestions });
   },
 
   addPack: async (name) => {

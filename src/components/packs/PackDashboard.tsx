@@ -8,6 +8,7 @@ export default function PackDashboard() {
   const { packId } = useParams<{ packId: string }>();
   const packs = useAppStore((s) => s.packs);
   const chores = useAppStore((s) => s.chores);
+  const questions = useAppStore((s) => s.questions);
   const renamePack = useAppStore((s) => s.renamePack);
   const deletePack = useAppStore((s) => s.deletePack);
   const profile = useAppStore((s) => s.profile);
@@ -15,6 +16,8 @@ export default function PackDashboard() {
 
   const pack = packs.find((p) => p.id === packId);
   const packChores = chores.filter((c) => c.packId === packId);
+  const packChoreKeys = new Set(packChores.map((c) => c.key));
+  const packQuestions = questions.filter((q) => packChoreKeys.has(q.choreKey));
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -29,7 +32,7 @@ export default function PackDashboard() {
 
   function handleExport() {
     if (!pack || !profile) return;
-    const zipBytes = buildCDPZip(pack, packChores, profile);
+    const zipBytes = buildCDPZip(pack, packChores, packQuestions, profile);
     const blob = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
