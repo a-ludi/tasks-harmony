@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { SyncButton } from '@/components/sync/SyncButton';
@@ -10,13 +10,34 @@ interface Props {
   onNewPack: () => void;
 }
 
+export const NAV_LINK_CLASS = ({ isActive }: { isActive: boolean }) =>
+  `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+    isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+  }`;
+
 export default function Sidebar({ onClose, onNewPack }: Props) {
   const completions = useAppStore((s) => s.completions);
   const packs = useAppStore((s) => s.packs);
   const isOnline = useOnlineStatus();
   const [showCDPDialog, setShowCDPDialog] = useState(false);
+  const [showPackMenu, setShowPackMenu] = useState(false);
+  const packMenuRef = useRef<HTMLDivElement>(null);
 
   const totalXP = completions.reduce((sum, c) => sum + c.xpEarned, 0);
+  const sortedPacks = [...packs].sort((a, b) =>
+    a.manifest.title.localeCompare(b.manifest.title),
+  );
+
+  useEffect(() => {
+    if (!showPackMenu) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (packMenuRef.current && !packMenuRef.current.contains(e.target as Node)) {
+        setShowPackMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPackMenu]);
 
   return (
     <nav className="flex h-full flex-col overflow-y-auto p-4">
@@ -34,71 +55,68 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
         </span>
       </div>
 
-      <div className="mb-4 flex-1">
-        <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Chores
-        </p>
-        <NavLink
-          to="/"
-          end
-          onClick={onClose}
-          className={({ isActive }) =>
-            `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
-            }`
-          }
-        >
-          Dashboard
-        </NavLink>
-        {packs.map((pack) => (
+      <NavLink to="/" end onClick={onClose} className={NAV_LINK_CLASS}>
+        Dashboard
+      </NavLink>
+
+      <div className="mb-4 mt-4 flex-1">
+        <div className="mb-1 flex items-center justify-between px-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+            Packs
+          </p>
+          <div className="relative" ref={packMenuRef}>
+            <button
+              onClick={() => setShowPackMenu((v) => !v)}
+              className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              title="Pack actions"
+              aria-label="Pack actions"
+            >
+              ⋮
+            </button>
+            {showPackMenu && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                <button
+                  onClick={() => { setShowPackMenu(false); onNewPack(); onClose(); }}
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  + New Pack
+                </button>
+                <button
+                  onClick={() => { setShowPackMenu(false); setShowCDPDialog(true); }}
+                  disabled={!isOnline}
+                  title={!isOnline ? 'Offline — CDP import unavailable' : undefined}
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Import Pack
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {sortedPacks.map((pack) => (
           <NavLink
             key={pack.id}
             to={`/packs/${pack.id}`}
             onClick={onClose}
-            className={({ isActive }) =>
-              `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
-              }`
-            }
+            className={NAV_LINK_CLASS}
           >
             {pack.manifest.title}
           </NavLink>
         ))}
-        <button
-          onClick={() => { onNewPack(); onClose(); }}
-          className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
-        >
-          + New Pack
-        </button>
       </div>
 
       <div className="mb-4">
         <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
           Account
         </p>
-        <NavLink
-          to="/profile"
-          onClick={onClose}
-          className={({ isActive }) =>
-            `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
-            }`
-          }
-        >
+        <NavLink to="/profile" onClick={onClose} className={NAV_LINK_CLASS}>
           Profile
         </NavLink>
       </div>
 
-      <div className="space-y-2 border-t border-gray-200 pt-4">
+      <div className="border-t border-gray-200 pt-4">
         <SyncButton />
-        <button
-          onClick={() => setShowCDPDialog(true)}
-          disabled={!isOnline}
-          title={!isOnline ? 'Offline — CDP import unavailable' : 'Import Chore Pack'}
-          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-        >
-          Import Pack
-        </button>
       </div>
 
       {showCDPDialog && <CDPImportDialog onClose={() => setShowCDPDialog(false)} />}
