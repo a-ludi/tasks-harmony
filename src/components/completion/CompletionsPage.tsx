@@ -1,5 +1,6 @@
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
+import type { Question, Answer } from '@/types';
 
 export default function CompletionsPage() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
@@ -25,9 +26,13 @@ export default function CompletionsPage() {
     return new Date(iso).toLocaleString();
   }
 
-  function getAnswerValue(completionAnswers: { questionId: string; value: string | number | boolean | null }[], questionId: string): string {
-    const ans = completionAnswers.find((a) => a.questionId === questionId);
+  function getAnswerDisplay(answers: Answer[], question: Question): string {
+    const ans = answers.find((a) => a.questionId === question.id);
     if (!ans || ans.value === null || ans.value === '') return '';
+    if (question.type === 'ENUM') {
+      const choice = (question.choices ?? []).find((c) => c.id === ans.value);
+      return choice?.label ?? String(ans.value);
+    }
     return String(ans.value);
   }
 
@@ -62,7 +67,7 @@ export default function CompletionsPage() {
                   <td className="py-2 pr-4 text-gray-600 whitespace-nowrap">{formatDate(c.completedAt)}</td>
                   {choreQuestions.map((q) => (
                     <td key={q.id} className="py-2 pr-4 text-gray-600">
-                      {getAnswerValue(c.answers, q.id)}
+                      {getAnswerDisplay(c.answers, q)}
                     </td>
                   ))}
                   <td className="py-2 text-gray-700 font-medium text-right">{c.xpEarned}</td>
