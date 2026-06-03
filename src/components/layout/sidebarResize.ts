@@ -14,5 +14,5 @@ export function readStoredWidth(): number {
 }
 
 export function writeStoredWidth(width: number): void {
-  localStorage.setItem('sidebarWidth', String(width));
+  localStorage.setItem('sidebarWidth', String(clampSidebarWidth(width)));
 }
