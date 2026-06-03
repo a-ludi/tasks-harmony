@@ -5,3 +5,5 @@ code if appropriate.
 Always choose Subagent-Driven for implementation tasks.
 
 The default remote is called `public`. Push and pull permissions are configured.
+
+Version numbers are set manually in `package.json`. Bump the version there before being instructed to cut a release.
