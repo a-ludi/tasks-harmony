@@ -107,11 +107,11 @@ export function SyncButton() {
 
   if (!syncState.webdavUrl || showUrlInput) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="space-y-2">
         <input type="url" value={webdavInput} onChange={(e) => setWebdavInput(e.target.value)}
           placeholder="https://dav.example.com/.../state.json"
-          className="text-sm rounded border border-gray-300 px-2 py-1 w-64 focus:outline-none focus:ring-1 focus:ring-indigo-500" aria-label="WebDAV state.json URL" />
-        <button onClick={handleSaveUrl} className="rounded bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Save</button>
+          className="w-full text-sm rounded border border-gray-300 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500" aria-label="WebDAV state.json URL" />
+        <button onClick={handleSaveUrl} className="w-full rounded bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Save</button>
       </div>
     );
   }
