@@ -1,19 +1,48 @@
-- re-organize menu a bit:
-    - Dashboard
-    - --- Packs --- (vertical dots menu)
-        - new pack
-        - import pack
-    - Pack 1
-    - Pack 2 etc.
+# Backlog
 
----
+## Next Sprint
 
-- use bootstrap or material UI or a similarly mature UI library
-- support dark mode
-- full security audit
-- support number enums
-- opt: quick complete with pre-defined answer(s), single user-defined option, deactivate
-- duplicate single chores
-- something personal in the title bar
-- allow moving chores between packs
-- when deleting a pack ask the user if chores should be deleted or moved
+- **B01** Left sidebar not resizable in desktop mode
+- **B02** WebDAV import field and save button hidden when sidebar is too narrow
+- **B03** Questions not included in CDP export (adjust import if necessary)
+- **I01** Re-organize sidebar navigation (Dashboard → Packs section with new/import → individual packs)
+- **I02** Something personal in the title bar (beyond XP)
+- **I03** XP preview in chore/question edit mode (projected XP with current multiplier settings)
+- **I04** Track and display XP per pack
+- **F01** Quick-complete: pre-defined answer sets, single-option shortcut, per-question deactivate
+- **F02** Export and import local data as ZIP backup
+
+## Bugs
+
+- **B01** Left sidebar not resizable in desktop mode
+- **B02** WebDAV import field and save button hidden when sidebar is too narrow
+- **B03** Questions not included in CDP export (adjust import if necessary)
+
+## Improvements
+
+- **I01** Re-organize sidebar navigation (Dashboard → Packs section with new/import → individual packs)
+- **I02** Something personal in the title bar (beyond XP)
+- **I03** XP preview in chore/question edit mode (projected XP with current multiplier settings)
+- **I04** Track and display XP per pack
+- **I05** Full security audit
+
+## Features
+
+- **F01** Quick-complete: pre-defined answer sets, single-option shortcut, per-question deactivate
+- **F02** Export and import local data as ZIP backup
+- **F03** Dark mode
+- **F04** Migrate to a mature UI component library (Bootstrap, Material UI, or similar)
+- **F05** Move chores between packs; when deleting a pack, offer to move chores instead of deleting them
+- **F06** Duplicate a chore
+- **F07** Graphical XP overview: calendar heatmap, daily bar chart, accumulated total — per chore, per pack, overall; user-configurable widgets
+- **F08** Completions graph on chore card (hover for preview, click to filter dashboard)
+- **F09** Dashboard sorting and filtering (by status, pack, XP, etc.)
+- **F10** Compact mode (more chores per screen)
+- **F11** Auto-sync with cloud storage via WebDAV
+- **F12** Cloud integrations: Nextcloud, iCloud, Dropbox, Google Drive
+- **F13** Today page: chores due today with reminders (email, push, WhatsApp, Telegram)
+- **F14** Push notifications: reminders at due time, on interval, or after overdue threshold — iOS and Android
+- **F15** Calendar subscription for a chore pack (webcal)
+- **F16** Multi-device accounts with shared data
+- **F17** iOS Lock Screen widgets for quick completions and chore progress (feasibility)
+- **F18** Friends and groups: shared packs for versus-mode or communal completion (feasibility)
