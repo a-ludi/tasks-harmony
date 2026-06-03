@@ -1,6 +1,6 @@
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
-import type { Question, Answer } from '@/types';
+import { getAnswerDisplay } from '@/questions/display';
 
 export default function CompletionsPage() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
@@ -24,16 +24,6 @@ export default function CompletionsPage() {
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleString();
-  }
-
-  function getAnswerDisplay(answers: Answer[], question: Question): string {
-    const ans = answers.find((a) => a.questionId === question.id);
-    if (!ans || ans.value === null || ans.value === '') return '';
-    if (question.type === 'ENUM') {
-      const choice = (question.choices ?? []).find((c) => c.id === ans.value);
-      return choice?.label ?? String(ans.value);
-    }
-    return String(ans.value);
   }
 
   return (
