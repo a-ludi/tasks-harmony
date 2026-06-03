@@ -4,6 +4,7 @@ import { useAppStore } from '@/store';
 import { SyncButton } from '@/components/sync/SyncButton';
 import { CDPImportDialog } from '@/components/cdp/CDPImportDialog';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { getDisplayName } from '@/components/layout/displayName';
 
 interface Props {
   onClose: () => void;
@@ -18,6 +19,8 @@ export const NAV_LINK_CLASS = ({ isActive }: { isActive: boolean }) =>
 export default function Sidebar({ onClose, onNewPack }: Props) {
   const completions = useAppStore((s) => s.completions);
   const packs = useAppStore((s) => s.packs);
+  const profile = useAppStore((s) => s.profile);
+  const displayName = getDisplayName(profile?.displayName ?? '');
   const isOnline = useOnlineStatus();
   const [showCDPDialog, setShowCDPDialog] = useState(false);
   const [showPackMenu, setShowPackMenu] = useState(false);
@@ -48,6 +51,12 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
       >
         Tasks Harmony
       </Link>
+
+      {displayName && (
+        <p className="mb-3 hidden font-serif italic text-gray-500 md:block">
+          {displayName}
+        </p>
+      )}
 
       <div className="mb-4">
         <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
