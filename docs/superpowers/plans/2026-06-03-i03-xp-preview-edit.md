@@ -2,15 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Show a live XP preview in the chore create/edit form that updates as the user changes the XP Size field, using the active XP formula settings.
+**Goal:** Show a live XP preview in the chore create/edit form that updates as the user changes XP Size, displaying the base XP and the theoretical maximum at infinite streak.
 
-**Architecture:** Add a `buildXPPreview` pure function that takes the selected `xpSize`, the active `XPSettings`, and (for edit mode) the current streak count, and returns a display string like `"8 XP at start · up to 24 XP at max streak"`. Wire this into `ChoreFormModal.tsx` by subscribing to `xpSettings` and `profile` from the store. For new chores streak=0; for existing chores read the last recorded streak from `completions`.
+**Architecture:** Add a pure `buildXPPreview(xpSize, settings)` helper that computes two values from the formula's analytical limits — no simulation needed:
 
-**Tech Stack:** React, Zustand, `calculateXP` from `@/xp/calculator`.
+- **Base XP** = `XP_BASE[xpSize]` (streak multiplier → 1 as streak count → 0)
+- **Max XP** = `Math.round(XP_BASE[xpSize] × settings.maxStreakMultiplier)` (streak multiplier → `maxStreakMultiplier` as streak → ∞)
+
+When base equals max (multiplier = 1), only one number is shown. Wire into `ChoreFormModal.tsx` by subscribing to `xpSettings` and `profile`. Displayed as small indigo text below the XP Size selector.
+
+**Tech Stack:** React, Zustand, `XP_BASE` from `@/xp/calculator`.
 
 ---
 
-### Task 1: Extract and test the XP preview formatting logic
+### Task 1: Add the XP preview helper
 
 **Files:**
 - Create: `src/xp/xpPreview.ts`
@@ -25,37 +30,36 @@ import { describe, it, expect } from 'bun:test';
 import { buildXPPreview } from './xpPreview';
 import type { XPSettings } from '@/types';
 
-const DEFAULT_SETTINGS: XPSettings = {
-  id: 'default',
-  name: 'Default',
-  maxStreakMultiplier: 3,
-  decayFloor: 0.1,
-  streakHalfLife: 7,
-  decayHalfLife: 20,
+const SETTINGS_3X: XPSettings = {
+  id: 'default', name: 'Default',
+  maxStreakMultiplier: 3, decayFloor: 0.1, streakHalfLife: 7, decayHalfLife: 20,
+};
+
+const SETTINGS_1X: XPSettings = {
+  id: 'flat', name: 'Flat',
+  maxStreakMultiplier: 1, decayFloor: 0.1, streakHalfLife: 7, decayHalfLife: 20,
 };
 
 describe('buildXPPreview', () => {
-  it('shows base XP for streak=0 and a max-streak projection', () => {
-    const result = buildXPPreview('M', 0, DEFAULT_SETTINGS);
-    // XP_BASE.M = 8; at streak 0: calculateXP('M', 0, 0, settings)
-    // At streak 0: streakMult ≈ 1.0, decayMult ≈ 1.0, result = 8
-    // At max streak (e.g. 100): streakMult ≈ 3.0, result ≈ 24
-    expect(result).toContain('XP');
-    expect(result).toContain('·');
+  it('shows base and max XP when multiplier > 1', () => {
+    // XP_BASE.M = 8; max = round(8 * 3) = 24
+    expect(buildXPPreview('M', SETTINGS_3X)).toBe('8 XP · up to 24 XP at max streak');
   });
 
-  it('shows higher base XP when current streak is non-zero', () => {
-    const atZero = buildXPPreview('M', 0, DEFAULT_SETTINGS);
-    const atSeven = buildXPPreview('M', 7, DEFAULT_SETTINGS);
-    // At streak 7 the first number should be >= the first number at streak 0
-    const firstNumZero = parseInt(atZero.split(' ')[0], 10);
-    const firstNumSeven = parseInt(atSeven.split(' ')[0], 10);
-    expect(firstNumSeven).toBeGreaterThanOrEqual(firstNumZero);
+  it('shows only base XP when multiplier is 1', () => {
+    // XP_BASE.M = 8; max = 8 — equal, so just one value
+    expect(buildXPPreview('M', SETTINGS_1X)).toBe('8 XP');
   });
 
-  it('returns a string containing two XP values separated by ·', () => {
-    const result = buildXPPreview('S', 0, DEFAULT_SETTINGS);
-    expect(result).toMatch(/\d+ XP.*·.*\d+ XP/);
+  it('scales correctly for different XP sizes', () => {
+    // XP_BASE.S = 5; max = round(5 * 3) = 15
+    expect(buildXPPreview('S', SETTINGS_3X)).toBe('5 XP · up to 15 XP at max streak');
+  });
+
+  it('handles fractional multiplier results by rounding', () => {
+    const settings: XPSettings = { ...SETTINGS_3X, maxStreakMultiplier: 2.5 };
+    // XP_BASE.XS = 3; max = round(3 * 2.5) = round(7.5) = 8
+    expect(buildXPPreview('XS', settings)).toBe('3 XP · up to 8 XP at max streak');
   });
 });
 ```
@@ -74,19 +78,13 @@ Create `src/xp/xpPreview.ts`:
 
 ```ts
 import type { XPSize, XPSettings } from '@/types';
-import { calculateXP } from './calculator';
+import { XP_BASE } from './calculator';
 
-const PREVIEW_MAX_STREAK = 100;
-
-export function buildXPPreview(
-  xpSize: XPSize,
-  currentStreak: number,
-  settings: XPSettings,
-): string {
-  const atCurrent = calculateXP(xpSize, currentStreak, 0, settings);
-  const atMax = calculateXP(xpSize, PREVIEW_MAX_STREAK, 0, settings);
-  if (atCurrent === atMax) return `${atCurrent} XP`;
-  return `${atCurrent} XP · up to ${atMax} XP at max streak`;
+export function buildXPPreview(xpSize: XPSize, settings: XPSettings): string {
+  const base = XP_BASE[xpSize];
+  const max = Math.round(base * settings.maxStreakMultiplier);
+  if (max === base) return `${base} XP`;
+  return `${base} XP · up to ${max} XP at max streak`;
 }
 ```
 
@@ -96,13 +94,13 @@ export function buildXPPreview(
 bun test --isolate src/xp/xpPreview.test.ts
 ```
 
-Expected: all 3 tests pass.
+Expected: all 4 tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add src/xp/xpPreview.ts src/xp/xpPreview.test.ts
-git commit -m "feat: add buildXPPreview helper for live XP preview in chore form"
+git commit -m "feat: add buildXPPreview helper using analytical formula limits"
 ```
 
 ---
@@ -118,18 +116,16 @@ In `src/components/chores/ChoreFormModal.tsx`, add at the top:
 
 ```ts
 import { buildXPPreview } from '@/xp/xpPreview';
-import { computeNewStreak } from '@/chores/streak';
 ```
 
-Inside the `ChoreFormModal` component, add new store reads after the existing ones:
+Inside the `ChoreFormModal` component, add after the existing store reads:
 
 ```ts
 const xpSettings = useAppStore((s) => s.xpSettings);
 const profile = useAppStore((s) => s.profile);
-const completions = useAppStore((s) => s.completions);
 ```
 
-- [ ] **Step 2: Compute the current streak and active settings**
+- [ ] **Step 2: Compute the preview**
 
 After the existing form state declarations, add:
 
@@ -137,24 +133,12 @@ After the existing form state declarations, add:
 const activeSettings =
   xpSettings.find((s) => s.id === profile?.activeXPSettingsId) ?? xpSettings[0];
 
-const currentStreak = isEdit
-  ? (() => {
-      const choreCompletions = completions.filter((c) => c.choreKey === chore!.key);
-      if (choreCompletions.length === 0) return 0;
-      return [...choreCompletions].sort(
-        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
-      )[0].streak;
-    })()
-  : 0;
-
-const xpPreview = activeSettings
-  ? buildXPPreview(xpSize, currentStreak, activeSettings)
-  : null;
+const xpPreview = activeSettings ? buildXPPreview(xpSize, activeSettings) : null;
 ```
 
-- [ ] **Step 3: Render the preview below the XP Size select**
+- [ ] **Step 3: Render the preview below the XP Size selector**
 
-Find the closing `</div>` of the XP Size field block (the block that contains `<label htmlFor="chore-xp-size">` and its `<select>`). After the select and before the closing `</div>`, add:
+Find the XP Size `<div>` block. After the `<select>` and before the closing `</div>`, add:
 
 ```tsx
 {xpPreview && (
@@ -162,7 +146,7 @@ Find the closing `</div>` of the XP Size field block (the block that contains `<
 )}
 ```
 
-The XP Size field block should now look like:
+The full XP Size field block becomes:
 
 ```tsx
 <div>
@@ -185,7 +169,7 @@ The XP Size field block should now look like:
 </div>
 ```
 
-- [ ] **Step 4: Run typecheck + full test suite**
+- [ ] **Step 4: Run typecheck + full suite**
 
 ```bash
 bun run typecheck && bun test
@@ -197,5 +181,5 @@ Expected: exits 0, all tests pass.
 
 ```bash
 git add src/components/chores/ChoreFormModal.tsx
-git commit -m "feat: show live XP preview in chore edit form based on active XP formula"
+git commit -m "feat: show live XP preview in chore form using analytical formula limits"
 ```
