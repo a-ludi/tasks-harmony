@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
 import type { Chore, XPSize, RecurrenceFrequency } from '@/types';
+import type { QuickAnswerSet } from '@/types';
 import QuestionBuilder from '@/components/questions/QuestionBuilder';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 import { validateQuestionDrafts } from './choreFormValidation';
 import { XP_BASE } from '@/xp/calculator';
 import { buildXPPreview } from '@/xp/xpPreview';
+import QuickAnswerSetModal from './QuickAnswerSetModal';
+import { QUICK_ANSWER_SET_LIMIT } from '@/config';
 
 interface Props {
   chore?: Chore;
@@ -39,6 +42,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const allQuestions = useAppStore((s) => s.questions);
   const xpSettings = useAppStore((s) => s.xpSettings);
   const profile = useAppStore((s) => s.profile);
+  const allQuickAnswerSets = useAppStore((s) => s.quickAnswerSets);
+  const saveQuickAnswerSet = useAppStore((s) => s.saveQuickAnswerSet);
+  const removeQuickAnswerSet = useAppStore((s) => s.removeQuickAnswerSet);
 
   const isEdit = chore !== undefined;
 
@@ -66,6 +72,10 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const [questionDrafts, setQuestionDrafts] = useState<DraftQuestion[]>(() =>
     initialQuestions.map((q) => ({ ...q })),
   );
+  const choreQuickSets = isEdit
+    ? allQuickAnswerSets.filter((s) => s.choreKey === chore!.key)
+    : [];
+  const [editingSet, setEditingSet] = useState<QuickAnswerSet | null | 'new'>(null);
 
   function validate(): FormErrors {
     const errs: FormErrors = {};
@@ -128,6 +138,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   }
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
@@ -306,6 +317,49 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
             />
           </div>
 
+          {isEdit && (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-800">Quick Answers</h3>
+                {choreQuickSets.length < QUICK_ANSWER_SET_LIMIT && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingSet('new')}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    + Add
+                  </button>
+                )}
+              </div>
+              {choreQuickSets.length === 0 && (
+                <p className="text-xs text-gray-400">
+                  No quick answers yet. Add up to {QUICK_ANSWER_SET_LIMIT}.
+                </p>
+              )}
+              {choreQuickSets.map((set) => (
+                <div key={set.id} className="mb-1 flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                  <span className="text-sm text-gray-700">{set.label}</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingSet(set)}
+                      className="text-xs text-gray-400 hover:text-blue-600"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeQuickAnswerSet(set.id)}
+                      className="text-xs text-gray-400 hover:text-red-600"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
@@ -327,5 +381,16 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         </form>
       </div>
     </div>
+
+    {editingSet && (
+      <QuickAnswerSetModal
+        choreKey={chore!.key}
+        questions={initialQuestions}
+        existingSet={editingSet === 'new' ? undefined : editingSet}
+        onSave={async (qas) => { await saveQuickAnswerSet(qas); setEditingSet(null); }}
+        onClose={() => setEditingSet(null)}
+      />
+    )}
+    </>
   );
 }
