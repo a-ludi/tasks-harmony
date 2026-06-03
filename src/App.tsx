@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import Sidebar from '@/components/layout/Sidebar';
+import { clampSidebarWidth, readStoredWidth, writeStoredWidth } from '@/components/layout/sidebarResize';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { ProfilePage } from '@/components/profile/ProfilePage';
 import NewPackDialog from '@/components/packs/NewPackDialog';
@@ -24,6 +25,29 @@ export default function App() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewPackDialog, setShowNewPackDialog] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => readStoredWidth());
+  const sidebarWidthRef = useRef(sidebarWidth);
+
+  function handleResizeMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidthRef.current;
+
+    function onMouseMove(ev: MouseEvent) {
+      const newWidth = clampSidebarWidth(startWidth + ev.clientX - startX);
+      sidebarWidthRef.current = newWidth;
+      setSidebarWidth(newWidth);
+    }
+
+    function onMouseUp() {
+      writeStoredWidth(sidebarWidthRef.current);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
 
   useEffect(() => { init(); }, [init]);
 
@@ -40,6 +64,10 @@ export default function App() {
       });
     }
   }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    sidebarWidthRef.current = sidebarWidth;
+  }, [sidebarWidth]);
 
   if (!loaded) {
     return (
@@ -59,13 +87,19 @@ export default function App() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-48 bg-white border-r border-gray-200 transition-transform md:static md:translate-x-0 ${
+        style={{ width: sidebarWidth }}
+        className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-200 transition-transform md:static md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <Sidebar
           onClose={() => setSidebarOpen(false)}
           onNewPack={() => setShowNewPackDialog(true)}
+        />
+        <div
+          onMouseDown={handleResizeMouseDown}
+          className="absolute inset-y-0 right-0 hidden w-1 cursor-col-resize bg-transparent hover:bg-blue-300 md:block"
+          title="Drag to resize sidebar"
         />
       </aside>
 
