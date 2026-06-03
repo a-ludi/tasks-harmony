@@ -5,6 +5,7 @@ import { SyncButton } from '@/components/sync/SyncButton';
 import { CDPImportDialog } from '@/components/cdp/CDPImportDialog';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { getDisplayName } from '@/components/layout/displayName';
+import { calculatePackXP } from '@/xp/packXP';
 
 interface Props {
   onClose: () => void;
@@ -19,6 +20,7 @@ export const NAV_LINK_CLASS = ({ isActive }: { isActive: boolean }) =>
 export default function Sidebar({ onClose, onNewPack }: Props) {
   const completions = useAppStore((s) => s.completions);
   const packs = useAppStore((s) => s.packs);
+  const chores = useAppStore((s) => s.chores);
   const profile = useAppStore((s) => s.profile);
   const displayName = getDisplayName(profile?.displayName ?? '');
   const isOnline = useOnlineStatus();
@@ -103,16 +105,26 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
           </div>
         </div>
 
-        {sortedPacks.map((pack) => (
-          <NavLink
-            key={pack.id}
-            to={`/packs/${pack.id}`}
-            onClick={onClose}
-            className={NAV_LINK_CLASS}
-          >
-            {pack.manifest.title}
-          </NavLink>
-        ))}
+        {sortedPacks.map((pack) => {
+          const packXP = calculatePackXP(pack.id, chores, completions);
+          return (
+            <NavLink
+              key={pack.id}
+              to={`/packs/${pack.id}`}
+              onClick={onClose}
+              className={NAV_LINK_CLASS}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="truncate">{pack.manifest.title}</span>
+                {packXP > 0 && (
+                  <span className="shrink-0 text-xs font-normal text-amber-600">
+                    {packXP.toLocaleString()} XP
+                  </span>
+                )}
+              </span>
+            </NavLink>
+          );
+        })}
       </div>
 
       <div className="mb-4">
