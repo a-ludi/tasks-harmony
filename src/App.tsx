@@ -10,6 +10,7 @@ import PackDashboard from '@/components/packs/PackDashboard';
 import CompletionsPage from '@/components/completion/CompletionsPage';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { performSync } from '@/sync/sync';
+import { getDisplayName } from '@/components/layout/displayName';
 
 export default function App() {
   const init = useAppStore((s) => s.init);
@@ -22,6 +23,9 @@ export default function App() {
 
   const completions = useAppStore((s) => s.completions);
   const totalXP = completions.reduce((sum, c) => sum + c.xpEarned, 0);
+
+  const profile = useAppStore((s) => s.profile);
+  const displayName = getDisplayName(profile?.displayName ?? '');
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewPackDialog, setShowNewPackDialog] = useState(false);
@@ -112,8 +116,14 @@ export default function App() {
           >
             ☰
           </button>
-          <Link to="/" className="font-bold text-gray-900">
+          <Link to="/" className="font-bold text-gray-900 flex items-baseline gap-1.5">
             Tasks Harmony
+            {displayName && (
+              <>
+                <span className="text-gray-300 font-normal">·</span>
+                <span className="font-serif italic font-normal text-gray-700">{displayName}</span>
+              </>
+            )}
           </Link>
           <span className="ml-auto rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
             {totalXP.toLocaleString()} XP
