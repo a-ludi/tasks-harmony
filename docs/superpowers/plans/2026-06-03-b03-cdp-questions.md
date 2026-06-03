@@ -4,7 +4,7 @@
 
 **Goal:** Include a chore's questions in its CDP export YAML and parse them back during import, so questions survive the CDP round-trip.
 
-**Architecture:** Each chore YAML file gains an optional `questions` array. `buildCDPZip` receives questions and serialises them per chore. `fetchCDP` returns `questions` alongside `pack` and `chores`. The `importCDP` and `updateCDP` store actions persist the imported questions via `putQuestion`. The `PackDashboard` export call is updated to pass the filtered question list. The `choreDefinition.schema.json` already allows `questions: { type: "array" }`.
+**Architecture:** Each chore YAML file gains an optional `questions` array. `buildCDPZip` receives questions and serialises them per chore. `fetchCDP` returns `questions` alongside `pack` and `chores`. The `importCDP` and `updateCDP` store actions persist the imported questions via `putQuestion`. The `PackDashboard` export call is updated to pass the filtered question list. Both JSON schemas are updated: `choreDefinition.schema.json` gets a proper `questions` item schema with per-type discriminators; `appState.schema.json` gets the same question item schema for its `questions` array.
 
 **Question YAML structure per chore file:**
 
@@ -507,4 +507,198 @@ Expected: exits 0, all tests pass.
 ```bash
 git add src/components/packs/PackDashboard.tsx
 git commit -m "fix: pass questions to buildCDPZip in PackDashboard export"
+```
+
+---
+
+### Task 5: Update JSON schemas to validate question objects
+
+**Files:**
+- Modify: `src/schemas/choreDefinition.schema.json`
+- Modify: `src/schemas/appState.schema.json`
+- Modify: `src/schemas/validate.test.ts`
+
+- [ ] **Step 1: Write failing tests for question validation**
+
+In `src/schemas/validate.test.ts`, add tests for the question schema (alongside existing tests):
+
+```ts
+describe('validateChoreDefinition — questions', () => {
+  it('accepts a chore with no questions field', () => {
+    const result = validateChoreDefinition({ title: 'T', xpSize: 'S', frequency: 'daily', interval: 1 });
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts a valid TEXT question', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      questions: [{ id: 'q-1', type: 'TEXT', prompt: 'How?', required: true, order: 0 }],
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts a valid ENUM question with choices', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      questions: [{
+        id: 'q-1', type: 'ENUM', prompt: 'Effort?', required: true, order: 0,
+        choices: [{ id: 'c-1', label: 'Low', order: 0 }],
+      }],
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects a question missing required fields', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      questions: [{ type: 'TEXT' }],
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects an unknown question type', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      questions: [{ id: 'q-1', type: 'UNKNOWN', prompt: 'Q', required: true, order: 0 }],
+    });
+    expect(result.valid).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 2: Run tests — expect fail**
+
+```bash
+bun test --isolate src/schemas/validate.test.ts
+```
+
+Expected: FAIL — schema only has `questions: { type: "array" }`, no item validation yet.
+
+- [ ] **Step 3: Update choreDefinition.schema.json**
+
+Replace `src/schemas/choreDefinition.schema.json`:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["title", "xpSize", "frequency", "interval"],
+  "properties": {
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "xpSize": { "type": "string", "enum": ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+    "frequency": { "type": "string", "enum": ["daily", "weekly", "monthly"] },
+    "interval": { "type": "integer", "minimum": 1 },
+    "windowStartTime": { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" },
+    "repeatable": { "type": "boolean" },
+    "questions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/question" }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "enumChoice": {
+      "type": "object",
+      "required": ["id", "label", "order"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "order": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "question": {
+      "type": "object",
+      "required": ["id", "type", "prompt", "required", "order"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["TEXT", "INTEGER", "BOOLEAN", "ENUM", "MULTIPLIER"] },
+        "prompt": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" },
+        "order": { "type": "integer" },
+        "active": { "type": "boolean" },
+        "regexPattern": { "type": "string" },
+        "minValue": { "type": "number" },
+        "maxValue": { "type": "number" },
+        "choices": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/enumChoice" }
+        },
+        "xpPerUnit": { "type": "number" },
+        "multiplierAnswerType": { "type": "string", "enum": ["integer", "float"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+- [ ] **Step 4: Update appState.schema.json**
+
+In `src/schemas/appState.schema.json`, replace the loose `"questions": { "type": "array" }` with an array of question items referencing the same definition. Since JSON Schema `$ref` can't cross files, inline the definition:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["schemaVersion", "exportedAt", "packs", "chores", "questions", "completions", "xpSettings", "profile", "syncState"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "exportedAt": { "type": "string" },
+    "packs": { "type": "array" },
+    "chores": { "type": "array" },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "choreKey", "type", "prompt", "required", "order"],
+        "properties": {
+          "id": { "type": "string" },
+          "choreKey": { "type": "string" },
+          "type": { "type": "string", "enum": ["TEXT", "INTEGER", "BOOLEAN", "ENUM", "MULTIPLIER"] },
+          "prompt": { "type": "string" },
+          "required": { "type": "boolean" },
+          "order": { "type": "integer" },
+          "active": { "type": "boolean" },
+          "regexPattern": { "type": "string" },
+          "minValue": { "type": "number" },
+          "maxValue": { "type": "number" },
+          "choices": { "type": "array" },
+          "xpPerUnit": { "type": "number" },
+          "multiplierAnswerType": { "type": "string", "enum": ["integer", "float"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "completions": { "type": "array" },
+    "xpSettings": { "type": "array" },
+    "profile": { "type": "object", "required": ["id", "displayName", "email", "activeXPSettingsId"] },
+    "syncState": { "type": "object", "required": ["id", "pendingSync"] }
+  },
+  "additionalProperties": false
+}
+```
+
+- [ ] **Step 5: Run tests — expect pass**
+
+```bash
+bun test --isolate src/schemas/validate.test.ts
+```
+
+Expected: all tests pass.
+
+- [ ] **Step 6: Run full suite**
+
+```bash
+bun run typecheck && bun test
+```
+
+Expected: exits 0.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/schemas/choreDefinition.schema.json src/schemas/appState.schema.json src/schemas/validate.test.ts
+git commit -m "feat: add question item validation to choreDefinition and appState JSON schemas"
 ```
