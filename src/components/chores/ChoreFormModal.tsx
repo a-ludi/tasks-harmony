@@ -32,6 +32,7 @@ interface FormErrors {
   interval?: string;
   startDate?: string;
   questions?: string;
+  pack?: string;
 }
 
 export default function ChoreFormModal({ chore, packId, onClose }: Props) {
@@ -45,6 +46,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const allQuickAnswerSets = useAppStore((s) => s.quickAnswerSets);
   const saveQuickAnswerSet = useAppStore((s) => s.saveQuickAnswerSet);
   const removeQuickAnswerSet = useAppStore((s) => s.removeQuickAnswerSet);
+  const moveChore = useAppStore((s) => s.moveChore);
+  const chores = useAppStore((s) => s.chores);
 
   const isEdit = chore !== undefined;
 
@@ -77,6 +80,20 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
     : [];
   const [editingSet, setEditingSet] = useState<QuickAnswerSet | null | 'new'>(null);
 
+  function handlePackChange(newPackId: string) {
+    setSelectedPackId(newPackId);
+    if (!chore) return;
+    const collision = chores.some(
+      (c) => c.packId === newPackId && c.choreId === chore.choreId && c.key !== chore.key,
+    );
+    setErrors((prev) => ({
+      ...prev,
+      pack: collision
+        ? `A chore with ID "${chore.choreId}" already exists in this pack.`
+        : undefined,
+    }));
+  }
+
   function validate(): FormErrors {
     const errs: FormErrors = {};
     if (!title.trim()) errs.title = 'Title is required.';
@@ -104,8 +121,27 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
 
     try {
       if (isEdit && chore) {
+        const packChanged = selectedPackId !== chore.packId;
+        if (packChanged) {
+          const moved = await moveChore(chore.key, selectedPackId);
+          if (!moved) {
+            setErrors((prev) => ({
+              ...prev,
+              pack: `A chore with ID "${chore.choreId}" already exists in this pack.`,
+            }));
+            setSubmitting(false);
+            return;
+          }
+        }
+
+        const activeChoreKey = packChanged
+          ? `${selectedPackId}/${chore.choreId}`
+          : chore.key;
+
         await updateChore({
           ...chore,
+          key: activeChoreKey,
+          packId: selectedPackId,
           title: title.trim(),
           description: description.trim() || undefined,
           xpSize,
@@ -114,7 +150,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         });
 
         if (questionDrafts.length > 0 || initialQuestions.length > 0) {
-          await saveQuestions(chore.key, questionDrafts);
+          const updatedDrafts = questionDrafts.map((d) => ({ ...d, choreKey: activeChoreKey }));
+          await saveQuestions(activeChoreKey, updatedDrafts);
         }
       } else {
         const newChoreKey = await addChore({
@@ -182,22 +219,19 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="chore-pack">Pack</label>
-            {isEdit ? (
-              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                {packs.find((p) => p.id === chore?.packId)?.manifest.title ?? chore?.packId}
-              </p>
-            ) : (
-              <select
-                id="chore-pack"
-                value={selectedPackId}
-                onChange={(e) => setSelectedPackId(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-              >
-                {packs.map((p) => (
-                  <option key={p.id} value={p.id}>{p.manifest.title}</option>
-                ))}
-              </select>
-            )}
+            <select
+              id="chore-pack"
+              value={selectedPackId}
+              onChange={(e) => isEdit ? handlePackChange(e.target.value) : setSelectedPackId(e.target.value)}
+              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                errors.pack ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 focus:ring-blue-300'
+              }`}
+            >
+              {packs.map((p) => (
+                <option key={p.id} value={p.id}>{p.manifest.title}</option>
+              ))}
+            </select>
+            {errors.pack && <p className="mt-1 text-xs text-red-600">{errors.pack}</p>}
           </div>
 
           <div>
@@ -370,9 +404,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !!errors.pack}
               className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
-                submitting ? 'cursor-not-allowed bg-blue-300' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                submitting || errors.pack ? 'cursor-not-allowed bg-blue-300' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
               }`}
             >
               {submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Chore'}
