@@ -53,11 +53,13 @@ function buildChoreYaml(chore: Chore, questions: Question[]): string {
   };
   if (chore.description) data.description = chore.description;
   if (questions.length > 0) {
-    data.questions = questions.map((q) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { choreKey: _ck, ...rest } = q as Question & { choreKey: string };
-      return rest;
-    });
+    data.questions = [...questions]
+      .sort((a, b) => a.order - b.order)
+      .map((q) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { choreKey: _ck, order: _ord, ...rest } = q as Question & { choreKey: string };
+        return rest;
+      });
   }
   return jsYaml.dump(data);
 }

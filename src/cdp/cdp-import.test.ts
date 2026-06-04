@@ -46,6 +46,16 @@ describe('parseChoreQuestions', () => {
     if (q.type !== 'ENUM') throw new Error('Expected ENUM');
     expect(q.choices?.[0].label).toBe('Low');
   });
+
+  it('assigns order by array index when order field is absent', () => {
+    const raw = [
+      { id: 'q-first', type: 'TEXT', prompt: 'First?', required: false },
+      { id: 'q-second', type: 'TEXT', prompt: 'Second?', required: false },
+    ];
+    const result = parseChoreQuestions(raw, 'pack-a/clean');
+    expect(result[0].order).toBe(0);
+    expect(result[1].order).toBe(1);
+  });
 });
 
 describe('fetchCDP', () => {

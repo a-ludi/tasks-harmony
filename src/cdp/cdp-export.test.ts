@@ -182,4 +182,27 @@ describe('buildCDPZip — question serialisation', () => {
     const qs = parsed.questions as Array<Record<string, unknown>>;
     expect(qs[0].choreKey).toBeUndefined();
   });
+
+  it('does not include order in the serialised question', () => {
+    const question: Question = {
+      id: 'q-3', choreKey: 'my-pack/clean', prompt: 'How many?', required: true, order: 0, type: 'INTEGER',
+    };
+    const zipBytes = buildCDPZip(PACK2, [CHORE2], [question], PROFILE2);
+    const files = unzipSync(zipBytes);
+    const choreYaml = strFromU8(files['my-pack/clean.yaml']);
+    const parsed = jsYaml.load(choreYaml) as Record<string, unknown>;
+    const qs = parsed.questions as Array<Record<string, unknown>>;
+    expect(qs[0].order).toBeUndefined();
+  });
+
+  it('exports questions sorted by their order field', () => {
+    const q1: Question = { id: 'q-b', choreKey: 'my-pack/clean', prompt: 'Second', required: false, order: 1, type: 'TEXT' };
+    const q0: Question = { id: 'q-a', choreKey: 'my-pack/clean', prompt: 'First', required: false, order: 0, type: 'TEXT' };
+    const zipBytes = buildCDPZip(PACK2, [CHORE2], [q1, q0], PROFILE2);
+    const files = unzipSync(zipBytes);
+    const parsed = jsYaml.load(strFromU8(files['my-pack/clean.yaml'])) as Record<string, unknown>;
+    const qs = parsed.questions as Array<Record<string, unknown>>;
+    expect(qs[0].id).toBe('q-a');
+    expect(qs[1].id).toBe('q-b');
+  });
 });

@@ -26,7 +26,10 @@ export function parseChoreQuestions(
   choreKey: string,
 ): Question[] {
   if (!Array.isArray(raw) || raw.length === 0) return [];
-  return raw.map((q) => ({ ...(q as object), choreKey })) as Question[];
+  return raw.map((q, i) => {
+    const obj = q as Record<string, unknown>;
+    return { ...obj, choreKey, order: obj.order ?? i } as unknown as Question;
+  });
 }
 
 export async function fetchCDP(

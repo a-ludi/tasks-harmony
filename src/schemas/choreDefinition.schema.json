@@ -29,7 +29,7 @@
     },
     "question": {
       "type": "object",
-      "required": ["id", "type", "prompt", "required", "order"],
+      "required": ["id", "type", "prompt", "required"],
       "properties": {
         "id": { "type": "string" },
         "type": { "type": "string", "enum": ["TEXT", "INTEGER", "BOOLEAN", "ENUM", "MULTIPLIER"] },
