@@ -48,11 +48,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.SSH_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Deploy via rsync
         run: |
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key" \
             dist/ \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}/"
+            "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/"
