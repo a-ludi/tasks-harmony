@@ -22,7 +22,7 @@ export async function seedDatabase(
 ): Promise<void> {
   await page.evaluate(async (data) => {
     await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open('tasks-harmony', 1);
+      const req = indexedDB.open('tasks-harmony', 2);
       req.onupgradeneeded = () => { /* schema created by app on first page.goto */ };
       req.onsuccess = () => {
         const db = req.result;
