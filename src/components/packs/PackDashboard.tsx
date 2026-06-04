@@ -4,6 +4,7 @@ import { useAppStore } from '@/store';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { buildCDPZip } from '@/cdp/cdp-export';
 import { calculatePackXP } from '@/xp/packXP';
+import PackDeletionDialog from './PackDeletionDialog';
 
 export default function PackDashboard() {
   const { packId } = useParams<{ packId: string }>();
@@ -25,6 +26,7 @@ export default function PackDashboard() {
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [showDeletionDialog, setShowDeletionDialog] = useState(false);
 
   if (!pack) return <Navigate to="/" replace />;
 
@@ -48,12 +50,14 @@ export default function PackDashboard() {
 
   async function handleDelete() {
     if (!pack) return;
-    const confirmed = window.confirm(
-      `Delete "${pack.manifest.title}" and all its chores? This cannot be undone.`
-    );
-    if (!confirmed) return;
-    await deletePack(pack.id);
-    navigate('/');
+    if (packChores.length === 0) {
+      const confirmed = window.confirm(`Delete "${pack.manifest.title}"? This cannot be undone.`);
+      if (!confirmed) return;
+      await deletePack(pack.id);
+      navigate('/');
+    } else {
+      setShowDeletionDialog(true);
+    }
   }
 
   return (
@@ -118,6 +122,13 @@ export default function PackDashboard() {
       </div>
 
       <Dashboard chores={packChores} currentPackId={pack.id} />
+      {showDeletionDialog && pack && (
+        <PackDeletionDialog
+          pack={pack}
+          chores={packChores}
+          onClose={() => setShowDeletionDialog(false)}
+        />
+      )}
     </div>
   );
 }
