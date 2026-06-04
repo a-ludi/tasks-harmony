@@ -135,3 +135,11 @@ export interface AppState {
   profile: UserProfile;
   syncState: SyncState;
 }
+
+export interface ChoreDisposition {
+  choreKey: string;
+  action: 'delete' | 'move';
+  targetPackId?: string;
+  resolvedChoreId?: string;
+  resolvedTitle?: string;
+}

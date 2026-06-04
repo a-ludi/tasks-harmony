@@ -50,6 +50,7 @@ interface AppState {
   deletePack: (packId: string) => Promise<void>;
   saveQuickAnswerSet: (qas: QuickAnswerSet) => Promise<void>;
   removeQuickAnswerSet: (id: string) => Promise<void>;
+  moveChore: (choreKey: string, targetPackId: string) => Promise<boolean>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -339,5 +340,43 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       quickAnswerSets: state.quickAnswerSets.filter((s) => s.id !== id),
     }));
+  },
+
+  moveChore: async (choreKey, targetPackId) => {
+    const { db, chores, questions, completions } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    const chore = chores.find((c) => c.key === choreKey);
+    if (!chore) throw new Error(`Chore not found: ${choreKey}`);
+
+    const newKey = `${targetPackId}/${chore.choreId}`;
+    if (chores.some((c) => c.key === newKey)) return false;
+
+    const choreQuestions = questions.filter((q) => q.choreKey === choreKey);
+    const choreCompletions = completions.filter((c) => c.choreKey === choreKey);
+    const newChore: Chore = { ...chore, key: newKey, packId: targetPackId };
+
+    const tx = db.transaction(['chores', 'questions', 'completions'], 'readwrite');
+    await tx.objectStore('chores').delete(choreKey);
+    await tx.objectStore('chores').put(newChore);
+    for (const q of choreQuestions) {
+      await tx.objectStore('questions').put({ ...q, choreKey: newKey });
+    }
+    for (const c of choreCompletions) {
+      await tx.objectStore('completions').put({ ...c, choreKey: newKey });
+    }
+    await tx.done;
+
+    set((state) => ({
+      chores: state.chores.map((c) => (c.key === choreKey ? newChore : c)),
+      questions: state.questions.map((q) =>
+        q.choreKey === choreKey ? { ...q, choreKey: newKey } : q,
+      ),
+      completions: state.completions.map((c) =>
+        c.choreKey === choreKey ? { ...c, choreKey: newKey } : c,
+      ),
+    }));
+
+    return true;
   },
 }));
