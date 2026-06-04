@@ -6,6 +6,8 @@ import { fetchCDP } from '@/cdp/cdp-import';
 import { calculateXP } from '@/xp/calculator';
 import { computeNewStreak } from '@/chores/streak';
 import { recordCompletionWithTimestamp } from './recordCompletion';
+import { resolveChoreIdCollision } from '@/chores/resolveCollision';
+import type { ChoreDisposition } from '@/types';
 import type {
   Chore,
   Completion,
@@ -47,7 +49,7 @@ interface AppState {
   updateCDP: (packId: string) => Promise<void>;
   addPack: (name: string) => Promise<string>;
   renamePack: (packId: string, newTitle: string) => Promise<void>;
-  deletePack: (packId: string) => Promise<void>;
+  deletePack: (packId: string, dispositions?: ChoreDisposition[]) => Promise<void>;
   saveQuickAnswerSet: (qas: QuickAnswerSet) => Promise<void>;
   removeQuickAnswerSet: (id: string) => Promise<void>;
   moveChore: (choreKey: string, targetPackId: string) => Promise<boolean>;
@@ -292,7 +294,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  deletePack: async (packId) => {
+  deletePack: async (packId, dispositions = []) => {
     const { db } = get();
     if (!db) throw new Error('DB not initialised');
 
@@ -300,25 +302,57 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!pack) throw new Error(`Pack '${packId}' not found`);
     if (pack.isPersonal) throw new Error('Cannot delete the personal pack');
 
-    const packChores = await getChoresByPack(db, packId);
-    for (const chore of packChores) {
-      const choreCompletions = await getCompletionsByChore(db, chore.key);
-      for (const c of choreCompletions) await deleteCompletion(db, c.id);
-
-      const choreQuestions = await getQuestions(db, chore.key);
-      for (const q of choreQuestions) await deleteQuestion(db, q.id);
-
-      await deleteChore(db, chore.key);
+    for (const d of dispositions) {
+      if (d.action === 'delete') {
+        const uuid = crypto.randomUUID();
+        const choreCompletions = await getCompletionsByChore(db, d.choreKey);
+        const choreQuestions = await getQuestions(db, d.choreKey);
+        const tx = db.transaction(['chores', 'questions', 'completions'], 'readwrite');
+        for (const c of choreCompletions) {
+          await tx.objectStore('completions').put({ ...c, choreKey: uuid });
+        }
+        for (const q of choreQuestions) {
+          await tx.objectStore('questions').delete(q.id);
+        }
+        await tx.objectStore('chores').delete(d.choreKey);
+        await tx.done;
+      } else if (d.action === 'move' && d.targetPackId && d.resolvedChoreId) {
+        const chore = get().chores.find((c) => c.key === d.choreKey);
+        if (!chore) continue;
+        const newKey = `${d.targetPackId}/${d.resolvedChoreId}`;
+        const choreQuestions = await getQuestions(db, d.choreKey);
+        const choreCompletions = await getCompletionsByChore(db, d.choreKey);
+        const newChore: Chore = {
+          ...chore,
+          key: newKey,
+          choreId: d.resolvedChoreId,
+          title: d.resolvedTitle ?? chore.title,
+          packId: d.targetPackId,
+        };
+        const tx = db.transaction(['chores', 'questions', 'completions'], 'readwrite');
+        await tx.objectStore('chores').delete(d.choreKey);
+        await tx.objectStore('chores').put(newChore);
+        for (const q of choreQuestions) {
+          await tx.objectStore('questions').put({ ...q, choreKey: newKey });
+        }
+        for (const c of choreCompletions) {
+          await tx.objectStore('completions').put({ ...c, choreKey: newKey });
+        }
+        await tx.done;
+      }
     }
+
     await dbDeletePack(db, packId);
 
-    const packChoreKeys = new Set(packChores.map((c) => c.key));
-    set((state) => ({
-      packs: state.packs.filter((p) => p.id !== packId),
-      chores: state.chores.filter((c) => c.packId !== packId),
-      questions: state.questions.filter((q) => !packChoreKeys.has(q.choreKey)),
-      completions: state.completions.filter((c) => !packChoreKeys.has(c.choreKey)),
-    }));
+    const [updatedPacks, updatedChores, updatedQuestions, updatedCompletions] = await Promise.all([
+      getPacks(db), getAllChores(db), getAllQuestions(db), getAllCompletions(db),
+    ]);
+    set({
+      packs: updatedPacks,
+      chores: updatedChores,
+      questions: updatedQuestions,
+      completions: updatedCompletions,
+    });
   },
 
   saveQuickAnswerSet: async (qas) => {

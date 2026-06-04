@@ -45,11 +45,11 @@ describe('deletePack', () => {
     await useAppStore.getState().init();
   });
 
-  it('removes the pack and all its chores, questions, and completions', async () => {
-    const packId = await useAppStore.getState().addPack('Pack To Delete');
+  it('removes the pack, chores, and questions; rewrites completion choreKey to a UUID', async () => {
+    const packId = await useAppStore.getState().addPack('Pack To Delete New');
     const choreKey = await useAppStore.getState().addChore({
       packId,
-      title: 'Chore In Pack',
+      title: 'Chore In Pack New',
       xpSize: 'S',
       recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
       repeatable: false,
@@ -67,14 +67,59 @@ describe('deletePack', () => {
     } as DraftQuestion]);
 
     await useAppStore.getState().recordCompletion(choreKey, []);
+    const completionBefore = useAppStore.getState().completions.find((c) => c.choreKey === choreKey)!;
 
-    await useAppStore.getState().deletePack(packId);
+    await useAppStore.getState().deletePack(packId, [
+      { choreKey, action: 'delete' },
+    ]);
 
     const state = useAppStore.getState();
     expect(state.packs.find((p) => p.id === packId)).toBeUndefined();
     expect(state.chores.find((c) => c.packId === packId)).toBeUndefined();
     expect(state.questions.find((q) => q.choreKey === choreKey)).toBeUndefined();
-    expect(state.completions.find((c) => c.choreKey === choreKey)).toBeUndefined();
+
+    const completionAfter = state.completions.find((c) => c.id === completionBefore.id);
+    expect(completionAfter).toBeDefined();
+    expect(completionAfter?.choreKey).not.toBe(choreKey);
+    expect(completionAfter?.choreKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+  });
+
+  it('moves chore to target pack when disposition is move', async () => {
+    const sourcePackId = await useAppStore.getState().addPack('Source Pack');
+    const targetPackId = await useAppStore.getState().addPack('Target Pack For Delete');
+    const choreKey = await useAppStore.getState().addChore({
+      packId: sourcePackId,
+      title: 'Chore To Move',
+      xpSize: 'S',
+      recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+      repeatable: false,
+      active: true,
+    });
+
+    await useAppStore.getState().deletePack(sourcePackId, [
+      {
+        choreKey,
+        action: 'move',
+        targetPackId,
+        resolvedChoreId: 'chore-to-move',
+        resolvedTitle: 'Chore To Move',
+      },
+    ]);
+
+    const state = useAppStore.getState();
+    expect(state.packs.find((p) => p.id === sourcePackId)).toBeUndefined();
+    expect(state.chores.find((c) => c.key === choreKey)).toBeUndefined();
+    const moved = state.chores.find((c) => c.key === `${targetPackId}/chore-to-move`);
+    expect(moved).toBeDefined();
+    expect(moved?.packId).toBe(targetPackId);
+  });
+
+  it('deletes empty pack immediately with no dispositions', async () => {
+    const packId = await useAppStore.getState().addPack('Empty Pack');
+    await useAppStore.getState().deletePack(packId);
+    expect(useAppStore.getState().packs.find((p) => p.id === packId)).toBeUndefined();
   });
 
   it('throws when attempting to delete the personal pack', async () => {
