@@ -40,7 +40,6 @@ jobs:
         with:
           name: build
           path: dist/
-          run-id: ${{ needs.ci.outputs.artifact-id && github.run_id || github.run_id }}
 
       - name: Configure SSH
         run: |
