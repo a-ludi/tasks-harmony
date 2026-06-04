@@ -1,8 +1,12 @@
-import path from 'path';
+import { resolve } from 'path';
+import { readFileSync } from 'fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+const { version } = JSON.parse(readFileSync('package.json', 'utf-8'));
+const buildDate = new Date().toISOString().substring(0, 10);
 
 export default defineConfig({
   plugins: [
@@ -28,5 +32,9 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
+  resolve: { alias: { '@': resolve(__dirname, 'src') } },
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
+    'import.meta.env.VITE_BUILD_DATE': JSON.stringify(buildDate),
+  },
 });

@@ -6,6 +6,7 @@ import type {
 } from '@/types';
 import { isSafeRegex } from '@/questions/validation';
 import EnumChoicesEditor from './EnumChoicesEditor';
+import { buildMultiplierXPPreview } from '@/xp/xpPreview';
 
 export type DraftQuestion =
   | (TextQuestion     & { _isNew?: boolean; _deleted?: boolean })
@@ -199,6 +200,11 @@ export default function QuestionFormFields({ question, onChange, hasOtherMultipl
               onChange={(e) => update({ xpPerUnit: Number(e.target.value) } as Partial<DraftQuestion>)}
               className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
+            {question.xpPerUnit > 0 && (
+              <p className="mt-1 text-xs text-indigo-600">
+                {buildMultiplierXPPreview(question.xpPerUnit)}
+              </p>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-700">Answer type</label>

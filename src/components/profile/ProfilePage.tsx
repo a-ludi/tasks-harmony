@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAppStore } from '@/store';
 import type { UserProfile, XPSettings } from '@/types';
+import { exportAppState } from '@/sync/export';
+import { wrapStateInZip, buildBackupFilename, unwrapStateFromZip, isAppStatePristine } from '@/backup/backup';
+import { importAppState } from '@/sync/import';
+import { validateAppState } from '@/schemas/validate';
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -11,12 +15,18 @@ export function ProfilePage() {
   const xpSettings = useAppStore((s) => s.xpSettings);
   const completions = useAppStore((s) => s.completions);
   const updateProfile = useAppStore((s) => s.updateProfile);
+  const db = useAppStore((s) => s.db);
+  const packs = useAppStore((s) => s.packs);
+  const reload = useAppStore((s) => s.reload);
 
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [email, setEmail] = useState(profile?.email ?? '');
   const [activeXPSettingsId, setActiveXPSettingsId] = useState(profile?.activeXPSettingsId ?? '');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [savedAlert, setSavedAlert] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState(false);
 
   if (!profile) return <div className="p-6 text-gray-500">Loading profile…</div>;
 
@@ -29,6 +39,56 @@ export function ProfilePage() {
     const updatedProfile: UserProfile = { ...profile!, displayName: displayName.trim(), email: email.trim(), activeXPSettingsId };
     updateProfile(updatedProfile);
     setSavedAlert(true);
+  }
+
+  async function handleExport() {
+    if (!db) return;
+    const state = await exportAppState(db);
+    const zipBytes = wrapStateInZip(state);
+    const date = new Date().toISOString().substring(0, 10);
+    const filename = buildBackupFilename(date);
+    const blob = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !db) return;
+    setImportError(null);
+    setImportSuccess(false);
+
+    if (!isAppStatePristine(packs, completions)) {
+      const ok = window.confirm(
+        'This will replace all your current data with the backup. This cannot be undone. Continue?'
+      );
+      if (!ok) {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+    }
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const zipBytes = new Uint8Array(buffer);
+      const state = unwrapStateFromZip(zipBytes);
+      const validation = validateAppState(state);
+      if (!validation.valid) {
+        setImportError(`Invalid backup file: ${validation.errors.join('; ')}`);
+        return;
+      }
+      await importAppState(db, state);
+      await reload();
+      setImportSuccess(true);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Failed to import backup');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   }
 
   return (
@@ -81,6 +141,39 @@ export function ProfilePage() {
         <button onClick={handleSave} className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
           Save changes
         </button>
+      </section>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Backup</h2>
+        <p className="text-sm text-gray-600">
+          Export all your data as a ZIP file, or restore from a previously exported backup.
+        </p>
+        <button
+          onClick={handleExport}
+          className="w-full rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+        >
+          Export Backup
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip"
+          onChange={handleImport}
+          className="hidden"
+          aria-label="Import backup file"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400"
+        >
+          Import Backup
+        </button>
+        {importError && (
+          <p className="text-sm text-red-600" role="alert">{importError}</p>
+        )}
+        {importSuccess && (
+          <p className="text-sm text-green-600" role="status">Backup imported successfully.</p>
+        )}
       </section>
     </div>
   );

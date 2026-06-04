@@ -1,5 +1,6 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
-import type { XPSize } from '@/types';
+import type { XPSize, Question } from '@/types';
+import { parseChoreQuestions } from './cdp-import';
 
 const mockFetch = mock(async (_url: string) => new Response('{}', { status: 200 }));
 global.fetch = mockFetch as unknown as typeof fetch;
@@ -17,6 +18,45 @@ function setupFetchResponses(responses: Record<string, string>) {
     return new Response(body, { status: 200 });
   });
 }
+
+describe('parseChoreQuestions', () => {
+  it('returns an empty array when questions field is absent', () => {
+    expect(parseChoreQuestions(undefined, 'pack-a/clean')).toEqual([]);
+  });
+
+  it('returns an empty array when questions is an empty list', () => {
+    expect(parseChoreQuestions([], 'pack-a/clean')).toEqual([]);
+  });
+
+  it('injects choreKey into each question and preserves all fields', () => {
+    const raw = [{ id: 'q-1', type: 'TEXT', prompt: 'How?', required: true, order: 0 }];
+    const result = parseChoreQuestions(raw, 'pack-a/clean');
+    expect(result).toHaveLength(1);
+    expect(result[0].choreKey).toBe('pack-a/clean');
+    expect(result[0].type).toBe('TEXT');
+  });
+
+  it('handles ENUM questions with choices', () => {
+    const raw = [{
+      id: 'q-2', type: 'ENUM', prompt: 'Effort?', required: true, order: 0,
+      choices: [{ id: 'c-1', label: 'Low', order: 0 }],
+    }];
+    const result = parseChoreQuestions(raw, 'pack-a/clean') as Question[];
+    const q = result[0];
+    if (q.type !== 'ENUM') throw new Error('Expected ENUM');
+    expect(q.choices?.[0].label).toBe('Low');
+  });
+
+  it('assigns order by array index when order field is absent', () => {
+    const raw = [
+      { id: 'q-first', type: 'TEXT', prompt: 'First?', required: false },
+      { id: 'q-second', type: 'TEXT', prompt: 'Second?', required: false },
+    ];
+    const result = parseChoreQuestions(raw, 'pack-a/clean');
+    expect(result[0].order).toBe(0);
+    expect(result[1].order).toBe(1);
+  });
+});
 
 describe('fetchCDP', () => {
   const BASE = 'https://raw.githubusercontent.com/alice/packs/main/morning';

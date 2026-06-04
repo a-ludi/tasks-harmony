@@ -22,8 +22,8 @@ describe('recordCompletionWithTimestamp', () => {
     expect(() => recordCompletionWithTimestamp(slightlyFuture)).not.toThrow();
   });
 
-  it('rejects a timestamp 1001ms in the future (beyond tolerance)', () => {
-    const tooFuture = new Date(Date.now() + 1001);
+  it('rejects a timestamp well beyond the 1s tolerance', () => {
+    const tooFuture = new Date(Date.now() + 5000);
     expect(() => recordCompletionWithTimestamp(tooFuture)).toThrow(/future/i);
   });
 

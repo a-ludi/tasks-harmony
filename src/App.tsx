@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import Sidebar from '@/components/layout/Sidebar';
+import { clampSidebarWidth, readStoredWidth, writeStoredWidth } from '@/components/layout/sidebarResize';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { ProfilePage } from '@/components/profile/ProfilePage';
 import NewPackDialog from '@/components/packs/NewPackDialog';
@@ -9,6 +10,7 @@ import PackDashboard from '@/components/packs/PackDashboard';
 import CompletionsPage from '@/components/completion/CompletionsPage';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { performSync } from '@/sync/sync';
+import { getDisplayName } from '@/components/layout/displayName';
 
 export default function App() {
   const init = useAppStore((s) => s.init);
@@ -22,8 +24,34 @@ export default function App() {
   const completions = useAppStore((s) => s.completions);
   const totalXP = completions.reduce((sum, c) => sum + c.xpEarned, 0);
 
+  const profile = useAppStore((s) => s.profile);
+  const displayName = getDisplayName(profile?.displayName ?? '');
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewPackDialog, setShowNewPackDialog] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => readStoredWidth(window.innerWidth));
+  const sidebarWidthRef = useRef(sidebarWidth);
+
+  function handleResizeMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidthRef.current;
+
+    function onMouseMove(ev: MouseEvent) {
+      const newWidth = clampSidebarWidth(startWidth + ev.clientX - startX, window.innerWidth);
+      sidebarWidthRef.current = newWidth;
+      setSidebarWidth(newWidth);
+    }
+
+    function onMouseUp() {
+      writeStoredWidth(sidebarWidthRef.current, window.innerWidth);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
 
   useEffect(() => { init(); }, [init]);
 
@@ -40,6 +68,10 @@ export default function App() {
       });
     }
   }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    sidebarWidthRef.current = sidebarWidth;
+  }, [sidebarWidth]);
 
   if (!loaded) {
     return (
@@ -59,13 +91,19 @@ export default function App() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-48 bg-white border-r border-gray-200 transition-transform md:static md:translate-x-0 ${
+        style={{ width: sidebarWidth }}
+        className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-200 transition-transform md:static md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <Sidebar
           onClose={() => setSidebarOpen(false)}
           onNewPack={() => setShowNewPackDialog(true)}
+        />
+        <div
+          onMouseDown={handleResizeMouseDown}
+          className="absolute inset-y-0 right-0 hidden w-1 cursor-col-resize bg-transparent hover:bg-blue-300 md:block"
+          title="Drag to resize sidebar"
         />
       </aside>
 
@@ -78,8 +116,14 @@ export default function App() {
           >
             ☰
           </button>
-          <Link to="/" className="font-bold text-gray-900">
+          <Link to="/" className="font-bold text-gray-900 flex items-baseline gap-1.5">
             Tasks Harmony
+            {displayName && (
+              <>
+                <span className="text-gray-300 font-normal">·</span>
+                <span className="font-serif italic font-normal text-gray-700">{displayName}</span>
+              </>
+            )}
           </Link>
           <span className="ml-auto rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
             {totalXP.toLocaleString()} XP

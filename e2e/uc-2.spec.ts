@@ -47,7 +47,7 @@ test('each card shows required fields', async ({ page }) => {
 });
 
 test('complete a due chore without a page reload', async ({ page }) => {
-  const xpBadge = page.locator('nav').getByText(/XP/);
+  const xpBadge = page.getByTestId('xp-badge');
   const xpBeforeText = await xpBadge.textContent() ?? '0 XP';
   const xpBefore = parseInt(xpBeforeText.replace(/[^0-9]/g, ''), 10);
 

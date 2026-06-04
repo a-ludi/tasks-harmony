@@ -117,6 +117,13 @@ export interface SyncState {
   pendingSync: boolean;
 }
 
+export interface QuickAnswerSet {
+  id: string;
+  choreKey: string;
+  label: string;
+  answers: Answer[];
+}
+
 export interface AppState {
   schemaVersion: 1;
   exportedAt: string;

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, it, test } from 'bun:test';
 import { validateAppState, validatePackManifest, validateChoreDefinition } from './validate';
 
 describe('validateAppState', () => {
@@ -45,5 +45,47 @@ describe('validateChoreDefinition', () => {
   });
   test('invalid windowStartTime pattern fails', () => {
     expect(validateChoreDefinition({ title: 'X', xpSize: 'S', frequency: 'daily', interval: 1, windowStartTime: '25:00' }).valid).toBe(false);
+  });
+});
+
+describe('validateChoreDefinition — questions', () => {
+  it('accepts a chore with no questions field', () => {
+    const result = validateChoreDefinition({ title: 'T', xpSize: 'S', frequency: 'daily', interval: 1 });
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts a valid TEXT question', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      questions: [{ id: 'q-1', type: 'TEXT', prompt: 'How?', required: true, order: 0 }],
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts a valid ENUM question with choices', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      questions: [{
+        id: 'q-1', type: 'ENUM', prompt: 'Effort?', required: true, order: 0,
+        choices: [{ id: 'c-1', label: 'Low', order: 0 }],
+      }],
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects a question missing required fields', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      questions: [{ type: 'TEXT' }],
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects an unknown question type', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      questions: [{ id: 'q-1', type: 'UNKNOWN', prompt: 'Q', required: true, order: 0 }],
+    });
+    expect(result.valid).toBe(false);
   });
 });

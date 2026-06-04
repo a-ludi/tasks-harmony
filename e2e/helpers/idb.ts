@@ -22,8 +22,8 @@ export async function seedDatabase(
 ): Promise<void> {
   await page.evaluate(async (data) => {
     await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open('tasks-harmony', 1);
-      req.onupgradeneeded = () => { /* schema created by app on first page.goto */ };
+      // No version — always opens at whatever version the app set up via page.goto()
+      const req = indexedDB.open('tasks-harmony');
       req.onsuccess = () => {
         const db = req.result;
         const storeNames = Object.keys(data);

@@ -30,14 +30,15 @@ test('repeatable completed chore shows "Complete again"', async ({ page }) => {
 });
 
 test('completing again adds XP a second time', async ({ page }) => {
-  const xpBadge = page.locator('nav').getByText(/XP/);
+  const xpBadge = page.getByTestId('xp-badge');
   const xpBeforeText = await xpBadge.textContent() ?? '0 XP';
   const xpBefore = parseInt(xpBeforeText.replace(/[^0-9]/g, ''), 10);
 
   const card = page.getByTestId('chore-card').filter({ hasText: 'Drink water' });
   await card.getByRole('button', { name: 'Complete again' }).click();
 
-  await expect(card.getByText('Completed')).toBeVisible();
+  // Wait for the badge to update — "Completed" was already visible from seeded data
+  await expect(xpBadge).not.toHaveText(xpBeforeText);
   const xpAfterText = await xpBadge.textContent() ?? '0 XP';
   const xpAfter = parseInt(xpAfterText.replace(/[^0-9]/g, ''), 10);
   expect(xpAfter).toBeGreaterThan(xpBefore);

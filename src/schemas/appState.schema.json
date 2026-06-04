@@ -7,7 +7,29 @@
     "exportedAt": { "type": "string" },
     "packs": { "type": "array" },
     "chores": { "type": "array" },
-    "questions": { "type": "array" },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "choreKey", "type", "prompt", "required", "order"],
+        "properties": {
+          "id": { "type": "string" },
+          "choreKey": { "type": "string" },
+          "type": { "type": "string", "enum": ["TEXT", "INTEGER", "BOOLEAN", "ENUM", "MULTIPLIER"] },
+          "prompt": { "type": "string" },
+          "required": { "type": "boolean" },
+          "order": { "type": "integer" },
+          "active": { "type": "boolean" },
+          "regexPattern": { "type": "string" },
+          "minValue": { "type": "number" },
+          "maxValue": { "type": "number" },
+          "choices": { "type": "array" },
+          "xpPerUnit": { "type": "number" },
+          "multiplierAnswerType": { "type": "string", "enum": ["integer", "float"] }
+        },
+        "additionalProperties": false
+      }
+    },
     "completions": { "type": "array" },
     "xpSettings": { "type": "array" },
     "profile": { "type": "object", "required": ["id", "displayName", "email", "activeXPSettingsId"] },

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, deleteChore, putPack, deleteCompletion, deletePack as dbDeletePack, getChoresByPack, getQuestions, getCompletionsByChore } from '@/db';
+import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, deleteChore, putPack, deleteCompletion, deletePack as dbDeletePack, getChoresByPack, getQuestions, getCompletionsByChore, getAllQuickAnswerSets, putQuickAnswerSet, deleteQuickAnswerSet as dbDeleteQuickAnswerSet } from '@/db';
 import { titleToFilename } from '@/cdp/filename';
 import { slugifyPackId } from '@/cdp/packId';
 import { fetchCDP } from '@/cdp/cdp-import';
@@ -16,6 +16,7 @@ import type {
   UserProfile,
   SyncState,
   Answer,
+  QuickAnswerSet,
 } from '@/types';
 import type { IDBPDatabase } from 'idb';
 import type { TasksHarmonyDB } from '@/db/schema';
@@ -31,6 +32,7 @@ interface AppState {
   xpSettings: XPSettings[];
   profile: UserProfile | null;
   syncState: SyncState | null;
+  quickAnswerSets: QuickAnswerSet[];
 
   init: () => Promise<void>;
   reload: () => Promise<void>;
@@ -46,6 +48,8 @@ interface AppState {
   addPack: (name: string) => Promise<string>;
   renamePack: (packId: string, newTitle: string) => Promise<void>;
   deletePack: (packId: string) => Promise<void>;
+  saveQuickAnswerSet: (qas: QuickAnswerSet) => Promise<void>;
+  removeQuickAnswerSet: (id: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -58,12 +62,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   xpSettings: [],
   profile: null,
   syncState: null,
+  quickAnswerSets: [],
 
   init: async () => {
     if (get().loaded) return;
 
     const db = await openDB();
-    const [packs, chores, completions, questions, xpSettings, profile, syncState] =
+    const [packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets] =
       await Promise.all([
         getPacks(db),
         getAllChores(db),
@@ -72,20 +77,21 @@ export const useAppStore = create<AppState>((set, get) => ({
         getXPSettings(db),
         getProfile(db),
         getSyncState(db),
+        getAllQuickAnswerSets(db),
       ]);
 
-    set({ db, loaded: true, packs, chores, completions, questions, xpSettings, profile, syncState });
+    set({ db, loaded: true, packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets });
   },
 
   reload: async () => {
     const { db } = get();
     if (!db) return;
-    const [packs, chores, completions, questions, xpSettings, profile, syncState] =
+    const [packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets] =
       await Promise.all([
         getPacks(db), getAllChores(db), getAllCompletions(db), getAllQuestions(db),
-        getXPSettings(db), getProfile(db), getSyncState(db),
+        getXPSettings(db), getProfile(db), getSyncState(db), getAllQuickAnswerSets(db),
       ]);
-    set({ packs, chores, completions, questions, xpSettings, profile: profile ?? null, syncState: syncState ?? null });
+    set({ packs, chores, completions, questions, xpSettings, profile: profile ?? null, syncState: syncState ?? null, quickAnswerSets });
   },
 
   addChore: async (data) => {
@@ -221,11 +227,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   importCDP: async (baseUrl) => {
     const { db } = get();
     if (!db) throw new Error('Database not initialised');
-    const { pack, chores } = await fetchCDP(baseUrl);
+    const { pack, chores, questions } = await fetchCDP(baseUrl);
     await putPack(db, pack);
     for (const chore of chores) await putChore(db, chore);
-    const [updatedPacks, updatedChores] = await Promise.all([getPacks(db), getAllChores(db)]);
-    set({ packs: updatedPacks, chores: updatedChores });
+    for (const question of questions) await putQuestion(db, question);
+    const [updatedPacks, updatedChores, updatedQuestions] = await Promise.all([
+      getPacks(db), getAllChores(db), getAllQuestions(db),
+    ]);
+    set({ packs: updatedPacks, chores: updatedChores, questions: updatedQuestions });
   },
 
   updateCDP: async (packId) => {
@@ -234,12 +243,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const pack = packs.find((p) => p.id === packId);
     if (!pack) throw new Error(`Pack '${packId}' not found in store`);
     if (!pack.sourceUrl) throw new Error(`Pack '${packId}' has no sourceUrl — cannot update`);
-    const { pack: updatedPack, chores: updatedChores } = await fetchCDP(pack.sourceUrl);
+    const { pack: updatedPack, chores: updatedChores, questions: updatedQuestions } = await fetchCDP(pack.sourceUrl);
     for (const chore of updatedChores) await putChore(db, chore);
+    for (const question of updatedQuestions) await putQuestion(db, question);
     const refreshedPack: Pack = { ...updatedPack, importedAt: pack.importedAt, updatedAt: new Date().toISOString() };
     await putPack(db, refreshedPack);
-    const [finalPacks, finalChores] = await Promise.all([getPacks(db), getAllChores(db)]);
-    set({ packs: finalPacks, chores: finalChores });
+    const [finalPacks, finalChores, finalQuestions] = await Promise.all([
+      getPacks(db), getAllChores(db), getAllQuestions(db),
+    ]);
+    set({ packs: finalPacks, chores: finalChores, questions: finalQuestions });
   },
 
   addPack: async (name) => {
@@ -305,6 +317,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       chores: state.chores.filter((c) => c.packId !== packId),
       questions: state.questions.filter((q) => !packChoreKeys.has(q.choreKey)),
       completions: state.completions.filter((c) => !packChoreKeys.has(c.choreKey)),
+    }));
+  },
+
+  saveQuickAnswerSet: async (qas) => {
+    const { db } = get();
+    if (!db) throw new Error('DB not initialised');
+    await putQuickAnswerSet(db, qas);
+    set((state) => ({
+      quickAnswerSets: [
+        ...state.quickAnswerSets.filter((s) => s.id !== qas.id),
+        qas,
+      ],
+    }));
+  },
+
+  removeQuickAnswerSet: async (id) => {
+    const { db } = get();
+    if (!db) throw new Error('DB not initialised');
+    await dbDeleteQuickAnswerSet(db, id);
+    set((state) => ({
+      quickAnswerSets: state.quickAnswerSets.filter((s) => s.id !== id),
     }));
   },
 }));

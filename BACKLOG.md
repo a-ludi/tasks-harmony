@@ -2,34 +2,19 @@
 
 ## Next Sprint
 
-- **B01** Left sidebar not resizable in desktop mode
-- **B02** WebDAV import field and save button hidden when sidebar is too narrow
-- **B03** Questions not included in CDP export (adjust import if necessary)
-- **I01** Re-organize sidebar navigation (Dashboard → Packs section with new/import → individual packs)
-- **I02** Something personal in the title bar (beyond XP)
-- **I03** XP preview in chore/question edit mode (projected XP with current multiplier settings)
-- **I04** Track and display XP per pack
-- **F01** Quick-complete: pre-defined answer sets, single-option shortcut, per-question deactivate
-- **F02** Export and import local data as ZIP backup
+- **B01** Left sidebar not resizable in desktop mode ✓
+- **B03** Questions not included in CDP export (adjust import if necessary) ✓
+- **I03** XP preview in chore/question edit mode (projected XP with current multiplier settings) ✓
 
 ## Bugs
 
-- **B01** Left sidebar not resizable in desktop mode
-- **B02** WebDAV import field and save button hidden when sidebar is too narrow
-- **B03** Questions not included in CDP export (adjust import if necessary)
-
 ## Improvements
 
-- **I01** Re-organize sidebar navigation (Dashboard → Packs section with new/import → individual packs)
-- **I02** Something personal in the title bar (beyond XP)
-- **I03** XP preview in chore/question edit mode (projected XP with current multiplier settings)
-- **I04** Track and display XP per pack
 - **I05** Full security audit
+- **I07** Local Git hooks to execute checks and tests
 
 ## Features
 
-- **F01** Quick-complete: pre-defined answer sets, single-option shortcut, per-question deactivate
-- **F02** Export and import local data as ZIP backup
 - **F03** Dark mode
 - **F04** Migrate to a mature UI component library (Bootstrap, Material UI, or similar)
 - **F05** Move chores between packs; when deleting a pack, offer to move chores instead of deleting them
