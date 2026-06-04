@@ -10,6 +10,7 @@ import { getAnswerDisplay } from '@/questions/display';
 import StatusBadge from './StatusBadge';
 import CompleteButton from '@/components/chores/CompleteButton';
 import ChoreFormModal from '@/components/chores/ChoreFormModal';
+import DuplicateChoreDialog from '@/components/chores/DuplicateChoreDialog';
 
 interface Props {
   chore: Chore;
@@ -28,6 +29,7 @@ const BORDER_COLOR: Record<ChoreStatus, string> = {
 
 export default function ChoreCard({ chore, completions, xpSettings, profile, packTitle }: Props) {
   const deactivateChore = useAppStore((s) => s.deactivateChore);
+  const allChores = useAppStore((s) => s.chores);
   const [showEditModal, setShowEditModal] = useState(false);
   const quickAnswerSets = useAppStore(
     useShallow((s) => s.quickAnswerSets.filter((set) => set.choreKey === chore.key)),
@@ -37,6 +39,8 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
   );
   const recordCompletion = useAppStore((s) => s.recordCompletion);
   const [quickCompleting, setQuickCompleting] = useState<string | null>(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [editAfterDuplicateKey, setEditAfterDuplicateKey] = useState<string | null>(null);
 
   async function handleQuickComplete(set: QuickAnswerSet) {
     if (quickCompleting) return;
@@ -122,6 +126,13 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
                 ✎
               </button>
               <button
+                onClick={() => setShowDuplicateDialog(true)}
+                title="Duplicate chore"
+                className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+              >
+                Duplicate
+              </button>
+              <button
                 onClick={handleDeactivate}
                 title="Archive chore"
                 className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
@@ -176,6 +187,28 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
           onClose={() => setShowEditModal(false)}
         />
       )}
+
+      {showDuplicateDialog && (
+        <DuplicateChoreDialog
+          chore={chore}
+          onClose={() => setShowDuplicateDialog(false)}
+          onDuplicateAndEdit={(newKey) => {
+            setShowDuplicateDialog(false);
+            setEditAfterDuplicateKey(newKey);
+          }}
+        />
+      )}
+
+      {editAfterDuplicateKey && (() => {
+        const dupeChore = allChores.find((c) => c.key === editAfterDuplicateKey);
+        return dupeChore ? (
+          <ChoreFormModal
+            chore={dupeChore}
+            packId={dupeChore.packId}
+            onClose={() => setEditAfterDuplicateKey(null)}
+          />
+        ) : null;
+      })()}
     </>
   );
 }
