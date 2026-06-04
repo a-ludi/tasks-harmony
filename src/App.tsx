@@ -29,7 +29,7 @@ export default function App() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewPackDialog, setShowNewPackDialog] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(() => readStoredWidth());
+  const [sidebarWidth, setSidebarWidth] = useState(() => readStoredWidth(window.innerWidth));
   const sidebarWidthRef = useRef(sidebarWidth);
 
   function handleResizeMouseDown(e: React.MouseEvent) {
@@ -38,13 +38,13 @@ export default function App() {
     const startWidth = sidebarWidthRef.current;
 
     function onMouseMove(ev: MouseEvent) {
-      const newWidth = clampSidebarWidth(startWidth + ev.clientX - startX);
+      const newWidth = clampSidebarWidth(startWidth + ev.clientX - startX, window.innerWidth);
       sidebarWidthRef.current = newWidth;
       setSidebarWidth(newWidth);
     }
 
     function onMouseUp() {
-      writeStoredWidth(sidebarWidthRef.current);
+      writeStoredWidth(sidebarWidthRef.current, window.innerWidth);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     }
