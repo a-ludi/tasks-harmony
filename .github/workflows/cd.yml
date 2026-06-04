@@ -28,12 +28,14 @@ jobs:
         run: |
           gh release create "v${{ steps.get-version.outputs.version }}" \
             --title "v${{ steps.get-version.outputs.version }}" \
-            --generate-notes
+            --generate-notes \
+            --skip-existing
 
   deploy:
     needs: [ci, release]
     runs-on: ubuntu-latest
     environment: production
+    permissions: {}
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
