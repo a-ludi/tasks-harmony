@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { buildXPPreview } from './xpPreview';
+import { buildXPPreview, buildMultiplierXPPreview } from './xpPreview';
 import type { XPSettings } from '@/types';
 
 const SETTINGS_3X: XPSettings = {
@@ -32,5 +32,19 @@ describe('buildXPPreview', () => {
     const settings: XPSettings = { ...SETTINGS_3X, maxStreakMultiplier: 2.5 };
     // XP_BASE.XS = 3; max = round(3 * 2.5) = round(7.5) = 8
     expect(buildXPPreview('XS', settings)).toBe('3 XP · up to 8 XP at max streak');
+  });
+});
+
+describe('buildMultiplierXPPreview', () => {
+  it('shows weight per unit for integer weight', () => {
+    expect(buildMultiplierXPPreview(2)).toBe('×2 per unit answered');
+  });
+
+  it('shows weight for weight of 1', () => {
+    expect(buildMultiplierXPPreview(1)).toBe('×1 per unit answered');
+  });
+
+  it('shows decimal weight', () => {
+    expect(buildMultiplierXPPreview(0.5)).toBe('×0.5 per unit answered');
   });
 });

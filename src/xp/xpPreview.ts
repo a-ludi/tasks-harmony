@@ -7,3 +7,7 @@ export function buildXPPreview(xpSize: XPSize, settings: XPSettings): string {
   if (max === base) return `${base} XP`;
   return `${base} XP · up to ${max} XP at max streak`;
 }
+
+export function buildMultiplierXPPreview(xpPerUnit: number): string {
+  return `×${xpPerUnit} per unit answered`;
+}
