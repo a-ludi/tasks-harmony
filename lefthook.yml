@@ -1,0 +1,9 @@
+pre-commit:
+  commands:
+    typecheck:
+      run: bun run typecheck
+
+pre-push:
+  commands:
+    unit-tests:
+      run: bun run test
