@@ -141,7 +141,7 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
       </div>
 
       <footer className="mt-auto pt-4 text-xs text-gray-300 select-none">
-        v{__APP_VERSION__} · {__BUILD_DATE__}
+        v{import.meta.env.VITE_APP_VERSION} · {import.meta.env.VITE_BUILD_DATE}
       </footer>
 
       {showCDPDialog && <CDPImportDialog onClose={() => setShowCDPDialog(false)} />}

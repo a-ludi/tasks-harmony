@@ -7,6 +7,11 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 const require = createRequire(import.meta.url);
 const { version } = require('./package.json');
+const buildDate = new Date().toISOString().substring(0, 10);
+
+// Expose to import.meta.env.VITE_* (works in both dev and prod)
+process.env.VITE_APP_VERSION = version;
+process.env.VITE_BUILD_DATE = buildDate;
 
 export default defineConfig({
   plugins: [
@@ -33,8 +38,4 @@ export default defineConfig({
     }),
   ],
   resolve: { alias: { '@': resolve(__dirname, 'src') } },
-  define: {
-    __APP_VERSION__: JSON.stringify(version),
-    __BUILD_DATE__: JSON.stringify(new Date().toISOString().substring(0, 10)),
-  },
 });
