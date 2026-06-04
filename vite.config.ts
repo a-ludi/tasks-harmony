@@ -1,17 +1,12 @@
 import { resolve } from 'path';
-import { createRequire } from 'module';
+import { readFileSync } from 'fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const require = createRequire(import.meta.url);
-const { version } = require('./package.json');
+const { version } = JSON.parse(readFileSync('package.json', 'utf-8'));
 const buildDate = new Date().toISOString().substring(0, 10);
-
-// Expose to import.meta.env.VITE_* (works in both dev and prod)
-process.env.VITE_APP_VERSION = version;
-process.env.VITE_BUILD_DATE = buildDate;
 
 export default defineConfig({
   plugins: [
@@ -38,4 +33,8 @@ export default defineConfig({
     }),
   ],
   resolve: { alias: { '@': resolve(__dirname, 'src') } },
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
+    'import.meta.env.VITE_BUILD_DATE': JSON.stringify(buildDate),
+  },
 });
