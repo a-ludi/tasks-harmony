@@ -6,7 +6,6 @@ import { fetchCDP } from '@/cdp/cdp-import';
 import { calculateXP } from '@/xp/calculator';
 import { computeNewStreak } from '@/chores/streak';
 import { recordCompletionWithTimestamp } from './recordCompletion';
-import { resolveChoreIdCollision } from '@/chores/resolveCollision';
 import type { ChoreDisposition } from '@/types';
 import type {
   Chore,
