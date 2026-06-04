@@ -52,6 +52,7 @@ interface AppState {
   saveQuickAnswerSet: (qas: QuickAnswerSet) => Promise<void>;
   removeQuickAnswerSet: (id: string) => Promise<void>;
   moveChore: (choreKey: string, targetPackId: string) => Promise<boolean>;
+  duplicateChore: (choreKey: string, newTitle: string, targetPackId: string) => Promise<string>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -411,5 +412,50 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
 
     return true;
+  },
+
+  duplicateChore: async (choreKey, newTitle, targetPackId) => {
+    const { db, chores, questions } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    const source = chores.find((c) => c.key === choreKey);
+    if (!source) throw new Error(`Chore not found: ${choreKey}`);
+
+    const newChoreId = titleToFilename(newTitle.trim());
+    const newKey = `${targetPackId}/${newChoreId}`;
+
+    if (chores.some((c) => c.key === newKey)) {
+      throw new Error(`Chore ID "${newChoreId}" already exists in pack "${targetPackId}"`);
+    }
+
+    const newChore: Chore = {
+      ...source,
+      key: newKey,
+      choreId: newChoreId,
+      packId: targetPackId,
+      title: newTitle.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    const sourceQuestions = questions.filter((q) => q.choreKey === choreKey);
+    const newQuestions = sourceQuestions.map((q) => ({
+      ...q,
+      id: crypto.randomUUID(),
+      choreKey: newKey,
+    }));
+
+    const tx = db.transaction(['chores', 'questions'], 'readwrite');
+    await tx.objectStore('chores').put(newChore);
+    for (const q of newQuestions) {
+      await tx.objectStore('questions').put(q);
+    }
+    await tx.done;
+
+    set((state) => ({
+      chores: [...state.chores, newChore],
+      questions: [...state.questions, ...newQuestions],
+    }));
+
+    return newKey;
   },
 }));

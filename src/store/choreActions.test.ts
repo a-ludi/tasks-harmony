@@ -96,3 +96,86 @@ describe('moveChore', () => {
     expect(state.completions.filter((c) => c.choreKey === newKey)).toHaveLength(1);
   });
 });
+
+describe('duplicateChore', () => {
+  beforeAll(async () => {
+    await useAppStore.getState().init();
+  });
+
+  test('creates a copy with empty completion history and returns new key', async () => {
+    const choreKey = await useAppStore.getState().addChore({
+      packId: 'personal',
+      title: 'Original Chore',
+      xpSize: 'M',
+      recurrence: { frequency: 'weekly', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+      repeatable: true,
+      active: true,
+    });
+    await useAppStore.getState().recordCompletion(choreKey, []);
+
+    const newKey = await useAppStore.getState().duplicateChore(choreKey, 'Original Chore (copy)', 'personal');
+
+    const state = useAppStore.getState();
+    const dupe = state.chores.find((c) => c.key === newKey);
+    expect(dupe).toBeDefined();
+    expect(dupe?.title).toBe('Original Chore (copy)');
+    expect(dupe?.xpSize).toBe('M');
+    expect(dupe?.repeatable).toBe(true);
+    expect(state.completions.filter((c) => c.choreKey === newKey)).toHaveLength(0);
+  });
+
+  test('copies questions to the duplicate', async () => {
+    const choreKey = await useAppStore.getState().addChore({
+      packId: 'personal',
+      title: 'Chore With Q',
+      xpSize: 'S',
+      recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+      repeatable: false,
+      active: true,
+    });
+    await useAppStore.getState().saveQuestions(choreKey, [{
+      id: crypto.randomUUID(), choreKey, prompt: 'Rate it?', type: 'INTEGER',
+      required: true, order: 0, _isNew: true,
+    } as import('@/components/questions/QuestionFormFields').DraftQuestion]);
+
+    const newKey = await useAppStore.getState().duplicateChore(choreKey, 'Chore With Q (copy)', 'personal');
+
+    const state = useAppStore.getState();
+    const dupeQuestions = state.questions.filter((q) => q.choreKey === newKey);
+    expect(dupeQuestions).toHaveLength(1);
+    expect(dupeQuestions[0].prompt).toBe('Rate it?');
+    expect(dupeQuestions[0].id).not.toBe(state.questions.find((q) => q.choreKey === choreKey)?.id);
+  });
+
+  test('throws on choreId collision in target pack', async () => {
+    const choreKey = await useAppStore.getState().addChore({
+      packId: 'personal',
+      title: 'Clash Source',
+      xpSize: 'S',
+      recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+      repeatable: false,
+      active: true,
+    });
+
+    await expect(
+      useAppStore.getState().duplicateChore(choreKey, 'Clash Source', 'personal')
+    ).rejects.toThrow();
+  });
+
+  test('duplicates into a different pack', async () => {
+    const targetPackId = await useAppStore.getState().addPack('Dupe Target Pack');
+    const choreKey = await useAppStore.getState().addChore({
+      packId: 'personal',
+      title: 'Cross Pack Source',
+      xpSize: 'S',
+      recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+      repeatable: false,
+      active: true,
+    });
+
+    const newKey = await useAppStore.getState().duplicateChore(choreKey, 'Cross Pack Source', targetPackId);
+
+    expect(newKey).toBe(`${targetPackId}/cross-pack-source`);
+    expect(useAppStore.getState().chores.find((c) => c.key === newKey)?.packId).toBe(targetPackId);
+  });
+});
