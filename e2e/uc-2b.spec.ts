@@ -37,7 +37,8 @@ test('completing again adds XP a second time', async ({ page }) => {
   const card = page.getByTestId('chore-card').filter({ hasText: 'Drink water' });
   await card.getByRole('button', { name: 'Complete again' }).click();
 
-  await expect(card.getByText('Completed')).toBeVisible();
+  // Wait for the badge to update — "Completed" was already visible from seeded data
+  await expect(xpBadge).not.toHaveText(xpBeforeText);
   const xpAfterText = await xpBadge.textContent() ?? '0 XP';
   const xpAfter = parseInt(xpAfterText.replace(/[^0-9]/g, ''), 10);
   expect(xpAfter).toBeGreaterThan(xpBefore);
