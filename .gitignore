@@ -28,5 +28,7 @@ test-results/
 .playwright/
 .playwright-cli/
 public/
+!public/icon-192.png
+!public/icon-512.png
 dev-dist/
 .codegraph/
