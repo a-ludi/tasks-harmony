@@ -8,6 +8,11 @@ export function buildXPPreview(xpSize: XPSize, settings: XPSettings): string {
   return `${base} XP · up to ${max} XP at max streak`;
 }
 
-export function buildMultiplierXPPreview(xpPerUnit: number): string {
-  return `×${xpPerUnit} per unit answered`;
+export function toRepetitionFactor(xpPerUnit: number): number {
+  if (!Number.isFinite(xpPerUnit) || xpPerUnit <= 0) return 1;
+  return Math.max(1, Math.round(1 / xpPerUnit));
+}
+
+export function buildMultiplierXPPreview(repetitionFactor: number): string {
+  return `÷${repetitionFactor} per unit answered`;
 }
