@@ -24,7 +24,7 @@ async function checkPrerequisites(page: Page): Promise<void> {
     name?: string;
     start_url?: string;
     display?: string;
-    icons?: Array<{ src: string; sizes?: string }>;
+    icons?: Array<{ src: string; sizes?: string; type?: string }>;
   };
   expect(manifest.name, 'Manifest must have name').toBeTruthy();
   expect(manifest.start_url, 'Manifest must have start_url').toBeTruthy();
@@ -45,7 +45,10 @@ async function checkPrerequisites(page: Page): Promise<void> {
     const iconResponse = await page.request.get(iconUrl);
     expect(iconResponse.status(), `Icon ${icon.src} must return HTTP 200`).toBe(200);
     const contentType = iconResponse.headers()['content-type'] ?? '';
-    expect(contentType, `Icon ${icon.src} must have content-type image/png`).toContain('image/png');
+    expect(contentType, `Icon ${icon.src} must be an image`).toMatch(/^image\//);
+    if (icon.type) {
+      expect(contentType, `Icon ${icon.src} content-type must match manifest declaration`).toContain(icon.type);
+    }
   }
 }
 
