@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { EnumQuestion, Answer, EnumChoice } from '@/types';
-import { getAnswerDisplay } from '@/questions/display';
+import type { EnumQuestion, EnumChoice } from '@/types';
+import { getAnswerDisplay } from './display';
 
 const choice: EnumChoice = { id: 'uuid-1', label: 'High', order: 0 };
 const q: EnumQuestion = {
@@ -13,15 +13,13 @@ const q: EnumQuestion = {
   choices: [choice],
 };
 
-describe('ENUM answer display in CompletionsPage', () => {
+describe('getAnswerDisplay', () => {
   it('shows label when the stored UUID matches a choice', () => {
-    const answers: Answer[] = [{ questionId: 'q-1', value: 'uuid-1' }];
-    expect(getAnswerDisplay(answers, q)).toBe('High');
+    expect(getAnswerDisplay([{ questionId: 'q-1', value: 'uuid-1' }], q)).toBe('High');
   });
 
   it('falls back to raw value when UUID has no matching choice', () => {
-    const answers: Answer[] = [{ questionId: 'q-1', value: 'unknown-uuid' }];
-    expect(getAnswerDisplay(answers, q)).toBe('unknown-uuid');
+    expect(getAnswerDisplay([{ questionId: 'q-1', value: 'unknown-uuid' }], q)).toBe('unknown-uuid');
   });
 
   it('returns empty string when answer is absent', () => {

@@ -28,14 +28,29 @@ jobs:
       - name: Unit tests
         run: bun run test
 
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1
+
+      - name: Install dependencies
+        run: bun install
+
       - name: Install Playwright browser
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps ${{ matrix.browser }}
 
       - name: E2E tests
-        run: bun run test:e2e
+        run: bunx playwright test --project=${{ matrix.browser }}
 
   build:
-    needs: check
+    needs: [check, e2e]
     runs-on: ubuntu-latest
     outputs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}

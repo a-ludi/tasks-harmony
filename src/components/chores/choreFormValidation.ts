@@ -18,8 +18,8 @@ export function validateQuestionDrafts(drafts: DraftQuestion[]): string | null {
 
   for (const draft of active) {
     if (draft.type === 'MULTIPLIER') {
-      if (draft.xpPerUnit <= 0) {
-        return 'Score multiplier weight must be greater than 0';
+      if (!Number.isFinite(draft.xpPerUnit) || draft.xpPerUnit <= 0) {
+        return 'Repetition factor must be a whole number of 1 or more';
       }
       continue;
     }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import Sidebar from '@/components/layout/Sidebar';
 import { clampSidebarWidth, readStoredWidth, writeStoredWidth } from '@/components/layout/sidebarResize';
@@ -7,10 +7,15 @@ import Dashboard from '@/components/dashboard/Dashboard';
 import { ProfilePage } from '@/components/profile/ProfilePage';
 import NewPackDialog from '@/components/packs/NewPackDialog';
 import PackDashboard from '@/components/packs/PackDashboard';
-import CompletionsPage from '@/components/completion/CompletionsPage';
+import ChorePage from '@/components/chores/ChorePage';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { performSync } from '@/sync/sync';
 import { getDisplayName } from '@/components/layout/displayName';
+
+function RedirectToChore() {
+  const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
+  return <Navigate to={`/chores/${encodedChoreKey}`} replace />;
+}
 
 export default function App() {
   const init = useAppStore((s) => s.init);
@@ -135,7 +140,8 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/packs/:packId" element={<PackDashboard />} />
-              <Route path="/chores/:encodedChoreKey/completions" element={<CompletionsPage />} />
+              <Route path="/chores/:encodedChoreKey" element={<ChorePage />} />
+              <Route path="/chores/:encodedChoreKey/completions" element={<RedirectToChore />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Routes>
           </div>

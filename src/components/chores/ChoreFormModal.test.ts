@@ -99,12 +99,12 @@ describe('validateQuestionDrafts — MULTIPLIER constraint', () => {
   it('returns error when xpPerUnit is zero', () => {
     const result = validateQuestionDrafts([makeMultiplierDraft({ xpPerUnit: 0 })]);
     expect(result).not.toBeNull();
-    expect(result).toMatch(/weight/i);
+    expect(result).toMatch(/repetition factor/i);
   });
 
   it('returns error when xpPerUnit is negative', () => {
     const result = validateQuestionDrafts([makeMultiplierDraft({ xpPerUnit: -1 })]);
     expect(result).not.toBeNull();
-    expect(result).toMatch(/weight/i);
+    expect(result).toMatch(/repetition factor/i);
   });
 });

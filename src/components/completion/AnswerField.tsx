@@ -1,4 +1,5 @@
 import type { Question } from '@/types';
+import { toRepetitionFactor } from '@/xp/xpPreview';
 
 interface Props {
   question: Question;
@@ -83,7 +84,7 @@ export default function AnswerField({ question, value, error, onChange }: Props)
             className={baseInputClass}
           />
           <p className="mt-1 text-xs text-gray-500">
-            × {String(question.xpPerUnit).replace(/\.?0+$/, '')}
+            ÷ {toRepetitionFactor(question.xpPerUnit)}
           </p>
         </div>
       );

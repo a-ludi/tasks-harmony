@@ -2,7 +2,7 @@ import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { getAnswerDisplay } from '@/questions/display';
 
-export default function CompletionsPage() {
+export default function ChorePage() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
   const navigate = useNavigate();
 
@@ -23,7 +23,13 @@ export default function CompletionsPage() {
     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleString();
+    return new Date(iso).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   return (
@@ -35,7 +41,13 @@ export default function CompletionsPage() {
         ← Back
       </button>
 
-      <h1 className="mb-4 text-2xl font-bold text-gray-900">{chore.title}</h1>
+      <h1 className="mb-2 text-2xl font-bold text-gray-900">{chore.title}</h1>
+
+      {chore.description && (
+        <p className="mb-4 text-sm text-gray-600">{chore.description}</p>
+      )}
+
+      <h2 className="mb-3 text-lg font-semibold text-gray-800">Completion History</h2>
 
       {completions.length === 0 ? (
         <p className="text-sm text-gray-500 italic">No completions yet.</p>
@@ -54,7 +66,7 @@ export default function CompletionsPage() {
             <tbody>
               {completions.map((c) => (
                 <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-2 pr-4 text-gray-600 whitespace-nowrap">{formatDate(c.completedAt)}</td>
+                  <th scope="row" className="py-2 pr-4 text-gray-600 whitespace-nowrap font-normal">{formatDate(c.completedAt)}</th>
                   {choreQuestions.map((q) => (
                     <td key={q.id} className="py-2 pr-4 text-gray-600">
                       {getAnswerDisplay(c.answers, q)}

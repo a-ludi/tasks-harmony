@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { buildXPPreview, buildMultiplierXPPreview } from './xpPreview';
+import { buildXPPreview, buildMultiplierXPPreview, toRepetitionFactor } from './xpPreview';
 import type { XPSettings } from '@/types';
 
 const SETTINGS_3X: XPSettings = {
@@ -36,15 +36,40 @@ describe('buildXPPreview', () => {
 });
 
 describe('buildMultiplierXPPreview', () => {
-  it('shows weight per unit for integer weight', () => {
-    expect(buildMultiplierXPPreview(2)).toBe('×2 per unit answered');
+  it('shows ÷1 for repetition factor 1', () => {
+    expect(buildMultiplierXPPreview(1)).toBe('÷1 per unit answered');
   });
 
-  it('shows weight for weight of 1', () => {
-    expect(buildMultiplierXPPreview(1)).toBe('×1 per unit answered');
+  it('shows ÷2 for repetition factor 2', () => {
+    expect(buildMultiplierXPPreview(2)).toBe('÷2 per unit answered');
   });
 
-  it('shows decimal weight', () => {
-    expect(buildMultiplierXPPreview(0.5)).toBe('×0.5 per unit answered');
+  it('shows ÷5 for repetition factor 5', () => {
+    expect(buildMultiplierXPPreview(5)).toBe('÷5 per unit answered');
+  });
+});
+
+describe('toRepetitionFactor', () => {
+  it('returns 1 for xpPerUnit of 1', () => {
+    expect(toRepetitionFactor(1)).toBe(1);
+  });
+
+  it('returns 2 for xpPerUnit of 0.5', () => {
+    expect(toRepetitionFactor(0.5)).toBe(2);
+  });
+
+  it('returns 4 for xpPerUnit of 0.25', () => {
+    expect(toRepetitionFactor(0.25)).toBe(4);
+  });
+
+  it('returns 1 for xpPerUnit >= 1 (legacy boost values clamp to 1)', () => {
+    expect(toRepetitionFactor(2)).toBe(1);
+    expect(toRepetitionFactor(1.5)).toBe(1);
+  });
+
+  it('returns 1 for xpPerUnit <= 0 or NaN (safe defaults)', () => {
+    expect(toRepetitionFactor(0)).toBe(1);
+    expect(toRepetitionFactor(-1)).toBe(1);
+    expect(toRepetitionFactor(NaN)).toBe(1);
   });
 });

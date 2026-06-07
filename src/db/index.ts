@@ -8,13 +8,17 @@ import type {
 } from '@/types';
 
 const DB_NAME = 'tasks-harmony';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
+
+export function migrateXpPerUnit(xpPerUnit: number): number {
+  return xpPerUnit < 1 ? 1 / Math.round(1 / xpPerUnit) : xpPerUnit;
+}
 
 export async function openDB(
   name = DB_NAME,
 ): Promise<IDBPDatabase<TasksHarmonyDB>> {
   const db = await idbOpen<TasksHarmonyDB>(name, DB_VERSION, {
-    upgrade(db, oldVersion) {
+    upgrade(db, oldVersion, _newVersion, transaction) {
       if (oldVersion < 1) {
         db.createObjectStore('packs', { keyPath: 'id' });
 
@@ -35,6 +39,19 @@ export async function openDB(
       if (oldVersion < 2) {
         const qas = db.createObjectStore('quickAnswerSets', { keyPath: 'id' });
         qas.createIndex('by-chore', 'choreKey');
+      }
+      if (oldVersion < 3) {
+        const migrationPromise = (async () => {
+          const store = transaction.objectStore('questions');
+          const questions = await store.getAll();
+          for (const q of questions) {
+            if ((q as unknown as { type: string }).type === 'MULTIPLIER') {
+              const mq = q as unknown as { xpPerUnit: number; [key: string]: unknown };
+              await store.put({ ...mq, xpPerUnit: migrateXpPerUnit(mq.xpPerUnit) } as unknown as Question);
+            }
+          }
+        })();
+        migrationPromise.catch(() => transaction.abort());
       }
     },
   });
