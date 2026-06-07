@@ -80,7 +80,10 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
     <>
       <div data-testid="chore-card" className={`rounded-xl border border-gray-200 border-l-4 ${BORDER_COLOR[status]} bg-white p-4 shadow-sm`}>
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+          <Link
+            to={`/chores/${encodeURIComponent(chore.key)}`}
+            className="min-w-0 flex-1 block"
+          >
             <div className="mb-1 flex flex-wrap items-center gap-2">
               <h3 className="font-semibold text-gray-900 leading-tight">{chore.title}</h3>
               <StatusBadge status={status} />
@@ -101,7 +104,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
               )}
               <span>{formatRecurrence(chore.recurrence)}</span>
             </div>
-          </div>
+          </Link>
 
           <div className="flex shrink-0 flex-col items-end gap-2">
             {(status === 'due' || status === 'overdue') && (
@@ -111,13 +114,6 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
               <CompleteButton choreKey={chore.key} label="Complete again" />
             )}
             <div className="flex gap-1 items-center">
-              <Link
-                to={`/chores/${encodeURIComponent(chore.key)}/completions`}
-                className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-                title="View completions"
-              >
-                Completions
-              </Link>
               <button
                 onClick={() => setShowEditModal(true)}
                 title="Edit chore"
