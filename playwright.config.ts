@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
@@ -29,11 +29,26 @@ export default defineConfig({
   },
   use: {
     baseURL: 'http://localhost:5173',
-    browserName: 'chromium',
-    launchOptions: {
-      executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH ?? findHeadlessShell(),
-      chromiumSandbox: false,
-      args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-setuid-sandbox'],
-    },
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH ?? findHeadlessShell(),
+          chromiumSandbox: false,
+          args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-setuid-sandbox'],
+        },
+      },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
+  ],
 });
