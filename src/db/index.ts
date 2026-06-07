@@ -41,7 +41,7 @@ export async function openDB(
         qas.createIndex('by-chore', 'choreKey');
       }
       if (oldVersion < 3) {
-        void (async () => {
+        const migrationPromise = (async () => {
           const store = transaction.objectStore('questions');
           const questions = await store.getAll();
           for (const q of questions) {
@@ -51,6 +51,7 @@ export async function openDB(
             }
           }
         })();
+        migrationPromise.catch(() => transaction.abort());
       }
     },
   });
