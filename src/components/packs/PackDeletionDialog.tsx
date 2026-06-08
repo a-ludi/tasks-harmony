@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { resolveChoreIdCollision } from '@/chores/resolveCollision';
 import type { Pack, Chore, ChoreDisposition } from '@/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Props {
   pack: Pack;
@@ -56,101 +59,68 @@ export default function PackDeletionDialog({ pack, chores, onClose }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] flex flex-col">
-        <h2 className="mb-1 text-lg font-semibold text-gray-900">
-          Delete "{pack.manifest.title}"
-        </h2>
-        <p className="mb-4 text-sm text-gray-500">
-          Choose what to do with each chore. Completions are always preserved.
-        </p>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-lg flex flex-col max-h-[90vh]" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>Delete "{pack.manifest.title}"</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">Choose what to do with each chore. Completions are always preserved.</p>
 
-        <div className="mb-3 flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700">Move chores to:</label>
-          <select
-            value={targetPackId}
-            onChange={(e) => setTargetPackId(e.target.value)}
-            className="rounded-lg border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            {otherPacks.map((p) => (
-              <option key={p.id} value={p.id}>{p.manifest.title}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">Move chores to:</span>
+          <Select value={targetPackId} onValueChange={setTargetPackId}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {otherPacks.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.manifest.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="mb-3 flex gap-2">
-          <button
-            onClick={() => applyAll('move')}
-            className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
-          >
-            Move all
-          </button>
-          <button
-            onClick={() => applyAll('delete')}
-            className="rounded border border-red-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-          >
-            Delete all
-          </button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => applyAll('move')}>Move all</Button>
+          <Button variant="outline" size="sm" className="text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => applyAll('delete')}>Delete all</Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+        <div className="flex-1 overflow-y-auto space-y-2">
           {chores.map((chore) => {
             const action = actions[chore.key];
             const resolved = resolvedNames.get(chore.key);
             return (
-              <div key={chore.key} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+              <div key={chore.key} className="flex items-center justify-between rounded-md border px-3 py-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{chore.title}</p>
+                  <p className="text-sm font-medium truncate">{chore.title}</p>
                   {action === 'move' && resolved && resolved.title !== chore.title && (
                     <p className="text-xs text-amber-600">Will be renamed to "{resolved.title}"</p>
                   )}
                 </div>
                 <div className="flex gap-1 ml-2 shrink-0">
-                  <button
+                  <Button
+                    variant={action === 'move' ? 'default' : 'ghost'}
+                    size="sm"
                     onClick={() => setActions((prev) => ({ ...prev, [chore.key]: 'move' }))}
-                    className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-                      action === 'move'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-500 hover:bg-gray-100'
-                    }`}
-                  >
-                    Move
-                  </button>
-                  <button
+                  >Move</Button>
+                  <Button
+                    variant={action === 'delete' ? 'destructive' : 'ghost'}
+                    size="sm"
                     onClick={() => setActions((prev) => ({ ...prev, [chore.key]: 'delete' }))}
-                    className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-                      action === 'delete'
-                        ? 'bg-red-100 text-red-700'
-                        : 'text-gray-500 hover:bg-gray-100'
-                    }`}
-                  >
-                    Delete
-                  </button>
+                  >Delete</Button>
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={submitting}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-          >
+        <DialogFooter className="border-t pt-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="destructive" onClick={handleConfirm} disabled={submitting}>
             {submitting ? 'Deleting…' : 'Delete Pack'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
