@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 interface CDPImportDialogProps { onClose: () => void; }
 
@@ -41,58 +45,64 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
   const updatablePacks = packs.filter((p) => Boolean(p.sourceUrl));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="cdp-dialog-title">
-      <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-2xl space-y-5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <h2 id="cdp-dialog-title" className="text-lg font-bold text-gray-900">Import Chore Pack</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none" aria-label="Close">&times;</button>
-        </div>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>Import Chore Pack</DialogTitle>
+        </DialogHeader>
 
         {!isOnline && (
-          <div role="alert" className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
+          <div role="alert" className="rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-200 px-4 py-2 text-sm text-amber-800 dark:text-amber-200">
             You are offline. CDP import is unavailable until you reconnect.
           </div>
         )}
 
         <div className="space-y-2">
-          <label htmlFor="cdp-url" className="block text-sm font-medium text-gray-700">Pack base URL</label>
-          <input id="cdp-url" type="url" value={url} onChange={(e) => setUrl(e.target.value)} disabled={!isOnline}
+          <Label htmlFor="cdp-url">Pack base URL</Label>
+          <Input
+            id="cdp-url"
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            disabled={!isOnline}
             placeholder="https://raw.githubusercontent.com/user/repo/main/pack-dir"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-400" />
-          <button onClick={handleImport} disabled={!isOnline || importing || !url.trim()}
-            title={!isOnline ? 'Offline — import unavailable' : undefined}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+          />
+          <Button onClick={handleImport} disabled={!isOnline || importing || !url.trim()} className="w-full">
             {importing ? 'Importing…' : 'Import pack'}
-          </button>
+          </Button>
         </div>
 
         {message && (
-          <div role="alert" className={`rounded-md border px-4 py-2 text-sm ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+          <div role="alert" className={`rounded-md border px-4 py-2 text-sm ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:text-green-200' : 'bg-destructive/10 border-destructive/20 text-destructive'}`}>
             {message.text}
           </div>
         )}
 
         {updatablePacks.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Installed packs</h3>
-            <ul className="divide-y divide-gray-100 rounded-md border border-gray-200">
+            <h3 className="text-sm font-semibold mb-2">Installed packs</h3>
+            <ul className="divide-y rounded-md border">
               {updatablePacks.map((pack) => (
                 <li key={pack.id} className="flex items-center justify-between px-3 py-2">
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{pack.manifest.title}</p>
-                    <p className="text-xs text-gray-500 font-mono truncate max-w-[220px]">{pack.sourceUrl}</p>
+                    <p className="text-sm font-medium">{pack.manifest.title}</p>
+                    <p className="text-xs text-muted-foreground font-mono truncate max-w-[220px]">{pack.sourceUrl}</p>
                   </div>
-                  <button onClick={() => handleUpdate(pack.id)} disabled={!isOnline || updatingPackId === pack.id}
-                    title={!isOnline ? 'Offline — update unavailable' : undefined}
-                    className="ml-3 shrink-0 rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdate(pack.id)}
+                    disabled={!isOnline || updatingPackId === pack.id}
+                    className="ml-3 shrink-0"
+                  >
                     {updatingPackId === pack.id ? 'Updating…' : 'Update'}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
