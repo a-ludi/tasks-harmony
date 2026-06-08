@@ -128,3 +128,19 @@
     @apply font-sans;
     }
 }
+
+/* Compact card mode */
+[data-compact] .chore-description,
+[data-compact] .chore-recurrence,
+[data-compact] .chore-xp {
+  display: none;
+}
+
+[data-compact] .chore-card-content {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Compact list: tighter gap between cards */
+[data-compact-list] > * + * {
+  margin-top: 0.25rem;
+}
