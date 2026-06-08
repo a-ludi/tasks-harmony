@@ -49,6 +49,24 @@ jobs:
       - name: E2E tests
         run: bunx playwright test --project=${{ matrix.browser }}
 
+  version-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Fail if version is already released
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if gh release view "v${version}" &>/dev/null; then
+            echo "v${version} is already released. Bump the version in package.json before merging."
+            exit 1
+          fi
+          echo "v${version} is not yet released — OK."
+
   build:
     needs: [check, e2e]
     runs-on: ubuntu-latest
