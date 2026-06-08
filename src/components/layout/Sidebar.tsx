@@ -4,10 +4,13 @@ import { useAppStore } from '@/store';
 import { SyncButton } from '@/components/sync/SyncButton';
 import { CDPImportDialog } from '@/components/cdp/CDPImportDialog';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useTheme } from '@/hooks/useTheme';
 import { getDisplayName } from '@/components/layout/displayName';
 import { calculatePackXP } from '@/xp/packXP';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface Props {
   onClose: () => void;
@@ -24,6 +27,7 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
   const profile = useAppStore((s) => s.profile);
   const displayName = getDisplayName(profile?.displayName ?? '');
   const isOnline = useOnlineStatus();
+  const { theme, toggle } = useTheme();
   const [showCDPDialog, setShowCDPDialog] = useState(false);
 
   const totalXP = completions.reduce((sum, c) => sum + c.xpEarned, 0);
@@ -87,6 +91,10 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
 
       <div className="border-t pt-4 space-y-3">
         <SyncButton />
+        <div className="flex items-center gap-2 px-1">
+          <Switch id="dark-mode-switch" checked={theme === 'dark'} onCheckedChange={toggle} />
+          <Label htmlFor="dark-mode-switch" className="text-sm font-normal cursor-pointer">Dark mode</Label>
+        </div>
       </div>
 
       <footer className="mt-auto pt-4 text-xs text-muted-foreground select-none">

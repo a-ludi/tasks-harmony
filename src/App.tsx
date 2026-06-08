@@ -9,6 +9,7 @@ import NewPackDialog from '@/components/packs/NewPackDialog';
 import PackDashboard from '@/components/packs/PackDashboard';
 import ChorePage from '@/components/chores/ChorePage';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useTheme } from '@/hooks/useTheme';
 import { performSync } from '@/sync/sync';
 import { getDisplayName } from '@/components/layout/displayName';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -19,6 +20,7 @@ function RedirectToChore() {
 }
 
 export default function App() {
+  useTheme(); // applies class="dark" to <html> on mount and on toggle
   const init = useAppStore((s) => s.init);
   const loaded = useAppStore((s) => s.loaded);
   const isOnline = useOnlineStatus();
