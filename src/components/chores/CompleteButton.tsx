@@ -26,7 +26,7 @@ export default function CompleteButton({ choreKey, label = 'Complete' }: Props) 
 
   return (
     <>
-      <Button onClick={handleClick} disabled={processing} size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+      <Button onClick={handleClick} disabled={processing} size="sm" className="bg-green-600 hover:bg-green-700 text-white disabled:bg-green-600 disabled:opacity-50">
         {processing ? 'Saving…' : label}
       </Button>
       {showModal && (
