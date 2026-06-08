@@ -1,4 +1,6 @@
 import type { EnumChoice } from '@/types';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   choices: EnumChoice[];
@@ -17,13 +19,11 @@ export default function EnumChoicesEditor({ choices, onChange }: Props) {
     const next = [...sorted];
     const prevOrder = next[index - 1].order;
     const currOrder = next[index].order;
-    onChange(
-      choices.map((c) => {
-        if (c.id === next[index - 1].id) return { ...c, order: currOrder };
-        if (c.id === next[index].id) return { ...c, order: prevOrder };
-        return c;
-      }),
-    );
+    onChange(choices.map((c) => {
+      if (c.id === next[index - 1].id) return { ...c, order: currOrder };
+      if (c.id === next[index].id) return { ...c, order: prevOrder };
+      return c;
+    }));
   }
 
   function handleMoveDown(index: number) {
@@ -31,80 +31,34 @@ export default function EnumChoicesEditor({ choices, onChange }: Props) {
     const next = [...sorted];
     const nextOrder = next[index + 1].order;
     const currOrder = next[index].order;
-    onChange(
-      choices.map((c) => {
-        if (c.id === next[index + 1].id) return { ...c, order: currOrder };
-        if (c.id === next[index].id) return { ...c, order: nextOrder };
-        return c;
-      }),
-    );
+    onChange(choices.map((c) => {
+      if (c.id === next[index + 1].id) return { ...c, order: currOrder };
+      if (c.id === next[index].id) return { ...c, order: nextOrder };
+      return c;
+    }));
   }
 
-  function handleRemove(id: string) {
-    onChange(choices.filter((c) => c.id !== id));
-  }
+  function handleRemove(id: string) { onChange(choices.filter((c) => c.id !== id)); }
 
   function handleAddChoice() {
     const maxOrder = choices.length > 0 ? Math.max(...choices.map((c) => c.order)) : -1;
-    const newChoice: EnumChoice = {
-      id: crypto.randomUUID(),
-      label: '',
-      order: maxOrder + 1,
-    };
-    onChange([...choices, newChoice]);
+    onChange([...choices, { id: crypto.randomUUID(), label: '', order: maxOrder + 1 }]);
   }
 
   return (
     <div className="space-y-2">
-      {sorted.length === 0 && (
-        <p className="text-xs text-gray-400 italic">No choices yet. Add at least one.</p>
-      )}
-
+      {sorted.length === 0 && <p className="text-xs text-muted-foreground italic">No choices yet. Add at least one.</p>}
       {sorted.map((choice, index) => (
         <div key={choice.id} className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleMoveUp(index)}
-            disabled={index === 0}
-            title="Move up"
-            className="rounded p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            onClick={() => handleMoveDown(index)}
-            disabled={index === sorted.length - 1}
-            title="Move down"
-            className="rounded p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            ▼
-          </button>
-          <input
-            type="text"
-            value={choice.label}
-            onChange={(e) => handleLabelChange(choice.id, e.target.value)}
-            placeholder="Choice label…"
-            className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-          />
-          <button
-            type="button"
-            onClick={() => handleRemove(choice.id)}
-            title="Remove choice"
-            className="rounded p-1 text-red-400 hover:text-red-700 transition-colors"
-          >
-            ✕
-          </button>
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleMoveUp(index)} disabled={index === 0} title="Move up">▲</Button>
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleMoveDown(index)} disabled={index === sorted.length - 1} title="Move down">▼</Button>
+          <Input value={choice.label} onChange={(e) => handleLabelChange(choice.id, e.target.value)} placeholder="Choice label…" className="h-8 text-sm" />
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={() => handleRemove(choice.id)} title="Remove choice">✕</Button>
         </div>
       ))}
-
-      <button
-        type="button"
-        onClick={handleAddChoice}
-        className="mt-1 rounded border border-dashed border-gray-300 px-3 py-1 text-xs text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors"
-      >
+      <Button type="button" variant="outline" size="sm" onClick={handleAddChoice} className="mt-1 border-dashed w-full text-muted-foreground">
         + Add Choice
-      </button>
+      </Button>
     </div>
   );
 }
