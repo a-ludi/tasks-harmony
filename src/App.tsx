@@ -37,14 +37,6 @@ export default function App() {
   const [showNewPackDialog, setShowNewPackDialog] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => readStoredWidth(window.innerWidth));
   const sidebarWidthRef = useRef(sidebarWidth);
-  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 768px)').matches);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)');
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   function handleResizeMouseDown(e: React.MouseEvent) {
     e.preventDefault();
@@ -107,7 +99,7 @@ export default function App() {
       {/* Desktop sidebar: static aside */}
       <aside
         style={{ width: sidebarWidth }}
-        className="hidden md:flex flex-col fixed inset-y-0 left-0 bg-background border-r"
+        className="hidden md:flex flex-col relative bg-background border-r"
       >
         <Sidebar onClose={() => {}} onNewPack={() => setShowNewPackDialog(true)} />
         <div
@@ -117,7 +109,7 @@ export default function App() {
         />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col" style={{ paddingLeft: isDesktop ? sidebarWidth : undefined }}>
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
