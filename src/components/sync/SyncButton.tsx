@@ -5,6 +5,8 @@ import { pullState, pushConflictCopy } from '@/sync/webdav';
 import { importAppState } from '@/sync/import';
 import { buildConflictSuffix } from '@/sync/state';
 import { ConflictDialog } from './ConflictDialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import type { ConflictInfo } from '@/sync/sync';
 import type { ConflictChoice } from './ConflictDialog';
 import type { SyncState } from '@/types';
@@ -108,10 +110,9 @@ export function SyncButton() {
   if (!syncState.webdavUrl || showUrlInput) {
     return (
       <div className="space-y-2">
-        <input type="url" value={webdavInput} onChange={(e) => setWebdavInput(e.target.value)}
-          placeholder="https://dav.example.com/.../state.json"
-          className="w-full text-sm rounded border border-gray-300 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500" aria-label="WebDAV state.json URL" />
-        <button onClick={handleSaveUrl} className="w-full rounded bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Save</button>
+        <Input type="url" value={webdavInput} onChange={(e) => setWebdavInput(e.target.value)}
+          placeholder="https://dav.example.com/.../state.json" aria-label="WebDAV state.json URL" />
+        <Button onClick={handleSaveUrl} className="w-full">Save</Button>
       </div>
     );
   }
@@ -119,16 +120,15 @@ export function SyncButton() {
   return (
     <>
       <div className="flex items-center gap-2">
-        <button onClick={() => triggerSync(syncState)} disabled={syncing}
-          className="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Sync now">
+        <Button variant="outline" size="sm" onClick={() => triggerSync(syncState)} disabled={syncing} aria-label="Sync now" className="flex items-center gap-1.5">
           <svg className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0114.13-3.13M20 15a9 9 0 01-14.13 3.13" />
           </svg>
           <span>{syncing ? 'Syncing…' : 'Sync'}</span>
-        </button>
+        </Button>
         {syncState.pendingSync && !syncing && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Pending</span>}
         <span className="text-xs text-gray-500 hidden sm:inline">{formatRelativeTime(syncState.lastSyncedAt)}</span>
-        <button onClick={() => setShowUrlInput(true)} className="text-xs text-gray-400 hover:text-gray-600 underline" aria-label="Configure WebDAV URL">Configure</button>
+        <button onClick={() => setShowUrlInput(true)} className="text-xs text-muted-foreground hover:text-foreground underline" aria-label="Configure WebDAV URL">Configure</button>
       </div>
       {error && (
         <p className="mt-1 text-xs text-red-600" role="alert">{error}{' '}
