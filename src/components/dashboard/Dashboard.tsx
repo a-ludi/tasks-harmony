@@ -4,6 +4,8 @@ import { getChoreStatus, getCurrentWindowIndex, getWindowEnd } from '@/chores/re
 import type { ChoreStatus, Chore } from '@/types';
 import ChoreCard from './ChoreCard';
 import ChoreFormModal from '@/components/chores/ChoreFormModal';
+import { Button } from '@/components/ui/button';
+import { useCompactMode } from '@/hooks/useCompactMode';
 
 const SECTION_LABELS: Record<ChoreStatus, string> = {
   overdue: 'Overdue',
@@ -26,11 +28,10 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
   const xpSettings = useAppStore((s) => s.xpSettings);
   const profile = useAppStore((s) => s.profile);
   const packs = useAppStore((s) => s.packs);
-
   const [showNewChoreModal, setShowNewChoreModal] = useState(false);
+  const { compact, toggle: toggleCompact } = useCompactMode();
 
   const now = new Date();
-
   const activeChores = chores.filter((c) => c.active);
 
   const withStatus: Array<{ chore: Chore; status: ChoreStatus }> = activeChores.map((chore) => {
@@ -55,18 +56,12 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
           const endA = getWindowEnd(a.recurrence, idxA).getTime();
           const endB = getWindowEnd(b.recurrence, idxB).getTime();
           return endA - endB;
-        } catch {
-          return 0;
-        }
+        } catch { return 0; }
       });
     } else if (status === 'completed') {
       group.sort((a, b) => {
-        const lastA = completions
-          .filter((c) => c.choreKey === a.key)
-          .reduce((max, c) => Math.max(max, new Date(c.completedAt).getTime()), 0);
-        const lastB = completions
-          .filter((c) => c.choreKey === b.key)
-          .reduce((max, c) => Math.max(max, new Date(c.completedAt).getTime()), 0);
+        const lastA = completions.filter((c) => c.choreKey === a.key).reduce((max, c) => Math.max(max, new Date(c.completedAt).getTime()), 0);
+        const lastB = completions.filter((c) => c.choreKey === b.key).reduce((max, c) => Math.max(max, new Date(c.completedAt).getTime()), 0);
         return lastA - lastB;
       });
     } else if (status === 'upcoming') {
@@ -77,34 +72,38 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
   return (
     <div className="space-y-6 pb-8">
       <div className="flex items-center justify-between pt-4">
-        {!currentPackId && (
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        )}
-        <button
-          onClick={() => setShowNewChoreModal(true)}
-          className={`rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800 transition-colors ${currentPackId ? 'ml-auto' : ''}`}
-        >
-          + New Chore
-        </button>
+        {!currentPackId && <h1 className="text-2xl font-bold">Dashboard</h1>}
+        <div className={`flex items-center gap-2 ${currentPackId ? 'ml-auto' : ''}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleCompact}
+            title={compact ? 'Switch to normal view' : 'Switch to compact view'}
+            aria-label={compact ? 'Switch to normal view' : 'Switch to compact view'}
+            className={compact ? 'text-primary' : 'text-muted-foreground'}
+          >
+            ⊟
+          </Button>
+          <Button onClick={() => setShowNewChoreModal(true)}>+ New Chore</Button>
+        </div>
       </div>
 
       {activeChores.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">No chores yet.</p>
-          <p className="mt-1 text-sm text-gray-400">Add your first chore to get started.</p>
+        <div className="rounded-xl border border-dashed p-12 text-center">
+          <p className="text-muted-foreground">No chores yet.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Add your first chore to get started.</p>
         </div>
       )}
 
       {SECTION_ORDER.map((status) => {
         const sectionChores = grouped.get(status);
         if (!sectionChores || sectionChores.length === 0) return null;
-
         return (
           <section key={status}>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {SECTION_LABELS[status]}
             </h2>
-            <div className="space-y-3">
+            <div data-compact-list={compact || undefined} className="space-y-3">
               {sectionChores.map((chore) => (
                 <ChoreCard
                   key={chore.key}
@@ -113,6 +112,7 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
                   xpSettings={xpSettings}
                   profile={profile}
                   packTitle={packs.find((p) => p.id === chore.packId)?.manifest.title}
+                  compact={compact}
                 />
               ))}
             </div>
@@ -121,10 +121,7 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
       })}
 
       {showNewChoreModal && (
-        <ChoreFormModal
-          packId={currentPackId ?? 'personal'}
-          onClose={() => setShowNewChoreModal(false)}
-        />
+        <ChoreFormModal packId={currentPackId ?? 'personal'} onClose={() => setShowNewChoreModal(false)} />
       )}
     </div>
   );
