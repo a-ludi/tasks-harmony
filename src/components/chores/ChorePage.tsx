@@ -1,6 +1,7 @@
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { getAnswerDisplay } from '@/questions/display';
+import { Button } from '@/components/ui/button';
 
 export default function ChorePage() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
@@ -34,12 +35,7 @@ export default function ChorePage() {
 
   return (
     <div className="py-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 text-sm text-blue-600 hover:underline"
-      >
-        ← Back
-      </button>
+      <Button variant="link" onClick={() => navigate(-1)} className="mb-4 px-0">← Back</Button>
 
       <h1 className="mb-2 text-2xl font-bold text-gray-900">{chore.title}</h1>
 

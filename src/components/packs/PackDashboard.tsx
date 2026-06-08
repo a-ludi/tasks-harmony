@@ -5,6 +5,8 @@ import Dashboard from '@/components/dashboard/Dashboard';
 import { buildCDPZip } from '@/cdp/cdp-export';
 import { calculatePackXP } from '@/xp/packXP';
 import PackDeletionDialog from './PackDeletionDialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function PackDashboard() {
   const { packId } = useParams<{ packId: string }>();
@@ -65,7 +67,7 @@ export default function PackDashboard() {
       <div className="flex flex-wrap items-center gap-3 pb-2 pt-4">
         {isRenaming ? (
           <>
-            <input
+            <Input
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => {
@@ -73,50 +75,56 @@ export default function PackDashboard() {
                 if (e.key === 'Escape') setIsRenaming(false);
               }}
               autoFocus
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="text-xl font-bold"
             />
-            <button
+            <Button
               onClick={handleRename}
-              className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+              size="sm"
             >
               Save
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setIsRenaming(false)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              variant="outline"
+              size="sm"
             >
               Cancel
-            </button>
+            </Button>
           </>
         ) : (
           <>
             <h1 className="text-2xl font-bold text-gray-900">{pack.manifest.title}</h1>
-            <button
+            <Button
               onClick={() => { setRenameValue(pack.manifest.title); setIsRenaming(true); }}
               title="Rename pack"
-              className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-gray-700"
             >
               ✏️
-            </button>
+            </Button>
             <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
               {packXP.toLocaleString()} XP
             </span>
           </>
         )}
         <div className="ml-auto flex gap-2">
-          <button
+          <Button
             onClick={handleExport}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            variant="outline"
+            size="sm"
           >
             Download as CDP
-          </button>
+          </Button>
           {!pack.isPersonal && (
-            <button
+            <Button
               onClick={handleDelete}
-              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+              variant="outline"
+              size="sm"
+              className="border-red-300 text-red-600 hover:bg-red-50"
             >
               Delete Pack
-            </button>
+            </Button>
           )}
         </div>
       </div>
