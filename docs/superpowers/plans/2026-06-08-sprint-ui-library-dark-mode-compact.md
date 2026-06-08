@@ -1985,7 +1985,7 @@ bun run typecheck
 
 ---
 
-## Task 17: Migrate remaining page buttons (PackDashboard, ChorePage)
+## Task 16: Migrate remaining page buttons (PackDashboard, ChorePage)
 
 **Files:**
 - Modify: `src/components/packs/PackDashboard.tsx`
