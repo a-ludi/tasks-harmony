@@ -11,6 +11,7 @@ import ChorePage from '@/components/chores/ChorePage';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { performSync } from '@/sync/sync';
 import { getDisplayName } from '@/components/layout/displayName';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 
 function RedirectToChore() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
@@ -88,26 +89,22 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile sidebar: Sheet */}
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetContent side="left" className="w-64 p-0">
+          <Sidebar onClose={() => setSidebarOpen(false)} onNewPack={() => setShowNewPackDialog(true)} />
+        </SheetContent>
+      </Sheet>
 
+      {/* Desktop sidebar: static aside */}
       <aside
         style={{ width: sidebarWidth }}
-        className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-200 transition-transform md:static md:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className="hidden md:flex flex-col fixed inset-y-0 left-0 bg-background border-r"
       >
-        <Sidebar
-          onClose={() => setSidebarOpen(false)}
-          onNewPack={() => setShowNewPackDialog(true)}
-        />
+        <Sidebar onClose={() => {}} onNewPack={() => setShowNewPackDialog(true)} />
         <div
           onMouseDown={handleResizeMouseDown}
-          className="absolute inset-y-0 right-0 hidden w-1 cursor-col-resize bg-transparent hover:bg-blue-300 md:block"
+          className="absolute inset-y-0 right-0 w-1 cursor-col-resize bg-transparent hover:bg-primary/30"
           title="Drag to resize sidebar"
         />
       </aside>
