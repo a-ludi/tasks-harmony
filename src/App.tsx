@@ -83,14 +83,14 @@ export default function App() {
 
   if (!loaded) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-background">
       {/* Mobile sidebar: Sheet */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="w-64 p-0">
@@ -112,24 +112,24 @@ export default function App() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
+        <header className="flex items-center gap-3 border-b border-border bg-background px-4 py-3 md:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-xl text-gray-600"
+            className="text-xl text-muted-foreground"
             aria-label="Open menu"
           >
             ☰
           </button>
-          <Link to="/" className="font-bold text-gray-900 flex items-baseline gap-1.5">
+          <Link to="/" className="font-bold text-foreground flex items-baseline gap-1.5">
             Tasks Harmony
             {displayName && (
               <>
-                <span className="text-gray-300 font-normal">·</span>
-                <span className="font-serif italic font-normal text-gray-700">{displayName}</span>
+                <span className="text-muted-foreground font-normal">·</span>
+                <span className="font-serif italic font-normal text-muted-foreground">{displayName}</span>
               </>
             )}
           </Link>
-          <span className="ml-auto rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
+          <span className="ml-auto rounded-full bg-amber-100 dark:bg-amber-900 px-3 py-1 text-sm font-semibold text-amber-800 dark:text-amber-200">
             {totalXP.toLocaleString()} XP
           </span>
         </header>
