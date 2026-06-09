@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0] — 2026-06-09
+## [0.4.0] — 2026-06-09
 
 ### Added
 - **Dark mode** — toggle in the sidebar; persisted to `localStorage`; respects OS preference on first visit (#16)
