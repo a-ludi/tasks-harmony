@@ -11,9 +11,10 @@ import StatusBadge from './StatusBadge';
 import CompleteButton from '@/components/chores/CompleteButton';
 import ChoreFormModal from '@/components/chores/ChoreFormModal';
 import DuplicateChoreDialog from '@/components/chores/DuplicateChoreDialog';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Props {
   chore: Chore;
@@ -71,35 +72,45 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
         data-compact={compact || undefined}
         className={`border-l-4 ${BORDER_COLOR[status]}`}
       >
-        <CardContent className="chore-card-content p-4">
-          <div className="flex items-start justify-between gap-3">
-            <Link to={`/chores/${encodeURIComponent(chore.key)}`} className="min-w-0 flex-1 block">
-              <div className="mb-1 flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold leading-tight">{chore.title}</h3>
-                <StatusBadge status={status} />
-              </div>
-              {packTitle && <p className="text-xs text-muted-foreground">{packTitle}</p>}
-              {chore.description && (
-                <p className="chore-description mb-2 text-sm text-muted-foreground line-clamp-2">{chore.description}</p>
-              )}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="chore-xp"><span className="font-medium text-foreground">{effectiveXP}</span> XP</span>
-                {currentStreak > 0 && (
-                  <span>Streak: <span className="font-medium text-foreground">{currentStreak}</span></span>
-                )}
-                <span className="chore-recurrence">{formatRecurrence(chore.recurrence)}</span>
-              </div>
+        <CardHeader>
+          <CardTitle className="text-sm leading-snug">
+            <Link to={`/chores/${encodeURIComponent(chore.key)}`} className="hover:underline">
+              {chore.title}
+              {packTitle && <span className="ml-2 text-xs font-normal text-muted-foreground">{packTitle}</span>}
             </Link>
-
-            <div className="flex shrink-0 flex-col items-end gap-2">
+          </CardTitle>
+          <CardDescription className="flex items-center gap-2">
+            <StatusBadge status={status} />
+          </CardDescription>
+          <CardAction>
+            <div className="flex items-center gap-1">
               {(status === 'due' || status === 'overdue') && <CompleteButton choreKey={chore.key} />}
               {status === 'completed' && chore.repeatable && <CompleteButton choreKey={chore.key} label="Complete again" />}
-              <div className="flex gap-1 items-center">
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setShowEditModal(true)} title="Edit chore">✎</Button>
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => setShowDuplicateDialog(true)} title="Duplicate chore">Duplicate</Button>
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={handleDeactivate} title="Archive chore">Archive</Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label="Chore actions">⋮</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowEditModal(true)}>Edit</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowDuplicateDialog(true)}>Duplicate</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={handleDeactivate}>Archive</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+          </CardAction>
+        </CardHeader>
+
+        <CardContent className="chore-card-content pt-0 pb-3">
+          {chore.description && (
+            <p className="chore-description mb-1 text-sm text-muted-foreground line-clamp-2">{chore.description}</p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="chore-xp"><span className="font-medium text-foreground">{effectiveXP}</span> XP</span>
+            {currentStreak > 0 && (
+              <span>Streak: <span className="font-medium text-foreground">{currentStreak}</span></span>
+            )}
+            <span className="chore-recurrence">{formatRecurrence(chore.recurrence)}</span>
           </div>
 
           {quickAnswerSets.length > 0 && (status === 'due' || status === 'overdue' || (status === 'completed' && chore.repeatable)) && (
