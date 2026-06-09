@@ -37,7 +37,7 @@ async function openModal(page: import('@playwright/test').Page) {
 // AnswerField renders <label> as a block sibling (not wrapping) for TEXT/INTEGER/ENUM,
 // so getByLabel cannot associate them. Use type-based selectors scoped to the modal.
 function notesInput(page: import('@playwright/test').Page) {
-  return page.locator('input[type="text"]').first();
+  return page.locator('[data-slot="input"]:not([type])').first();
 }
 function durationInput(page: import('@playwright/test').Page) {
   return page.locator('input[type="number"]');
