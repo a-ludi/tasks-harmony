@@ -63,6 +63,11 @@ test('add one question of each type and save', async ({ page }) => {
   await page.locator('[data-slot="select-trigger"]').last().click();
   await page.getByRole('option', { name: 'Multiple Choice' }).click();
   await page.waitForSelector('[data-slot="select-content"]', { state: 'detached' });
+  // Instant-scroll the dialog to bottom so webkit doesn't animate the scroll on click
+  await page.evaluate(() => {
+    const el = document.querySelector('[data-slot="dialog-content"]');
+    if (el) el.scrollTop = el.scrollHeight;
+  });
   await page.getByRole('button', { name: '+ Add Choice' }).click();
   await page.getByPlaceholder('Choice label…').nth(0).fill('Low');
   await page.getByRole('button', { name: '+ Add Choice' }).click();
