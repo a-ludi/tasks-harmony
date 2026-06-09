@@ -92,8 +92,8 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
       <div className="border-t pt-4 space-y-3">
         <SyncButton />
         <div className="flex items-center gap-2 px-1">
-          <Switch id="dark-mode-switch" checked={theme === 'dark'} onCheckedChange={toggle} />
-          <Label htmlFor="dark-mode-switch" className="text-sm font-normal cursor-pointer">Dark mode</Label>
+          <Switch checked={theme === 'dark'} onCheckedChange={toggle} />
+          <Label className="text-sm font-normal cursor-pointer" onClick={toggle}>Dark mode</Label>
         </div>
       </div>
 
