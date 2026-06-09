@@ -6,6 +6,7 @@ import ChoreCard from './ChoreCard';
 import ChoreFormModal from '@/components/chores/ChoreFormModal';
 import { Button } from '@/components/ui/button';
 import { useCompactMode } from '@/hooks/useCompactMode';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const SECTION_LABELS: Record<ChoreStatus, string> = {
   overdue: 'Overdue',
@@ -73,19 +74,25 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
     <div className="space-y-6 pb-8">
       <div className="flex items-center justify-between pt-4">
         {!currentPackId && <h1 className="text-2xl font-bold">Dashboard</h1>}
-        <div className={`flex items-center gap-2 ${currentPackId ? 'ml-auto' : ''}`}>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleCompact}
-            title={compact ? 'Switch to normal view' : 'Switch to compact view'}
-            aria-label={compact ? 'Switch to normal view' : 'Switch to compact view'}
-            aria-pressed={compact}
-            className={compact ? 'text-primary' : 'text-muted-foreground'}
-          >
-            ⊟
-          </Button>
-          <Button onClick={() => setShowNewChoreModal(true)}>+ New Chore</Button>
+        <div className={`flex items-center ${currentPackId ? 'ml-auto' : ''}`}>
+          <div data-slot="button-group" className="flex">
+            <Button onClick={() => setShowNewChoreModal(true)} className="rounded-r-none border-r-0">
+              + New Chore
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-l-none border-l border-border px-2">
+                  ⌄
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={toggleCompact} className="flex items-center gap-2">
+                  <span>{compact ? '⊞' : '⊟'}</span>
+                  <span>{compact ? 'Normal view' : 'Compact view'}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
