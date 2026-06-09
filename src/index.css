@@ -136,8 +136,13 @@
   display: none;
 }
 
+[data-compact][data-slot=card] {
+  --card-spacing: 0.375rem;
+}
+
 [data-compact] .chore-card-content {
-  padding: 0.5rem 0.75rem;
+  padding-top: 0;
+  padding-bottom: 0.375rem;
 }
 
 /* Compact list: tighter gap between cards */
