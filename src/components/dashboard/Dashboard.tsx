@@ -22,6 +22,10 @@ interface DashboardProps {
   currentPackId?: string;
 }
 
+export function compactMenuLabel(compact: boolean): string {
+  return compact ? 'Normal view' : 'Compact view';
+}
+
 export default function Dashboard({ chores: choresProp, currentPackId }: DashboardProps = {}) {
   const storeChores = useAppStore((s) => s.chores);
   const chores = choresProp ?? storeChores;
@@ -76,19 +80,24 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
         {!currentPackId && <h1 className="text-2xl font-bold">Dashboard</h1>}
         <div className={`flex items-center ${currentPackId ? 'ml-auto' : ''}`}>
           <div data-slot="button-group" className="flex">
-            <Button onClick={() => setShowNewChoreModal(true)} className="rounded-r-none border-r-0">
+            <Button onClick={() => setShowNewChoreModal(true)} className="rounded-r-none">
               + New Chore
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-l-none border-l border-border px-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={compact ? 'Exit compact view' : 'Toggle compact view'}
+                  className="rounded-l-none border-l border-border px-2"
+                >
                   ⌄
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={toggleCompact} className="flex items-center gap-2">
                   <span>{compact ? '⊞' : '⊟'}</span>
-                  <span>{compact ? 'Normal view' : 'Compact view'}</span>
+                  <span>{compactMenuLabel(compact)}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
