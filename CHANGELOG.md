@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-09
+
+### Added
+- **Dark mode** — toggle in the sidebar; persisted to `localStorage`; respects OS preference on first visit (#16)
+- **Compact mode** — dashboard toggle via "+ New Chore" button dropdown; hides description, XP, and recurrence fields and tightens card spacing; persisted to `localStorage` (#12)
+
+### Changed
+- **Shadcn/ui migration** — all UI components (buttons, cards, dialogs, badges, inputs, selects, dropdowns, switches, tooltips) now use Shadcn/ui primitives with consistent Tailwind v4 CSS variable theming (#6)
+- **ChoreCard redesign** — uses `CardHeader`/`CardTitle`/`CardDescription`/`CardAction` anatomy; Complete button in the card action slot (top-right); Edit, Duplicate, and Archive moved to a `⋮` dropdown menu
+- **Dark mode coverage** — all hardcoded gray/white color classes replaced with semantic tokens (`bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`) across all pages and components; ProfilePage migrated to Shadcn `Input` and `Select`
+
 ## [0.2.0] — 2026-06-05
 
 ### Added
