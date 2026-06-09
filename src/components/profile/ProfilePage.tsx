@@ -118,7 +118,7 @@ export function ProfilePage() {
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">Email</label>
           <Input id="email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
-            className={emailError ? 'aria-invalid:border-destructive' : ''} aria-invalid={!!emailError} />
+            aria-invalid={!!emailError} />
           {emailError && <p className="mt-1 text-sm text-destructive">{emailError}</p>}
         </div>
 
