@@ -118,7 +118,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
                           size="sm"
                           onClick={() => handleQuickComplete(set)}
                           disabled={!!quickCompleting}
-                          className="rounded-full border-green-300 bg-green-50 text-green-700 hover:bg-green-100"
+                          className="rounded-full border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800/30"
                         >
                           {quickCompleting === set.id ? 'Saving…' : `⚡ ${set.label}`}
                         </Button>
