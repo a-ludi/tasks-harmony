@@ -45,8 +45,9 @@ function durationInput(page: import('@playwright/test').Page) {
 function stretchedCheckbox(page: import('@playwright/test').Page) {
   return page.locator('input[type="checkbox"]');
 }
-function intensitySelect(page: import('@playwright/test').Page) {
-  return page.locator('select').last();
+async function selectIntensity(page: import('@playwright/test').Page, label: string) {
+  await page.locator('[data-slot="select-trigger"]').last().click();
+  await page.getByRole('option', { name: label }).click();
 }
 
 test('tapping Complete opens the question modal', async ({ page }) => {
@@ -70,7 +71,7 @@ test('submit valid answers completes the chore', async ({ page }) => {
   await notesInput(page).fill('Great');
   await durationInput(page).fill('45');
   await stretchedCheckbox(page).check();
-  await intensitySelect(page).selectOption({ label: 'Medium' });
+  await selectIntensity(page, 'Medium');
   await page.getByRole('button', { name: 'Submit & Complete' }).click();
   await expect(page.getByRole('heading', { name: 'Complete Chore' })).not.toBeVisible();
   await expect(page.getByTestId('chore-card').filter({ hasText: 'Workout log' }).getByText('Completed')).toBeVisible();
@@ -79,7 +80,7 @@ test('submit valid answers completes the chore', async ({ page }) => {
 test('required field left blank blocks submission', async ({ page }) => {
   await openModal(page);
   await stretchedCheckbox(page).check();
-  await intensitySelect(page).selectOption({ label: 'Low' });
+  await selectIntensity(page, 'Low');
   await page.getByRole('button', { name: 'Submit & Complete' }).click();
   await expect(page.getByText('This field is required').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Complete Chore' })).toBeVisible();
@@ -89,7 +90,7 @@ test('optional field can be left blank', async ({ page }) => {
   await openModal(page);
   await durationInput(page).fill('30');
   await stretchedCheckbox(page).check();
-  await intensitySelect(page).selectOption({ label: 'High' });
+  await selectIntensity(page, 'High');
   await page.getByRole('button', { name: 'Submit & Complete' }).click();
   await expect(page.getByRole('heading', { name: 'Complete Chore' })).not.toBeVisible();
 });
@@ -99,7 +100,7 @@ test('TEXT answer failing regex blocks submission', async ({ page }) => {
   await notesInput(page).fill('   ');
   await durationInput(page).fill('30');
   await stretchedCheckbox(page).check();
-  await intensitySelect(page).selectOption({ label: 'Medium' });
+  await selectIntensity(page, 'Medium');
   await page.getByRole('button', { name: 'Submit & Complete' }).click();
   await expect(page.getByText(/does not match the required pattern/)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Complete Chore' })).toBeVisible();
@@ -109,7 +110,7 @@ test('INTEGER below minimum blocks submission', async ({ page }) => {
   await openModal(page);
   await durationInput(page).fill('0');
   await stretchedCheckbox(page).check();
-  await intensitySelect(page).selectOption({ label: 'Low' });
+  await selectIntensity(page, 'Low');
   await page.getByRole('button', { name: 'Submit & Complete' }).click();
   await expect(page.getByText('Value must be at least 1')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Complete Chore' })).toBeVisible();
@@ -119,7 +120,7 @@ test('INTEGER above maximum blocks submission', async ({ page }) => {
   await openModal(page);
   await durationInput(page).fill('301');
   await stretchedCheckbox(page).check();
-  await intensitySelect(page).selectOption({ label: 'Low' });
+  await selectIntensity(page, 'Low');
   await page.getByRole('button', { name: 'Submit & Complete' }).click();
   await expect(page.getByText('Value must be at most 300')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Complete Chore' })).toBeVisible();

@@ -3,7 +3,8 @@ import { today, waitForApp, seedAndReload, makeChore } from './helpers/idb';
 
 async function openEditModal(page: import('@playwright/test').Page, choreTitle: string) {
   const card = page.getByTestId('chore-card').filter({ hasText: choreTitle });
-  await card.getByTitle('Edit chore').click();
+  await card.getByRole('button', { name: 'Chore actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click();
   await expect(page.getByRole('heading', { name: 'Edit Chore' })).toBeVisible();
 }
 
@@ -36,8 +37,9 @@ test('add one question of each type and save', async ({ page }) => {
   // Add INTEGER question
   await addQuestion(page);
   await page.getByPlaceholder('e.g. How many minutes did it take?').last().fill('Duration (minutes)');
-  // The last select in the expanded question form is the Type select
-  await page.locator('select').last().selectOption('Integer');
+  // The last select trigger in the expanded question form is the Type select
+  await page.locator('[data-slot="select-trigger"]').last().click();
+  await page.getByRole('option', { name: 'Integer' }).click();
   await page.getByPlaceholder('None').first().fill('1');
   await page.getByPlaceholder('None').last().fill('300');
 
@@ -47,7 +49,8 @@ test('add one question of each type and save', async ({ page }) => {
   // Add BOOLEAN question
   await addQuestion(page);
   await page.getByPlaceholder('e.g. How many minutes did it take?').last().fill('Stretched?');
-  await page.locator('select').last().selectOption('Yes / No');
+  await page.locator('[data-slot="select-trigger"]').last().click();
+  await page.getByRole('option', { name: 'Yes / No' }).click();
 
   // Collapse
   await page.getByRole('heading', { name: 'Edit Chore' }).click();
@@ -55,7 +58,8 @@ test('add one question of each type and save', async ({ page }) => {
   // Add ENUM question
   await addQuestion(page);
   await page.getByPlaceholder('e.g. How many minutes did it take?').last().fill('Intensity');
-  await page.locator('select').last().selectOption('Multiple Choice');
+  await page.locator('[data-slot="select-trigger"]').last().click();
+  await page.getByRole('option', { name: 'Multiple Choice' }).click();
   await page.getByRole('button', { name: '+ Add Choice' }).click();
   await page.getByPlaceholder('Choice label…').nth(0).fill('Low');
   await page.getByRole('button', { name: '+ Add Choice' }).click();
@@ -173,7 +177,8 @@ test('ENUM choices managed as list with add/remove', async ({ page }) => {
   await openEditModal(page, 'Workout log');
   await addQuestion(page);
   await page.getByPlaceholder('e.g. How many minutes did it take?').last().fill('Intensity');
-  await page.locator('select').last().selectOption('Multiple Choice');
+  await page.locator('[data-slot="select-trigger"]').last().click();
+  await page.getByRole('option', { name: 'Multiple Choice' }).click();
 
   await page.getByRole('button', { name: '+ Add Choice' }).click();
   await page.getByPlaceholder('Choice label…').nth(0).fill('Low');

@@ -97,7 +97,8 @@ test('Valid email is accepted', async ({ page }) => {
 test('Switch XP configuration', async ({ page }) => {
   await seedProfile(page);
 
-  await page.getByLabel('XP Formula').selectOption('hard');
+  await page.getByLabel('XP Formula').click();
+  await page.getByRole('option', { name: 'Hard Mode' }).click();
   await page.getByRole('button', { name: 'Save changes' }).click();
 
   await expect(page.getByRole('alert')).toBeVisible();

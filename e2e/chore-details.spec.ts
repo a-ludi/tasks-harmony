@@ -25,24 +25,24 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('clicking chore card title navigates to details page', async ({ page }) => {
-  await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).locator('h3').click();
+  await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).getByRole('link', { name: 'Walk the dog' }).click();
   await expect(page).toHaveURL(/\/chores\/.+/);
   await expect(page.getByRole('heading', { level: 1, name: 'Walk the dog' })).toBeVisible();
 });
 
 test('details page shows full description without truncation', async ({ page }) => {
-  await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).locator('h3').click();
+  await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).getByRole('link', { name: 'Walk the dog' }).click();
   await expect(page.getByText('Full description visible only on the details page, not truncated.')).toBeVisible();
 });
 
 test('details page shows completion history', async ({ page }) => {
-  await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).locator('h3').click();
+  await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).getByRole('link', { name: 'Walk the dog' }).click();
   await expect(page.getByRole('columnheader', { name: 'Completed at' })).toBeVisible();
   await expect(page.getByRole('cell', { name: '7' })).toBeVisible();
 });
 
 test('back button returns to previous page', async ({ page }) => {
-  await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).locator('h3').click();
+  await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).getByRole('link', { name: 'Walk the dog' }).click();
   await expect(page).toHaveURL(/\/chores\/.+/);
   await page.getByRole('button', { name: /Back/ }).click();
   await expect(page).toHaveURL('/');

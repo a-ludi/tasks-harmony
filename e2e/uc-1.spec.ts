@@ -14,8 +14,10 @@ test('empty state shows "No chores yet."', async ({ page }) => {
 test('create a valid chore', async ({ page }) => {
   await page.getByRole('button', { name: '+ New Chore' }).click();
   await page.getByLabel('Title').fill('Floss');
-  await page.getByLabel('XP Size').selectOption('S');
-  await page.getByLabel('Frequency').selectOption('Daily');
+  await page.getByLabel('XP Size').click();
+  await page.getByRole('option', { name: 'S (5 XP)' }).click();
+  await page.getByLabel('Frequency').click();
+  await page.getByRole('option', { name: 'Daily' }).click();
   await page.getByLabel('Interval').fill('1');
   await page.getByRole('button', { name: 'Create Chore' }).click();
 

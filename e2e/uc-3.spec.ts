@@ -17,17 +17,19 @@ test.beforeEach(async ({ page }) => {
 
 test('edit form opens pre-populated', async ({ page }) => {
   const card = page.getByTestId('chore-card').filter({ hasText: 'Floss teeth' });
-  await card.getByTitle('Edit chore').click();
+  await card.getByRole('button', { name: 'Chore actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click();
 
   await expect(page.getByLabel('Title')).toHaveValue('Floss teeth');
-  await expect(page.getByLabel('XP Size')).toHaveValue('S');
-  await expect(page.getByLabel('Frequency')).toHaveValue('daily');
+  await expect(page.getByLabel('XP Size')).toContainText('S (5 XP)');
+  await expect(page.getByLabel('Frequency')).toContainText('Daily');
   await expect(page.getByLabel('Interval')).toHaveValue('1');
 });
 
 test('save edited chore updates the card', async ({ page }) => {
   const card = page.getByTestId('chore-card').filter({ hasText: 'Floss teeth' });
-  await card.getByTitle('Edit chore').click();
+  await card.getByRole('button', { name: 'Chore actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click();
 
   await page.getByLabel('Title').fill('Floss & rinse');
   await page.getByRole('button', { name: 'Save Changes' }).click();
@@ -38,7 +40,8 @@ test('save edited chore updates the card', async ({ page }) => {
 
 test('validation errors block save', async ({ page }) => {
   const card = page.getByTestId('chore-card').filter({ hasText: 'Floss teeth' });
-  await card.getByTitle('Edit chore').click();
+  await card.getByRole('button', { name: 'Chore actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click();
 
   await page.getByLabel('Title').fill('');
   await page.getByRole('button', { name: 'Save Changes' }).click();
@@ -51,7 +54,8 @@ test('deactivate a chore removes it from dashboard', async ({ page }) => {
   const card = page.getByTestId('chore-card').filter({ hasText: 'Take vitamins' });
 
   page.on('dialog', (dialog) => dialog.accept());
-  await card.getByRole('button', { name: 'Archive' }).click();
+  await card.getByRole('button', { name: 'Chore actions' }).click();
+  await page.getByRole('menuitem', { name: 'Archive' }).click();
 
   await expect(page.getByTestId('chore-card').filter({ hasText: 'Take vitamins' })).not.toBeVisible();
   await expect(page.getByTestId('chore-card').filter({ hasText: 'Floss teeth' })).toBeVisible();
