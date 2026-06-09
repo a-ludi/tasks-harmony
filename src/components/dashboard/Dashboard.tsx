@@ -80,6 +80,7 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
             onClick={toggleCompact}
             title={compact ? 'Switch to normal view' : 'Switch to compact view'}
             aria-label={compact ? 'Switch to normal view' : 'Switch to compact view'}
+            aria-pressed={compact}
             className={compact ? 'text-primary' : 'text-muted-foreground'}
           >
             ⊟
