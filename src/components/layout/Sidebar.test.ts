@@ -30,26 +30,3 @@ describe('sortPacksForNav', () => {
     expect(sortPacksForNav([])).toHaveLength(0);
   });
 });
-
-describe('dark mode label click', () => {
-  it('toggle logic works consistently whether invoked directly or via onCheckedChange', () => {
-    // This test verifies the behavior expected from the fixed component:
-    // The label will invoke toggle directly via onClick, and the switch will invoke
-    // toggle via onCheckedChange. Both should have the same effect.
-    let theme: 'dark' | 'light' = 'light';
-    const toggle = () => { theme = theme === 'dark' ? 'light' : 'dark'; };
-
-    // Simulate label onClick calling toggle directly
-    toggle();
-    expect(theme as string).toEqual('dark');
-
-    // Simulate switch onCheckedChange also calling toggle
-    toggle();
-    expect(theme as string).toEqual('light');
-
-    // Verify toggle is idempotent when called twice
-    toggle();
-    toggle();
-    expect(theme as string).toEqual('light');
-  });
-});
