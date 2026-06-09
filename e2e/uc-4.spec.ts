@@ -40,6 +40,7 @@ test('add one question of each type and save', async ({ page }) => {
   // The last select trigger in the expanded question form is the Type select
   await page.locator('[data-slot="select-trigger"]').last().click();
   await page.getByRole('option', { name: 'Integer' }).click();
+  await page.waitForSelector('[data-slot="select-content"]', { state: 'detached' });
   await page.getByPlaceholder('None').first().fill('1');
   await page.getByPlaceholder('None').last().fill('300');
 
@@ -51,6 +52,7 @@ test('add one question of each type and save', async ({ page }) => {
   await page.getByPlaceholder('e.g. How many minutes did it take?').last().fill('Stretched?');
   await page.locator('[data-slot="select-trigger"]').last().click();
   await page.getByRole('option', { name: 'Yes / No' }).click();
+  await page.waitForSelector('[data-slot="select-content"]', { state: 'detached' });
 
   // Collapse
   await page.getByRole('heading', { name: 'Edit Chore' }).click();
@@ -60,6 +62,7 @@ test('add one question of each type and save', async ({ page }) => {
   await page.getByPlaceholder('e.g. How many minutes did it take?').last().fill('Intensity');
   await page.locator('[data-slot="select-trigger"]').last().click();
   await page.getByRole('option', { name: 'Multiple Choice' }).click();
+  await page.waitForSelector('[data-slot="select-content"]', { state: 'detached' });
   await page.getByRole('button', { name: '+ Add Choice' }).click();
   await page.getByPlaceholder('Choice label…').nth(0).fill('Low');
   await page.getByRole('button', { name: '+ Add Choice' }).click();
