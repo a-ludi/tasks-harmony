@@ -86,10 +86,9 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
                   size="icon"
                   aria-label={compact ? 'Exit compact view' : 'Toggle compact view'}
-                  className="rounded-l-none border-l border-border px-2"
+                  className="rounded-l-none border-l border-primary-foreground/20 px-2"
                 >
                   ⌄
                 </Button>
