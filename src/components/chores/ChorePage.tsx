@@ -37,38 +37,38 @@ export default function ChorePage() {
     <div className="py-4">
       <Button variant="link" onClick={() => navigate(-1)} className="mb-4 px-0">← Back</Button>
 
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">{chore.title}</h1>
+      <h1 className="mb-2 text-2xl font-bold text-foreground">{chore.title}</h1>
 
       {chore.description && (
-        <p className="mb-4 text-sm text-gray-600">{chore.description}</p>
+        <p className="mb-4 text-sm text-muted-foreground">{chore.description}</p>
       )}
 
-      <h2 className="mb-3 text-lg font-semibold text-gray-800">Completion History</h2>
+      <h2 className="mb-3 text-lg font-semibold text-foreground">Completion History</h2>
 
       {completions.length === 0 ? (
-        <p className="text-sm text-gray-500 italic">No completions yet.</p>
+        <p className="text-sm text-muted-foreground italic">No completions yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="py-2 pr-4 font-medium text-gray-700 whitespace-nowrap">Completed at</th>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-4 font-medium text-foreground whitespace-nowrap">Completed at</th>
                 {choreQuestions.map((q) => (
-                  <th key={q.id} className="py-2 pr-4 font-medium text-gray-700">{q.prompt}</th>
+                  <th key={q.id} className="py-2 pr-4 font-medium text-foreground">{q.prompt}</th>
                 ))}
-                <th className="py-2 font-medium text-gray-700 text-right">XP earned</th>
+                <th className="py-2 font-medium text-foreground text-right">XP earned</th>
               </tr>
             </thead>
             <tbody>
               {completions.map((c) => (
-                <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <th scope="row" className="py-2 pr-4 text-gray-600 whitespace-nowrap font-normal">{formatDate(c.completedAt)}</th>
+                <tr key={c.id} className="border-b border-border hover:bg-muted">
+                  <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal">{formatDate(c.completedAt)}</th>
                   {choreQuestions.map((q) => (
-                    <td key={q.id} className="py-2 pr-4 text-gray-600">
+                    <td key={q.id} className="py-2 pr-4 text-muted-foreground">
                       {getAnswerDisplay(c.answers, q)}
                     </td>
                   ))}
-                  <td className="py-2 text-gray-700 font-medium text-right">{c.xpEarned}</td>
+                  <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
                 </tr>
               ))}
             </tbody>

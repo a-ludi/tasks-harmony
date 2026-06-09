@@ -126,12 +126,12 @@ export function SyncButton() {
           </svg>
           <span>{syncing ? 'Syncing…' : 'Sync'}</span>
         </Button>
-        {syncState.pendingSync && !syncing && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Pending</span>}
-        <span className="text-xs text-gray-500 hidden sm:inline">{formatRelativeTime(syncState.lastSyncedAt)}</span>
+        {syncState.pendingSync && !syncing && <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">Pending</span>}
+        <span className="text-xs text-muted-foreground hidden sm:inline">{formatRelativeTime(syncState.lastSyncedAt)}</span>
         <button onClick={() => setShowUrlInput(true)} className="text-xs text-muted-foreground hover:text-foreground underline" aria-label="Configure WebDAV URL">Configure</button>
       </div>
       {error && (
-        <p className="mt-1 text-xs text-red-600" role="alert">{error}{' '}
+        <p className="mt-1 text-xs text-destructive" role="alert">{error}{' '}
           <button onClick={() => setError(null)} className="underline hover:no-underline">Dismiss</button>
         </p>
       )}

@@ -93,13 +93,13 @@ export default function PackDashboard() {
           </>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-gray-900">{pack.manifest.title}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{pack.manifest.title}</h1>
             <Button
               onClick={() => { setRenameValue(pack.manifest.title); setIsRenaming(true); }}
               title="Rename pack"
               variant="ghost"
               size="sm"
-              className="text-gray-400 hover:text-gray-700"
+              className="text-muted-foreground hover:text-foreground"
             >
               ✏️
             </Button>
@@ -121,7 +121,7 @@ export default function PackDashboard() {
               onClick={handleDelete}
               variant="outline"
               size="sm"
-              className="border-red-300 text-red-600 hover:bg-red-50"
+              className="border-destructive text-destructive hover:bg-destructive/10 dark:border-destructive/60 dark:hover:bg-destructive/20"
             >
               Delete Pack
             </Button>

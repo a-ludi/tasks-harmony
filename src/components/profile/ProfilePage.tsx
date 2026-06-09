@@ -5,6 +5,8 @@ import { exportAppState } from '@/sync/export';
 import { wrapStateInZip, buildBackupFilename, unwrapStateFromZip, isAppStatePristine } from '@/backup/backup';
 import { importAppState } from '@/sync/import';
 import { validateAppState } from '@/schemas/validate';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -28,7 +30,7 @@ export function ProfilePage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
 
-  if (!profile) return <div className="p-6 text-gray-500">Loading profile…</div>;
+  if (!profile) return <div className="p-6 text-muted-foreground">Loading profile…</div>;
 
   const totalXP = completions.reduce((sum, c) => sum + (c.xpEarned ?? 0), 0);
   const activeSettings: XPSettings | undefined = xpSettings.find((s) => s.id === activeXPSettingsId);
@@ -93,64 +95,67 @@ export function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-lg p-6 space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+      <h1 className="text-2xl font-bold text-foreground">Profile</h1>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">XP Summary</h2>
+      <section className="rounded-lg border border-border bg-background p-4 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">XP Summary</h2>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-bold text-indigo-600">{totalXP.toLocaleString()}</span>
-          <span className="text-gray-500">total XP</span>
+          <span className="text-4xl font-bold text-primary">{totalXP.toLocaleString()}</span>
+          <span className="text-muted-foreground">total XP</span>
         </div>
-        {activeSettings && <p className="mt-1 text-sm text-gray-600">Active formula: <span className="font-medium">{activeSettings.name}</span></p>}
-        {profile.email && <p className="mt-1 text-sm text-gray-600">Email: <span className="font-medium">{profile.email}</span></p>}
+        {activeSettings && <p className="mt-1 text-sm text-muted-foreground">Active formula: <span className="font-medium text-foreground">{activeSettings.name}</span></p>}
+        {profile.email && <p className="mt-1 text-sm text-muted-foreground">Email: <span className="font-medium text-foreground">{profile.email}</span></p>}
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Account Details</h2>
+      <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Account Details</h2>
 
         <div>
-          <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-          <input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          <label htmlFor="displayName" className="block text-sm font-medium text-foreground mb-1">Display Name</label>
+          <Input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input id="email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
-            className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 ${emailError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'}`} />
-          {emailError && <p className="mt-1 text-sm text-red-600">{emailError}</p>}
+          <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">Email</label>
+          <Input id="email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
+            className={emailError ? 'aria-invalid:border-destructive' : ''} aria-invalid={!!emailError} />
+          {emailError && <p className="mt-1 text-sm text-destructive">{emailError}</p>}
         </div>
 
         {xpSettings.length > 0 && (
           <div>
-            <label htmlFor="xpSettings" className="block text-sm font-medium text-gray-700 mb-1">XP Formula</label>
-            <select id="xpSettings" value={activeXPSettingsId} onChange={(e) => setActiveXPSettingsId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-              {xpSettings.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <label htmlFor="xpSettings" className="block text-sm font-medium text-foreground mb-1">XP Formula</label>
+            <Select value={activeXPSettingsId} onValueChange={(v) => setActiveXPSettingsId(v)}>
+              <SelectTrigger id="xpSettings">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {xpSettings.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
         {savedAlert && (
-          <div role="alert" className="flex items-center justify-between rounded-md bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">
+          <div role="alert" className="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 px-4 py-2 text-sm text-green-800 dark:text-green-300">
             <span>Changes saved.</span>
-            <button onClick={() => setSavedAlert(false)} className="ml-4 text-green-700 hover:text-green-900 font-medium" aria-label="Dismiss">&times;</button>
+            <button onClick={() => setSavedAlert(false)} className="ml-4 text-green-700 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 font-medium" aria-label="Dismiss">&times;</button>
           </div>
         )}
 
-        <button onClick={handleSave} className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+        <button onClick={handleSave} className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
           Save changes
         </button>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Backup</h2>
-        <p className="text-sm text-gray-600">
+      <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Backup</h2>
+        <p className="text-sm text-muted-foreground">
           Export all your data as a ZIP file, or restore from a previously exported backup.
         </p>
         <button
           onClick={handleExport}
-          className="w-full rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          className="w-full rounded-md bg-muted px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted/80 focus:outline-none focus:ring-2 focus:ring-ring"
         >
           Export Backup
         </button>
@@ -164,15 +169,15 @@ export function ProfilePage() {
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          className="w-full rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
         >
           Import Backup
         </button>
         {importError && (
-          <p className="text-sm text-red-600" role="alert">{importError}</p>
+          <p className="text-sm text-destructive" role="alert">{importError}</p>
         )}
         {importSuccess && (
-          <p className="text-sm text-green-600" role="status">Backup imported successfully.</p>
+          <p className="text-sm text-green-600 dark:text-green-400" role="status">Backup imported successfully.</p>
         )}
       </section>
     </div>

@@ -78,7 +78,7 @@ export default function QuestionFormFields({ question, onChange, hasOtherMultipl
         {question.type !== 'MULTIPLIER' && (
           <div className="flex items-end pb-1.5">
             <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
-              <input type="checkbox" checked={question.required} onChange={(e) => update({ required: e.target.checked })} className="h-4 w-4 rounded border-gray-300 accent-blue-600" />
+              <input type="checkbox" checked={question.required} onChange={(e) => update({ required: e.target.checked })} className="h-4 w-4 rounded border-input accent-primary" />
               Required
             </label>
           </div>
@@ -88,9 +88,9 @@ export default function QuestionFormFields({ question, onChange, hasOtherMultipl
       {question.type === 'TEXT' && (
         <div className="space-y-1">
           <Label className="text-xs">Regex Pattern <span className="text-muted-foreground font-normal">(optional)</span></Label>
-          <Input value={question.regexPattern ?? ''} onChange={(e) => update({ regexPattern: e.target.value || undefined } as Partial<DraftQuestion>)} placeholder="e.g. ^\d{4}$" className={`font-mono${regexError ? ' border-destructive' : ''}`} />
+          <Input value={question.regexPattern ?? ''} onChange={(e) => update({ regexPattern: e.target.value || undefined } as Partial<DraftQuestion>)} placeholder="e.g. ^\d{4}$" className="font-mono" aria-invalid={!!regexError} />
           {regexError && <p className="text-xs text-destructive">{regexError}</p>}
-          {!regexError && question.regexPattern && <p className="text-xs text-green-600">Pattern is valid</p>}
+          {!regexError && question.regexPattern && <p className="text-xs text-green-600 dark:text-green-400">Pattern is valid</p>}
         </div>
       )}
 
@@ -120,14 +120,14 @@ export default function QuestionFormFields({ question, onChange, hasOtherMultipl
             <Label className="text-xs">Repetition Factor <span className="text-destructive">*</span></Label>
             <Input type="number" value={toRepetitionFactor(question.xpPerUnit)} min="1" step="1"
               onChange={(e) => { const n = Math.max(1, Math.floor(Number(e.target.value) || 1)); update({ xpPerUnit: 1 / n } as Partial<DraftQuestion>); }} />
-            <p className="text-xs text-indigo-600">{buildMultiplierXPPreview(toRepetitionFactor(question.xpPerUnit))}</p>
+            <p className="text-xs text-primary">{buildMultiplierXPPreview(toRepetitionFactor(question.xpPerUnit))}</p>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Answer type</Label>
             <div className="flex gap-4">
               {(['integer', 'float'] as const).map((t) => (
                 <label key={t} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                  <input type="radio" name={`multiplier-type-${question.id}`} value={t} checked={question.multiplierAnswerType === t} onChange={() => update({ multiplierAnswerType: t } as Partial<DraftQuestion>)} className="accent-blue-600" />
+                  <input type="radio" name={`multiplier-type-${question.id}`} value={t} checked={question.multiplierAnswerType === t} onChange={() => update({ multiplierAnswerType: t } as Partial<DraftQuestion>)} className="accent-primary" />
                   {t.charAt(0).toUpperCase() + t.slice(1)}
                 </label>
               ))}

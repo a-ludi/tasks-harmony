@@ -165,7 +165,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
                   {XP_SIZES.map((size) => <SelectItem key={size} value={size}>{size} ({XP_BASE[size]} XP)</SelectItem>)}
                 </SelectContent>
               </Select>
-              {xpPreview && <p className="text-xs text-indigo-600">{xpPreview}</p>}
+              {xpPreview && <p className="text-xs text-primary">{xpPreview}</p>}
             </div>
 
             <div className="space-y-2">
@@ -200,7 +200,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
             </div>
 
             <div className="flex items-center gap-3">
-              <input id="chore-repeatable" type="checkbox" checked={repeatable} onChange={(e) => setRepeatable(e.target.checked)} className="h-4 w-4 rounded border-gray-300 accent-blue-600" />
+              <input id="chore-repeatable" type="checkbox" checked={repeatable} onChange={(e) => setRepeatable(e.target.checked)} className="h-4 w-4 rounded border-input accent-primary" />
               <Label htmlFor="chore-repeatable" className="font-normal">Repeatable (allow multiple completions per window)</Label>
             </div>
 
