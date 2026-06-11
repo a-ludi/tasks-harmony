@@ -1,6 +1,7 @@
 import { useEditor, Milkdown, MilkdownProvider } from '@milkdown/react';
 import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
 import { nord } from '@milkdown/theme-nord';
+import { commonmark } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { history } from '@milkdown/plugin-history';
 import { indent } from '@milkdown/plugin-indent';
@@ -25,6 +26,7 @@ function InnerEditor({ value, onChange }: Props) {
           onChange(markdown);
         });
       })
+      .use(commonmark)
       .use(gfm)
       .use(history)
       .use(indent)

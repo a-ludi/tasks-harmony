@@ -1,6 +1,7 @@
 import { useEditor, Milkdown, MilkdownProvider } from '@milkdown/react';
 import { Editor, rootCtx, defaultValueCtx, editorViewOptionsCtx } from '@milkdown/core';
 import { nord } from '@milkdown/theme-nord';
+import { commonmark } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { cn } from '@/lib/utils';
 import '@milkdown/theme-nord/style.css';
@@ -19,6 +20,7 @@ function InnerDisplay({ content }: { content: string }) {
         ctx.set(defaultValueCtx, content);
         ctx.update(editorViewOptionsCtx, (prev) => ({ ...prev, editable: () => false }));
       })
+      .use(commonmark)
       .use(gfm)
   );
   return <Milkdown />;
