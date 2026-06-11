@@ -163,7 +163,7 @@ export default function PackDashboard() {
       ) : (
         <div className="mt-3 group flex items-start gap-2">
           {pack.manifest.description ? (
-            <MarkdownDisplay content={pack.manifest.description} className="flex-1 text-sm text-muted-foreground" />
+            <MarkdownDisplay key={pack.manifest.description} content={pack.manifest.description} className="flex-1 text-sm text-muted-foreground" />
           ) : (
             <p className="flex-1 text-sm italic text-muted-foreground">No description</p>
           )}
