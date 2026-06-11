@@ -15,12 +15,14 @@ import { Label } from '@/components/ui/label';
 interface Props {
   onClose: () => void;
   onNewPack: () => void;
+  updateVersion?: string | null;
+  onUpdateClick?: () => void;
 }
 
 export const NAV_LINK_CLASS = ({ isActive }: { isActive: boolean }) =>
   `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}`;
 
-export default function Sidebar({ onClose, onNewPack }: Props) {
+export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateClick }: Props) {
   const completions = useAppStore((s) => s.completions);
   const packs = useAppStore((s) => s.packs);
   const chores = useAppStore((s) => s.chores);
@@ -95,6 +97,25 @@ export default function Sidebar({ onClose, onNewPack }: Props) {
           <Switch checked={theme === 'dark'} onCheckedChange={toggle} />
           <Label className="text-sm font-normal cursor-pointer" onClick={toggle}>Dark mode</Label>
         </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {updateVersion && (
+          <button
+            onClick={onUpdateClick}
+            className="w-full rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors text-center"
+          >
+            Update to v{updateVersion}
+          </button>
+        )}
+        <a
+          href="https://github.com/a-ludi/tasks-harmony"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          View on GitHub
+        </a>
       </div>
 
       <footer className="mt-auto pt-4 text-xs text-muted-foreground select-none">

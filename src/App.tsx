@@ -13,6 +13,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { performSync } from '@/sync/sync';
 import { getDisplayName } from '@/components/layout/displayName';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { useUpdateNotification } from '@/hooks/useUpdateNotification';
+import { UpdateModal } from '@/components/update/UpdateModal';
 
 function RedirectToChore() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
@@ -34,6 +36,14 @@ export default function App() {
 
   const profile = useAppStore((s) => s.profile);
   const displayName = getDisplayName(profile?.displayName ?? '');
+
+  const update = useUpdateNotification();
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  // Auto-open modal when update becomes available
+  useEffect(() => {
+    if (update.available) setShowUpdateModal(true);
+  }, [update.available]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewPackDialog, setShowNewPackDialog] = useState(false);
@@ -94,7 +104,7 @@ export default function App() {
       {/* Mobile sidebar: Sheet */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="w-64 p-0">
-          <Sidebar onClose={() => setSidebarOpen(false)} onNewPack={() => setShowNewPackDialog(true)} />
+          <Sidebar onClose={() => setSidebarOpen(false)} onNewPack={() => setShowNewPackDialog(true)} updateVersion={update.available ? update.version : null} onUpdateClick={() => setShowUpdateModal(true)} />
         </SheetContent>
       </Sheet>
 
@@ -103,7 +113,7 @@ export default function App() {
         style={{ width: sidebarWidth }}
         className="hidden md:flex flex-col relative bg-background border-r"
       >
-        <Sidebar onClose={() => {}} onNewPack={() => setShowNewPackDialog(true)} />
+        <Sidebar onClose={() => {}} onNewPack={() => setShowNewPackDialog(true)} updateVersion={update.available ? update.version : null} onUpdateClick={() => setShowUpdateModal(true)} />
         <div
           onMouseDown={handleResizeMouseDown}
           className="absolute inset-y-0 right-0 w-1 cursor-col-resize bg-transparent hover:bg-primary/30"
@@ -115,10 +125,13 @@ export default function App() {
         <header className="flex items-center gap-3 border-b border-border bg-background px-4 py-3 md:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-xl text-muted-foreground"
+            className="relative text-xl text-muted-foreground"
             aria-label="Open menu"
           >
             ☰
+            {update.available && (
+              <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary" />
+            )}
           </button>
           <Link to="/" className="font-bold text-foreground flex items-baseline gap-1.5">
             Tasks Harmony
@@ -150,6 +163,17 @@ export default function App() {
       {showNewPackDialog && (
         <NewPackDialog onClose={() => setShowNewPackDialog(false)} />
       )}
+
+        {showUpdateModal && update.available && (
+          <UpdateModal
+            version={update.version ?? ''}
+            highlights={update.highlights}
+            fullChangelog={update.fullChangelog}
+            onUpdateNow={update.updateNow}
+            onRemindLater={() => { update.remindLater(); setShowUpdateModal(false); }}
+            onIgnore={() => { update.ignoreUpdate(); setShowUpdateModal(false); }}
+          />
+        )}
     </div>
   );
 }
