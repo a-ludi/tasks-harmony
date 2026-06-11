@@ -48,6 +48,7 @@ interface AppState {
   updateCDP: (packId: string) => Promise<void>;
   addPack: (name: string) => Promise<string>;
   renamePack: (packId: string, newTitle: string) => Promise<void>;
+  updatePackDescription: (packId: string, description: string) => Promise<void>;
   deletePack: (packId: string, dispositions?: ChoreDisposition[]) => Promise<void>;
   saveQuickAnswerSet: (qas: QuickAnswerSet) => Promise<void>;
   removeQuickAnswerSet: (id: string) => Promise<void>;
@@ -288,6 +289,22 @@ export const useAppStore = create<AppState>((set, get) => ({
       updatedAt: new Date().toISOString(),
     };
 
+    await putPack(db, updated);
+    set((state) => ({
+      packs: state.packs.map((p) => (p.id === packId ? updated : p)),
+    }));
+  },
+
+  updatePackDescription: async (packId, description) => {
+    const { db, packs } = get();
+    if (!db) throw new Error('DB not initialised');
+    const pack = packs.find((p) => p.id === packId);
+    if (!pack) throw new Error(`Pack '${packId}' not found`);
+    const updated: Pack = {
+      ...pack,
+      manifest: { ...pack.manifest, description },
+      updatedAt: new Date().toISOString(),
+    };
     await putPack(db, updated);
     set((state) => ({
       packs: state.packs.map((p) => (p.id === packId ? updated : p)),
