@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] — 2026-06-09
 
 ### Added
+
 - **Dark mode** — toggle in the sidebar; persisted to `localStorage`; respects OS preference on first visit (#16)
 - **Compact mode** — dashboard toggle via "+ New Chore" button dropdown; hides description, XP, and recurrence fields and tightens card spacing; persisted to `localStorage` (#12)
 
 ### Changed
+
 - **Shadcn/ui migration** — all UI components (buttons, cards, dialogs, badges, inputs, selects, dropdowns, switches, tooltips) now use Shadcn/ui primitives with consistent Tailwind v4 CSS variable theming (#6)
 - **ChoreCard redesign** — uses `CardHeader`/`CardTitle`/`CardDescription`/`CardAction` anatomy; Complete button in the card action slot (top-right); Edit, Duplicate, and Archive moved to a `⋮` dropdown menu
 - **Dark mode coverage** — all hardcoded gray/white color classes replaced with semantic tokens (`bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`) across all pages and components; ProfilePage migrated to Shadcn `Input` and `Select`
@@ -21,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] — 2026-06-05
 
 ### Added
+
 - Move chores between packs via the chore edit modal — select a different pack and save; collision with an existing choreId is caught inline before saving
 - Safe pack deletion with per-chore disposition dialog — choose to move or delete each chore individually; "Move all" / "Delete all" shortcuts; auto-resolves name collisions with a numeric suffix shown inline
 - Duplicate chore — new Duplicate button on every chore card; choose target pack and name; inline collision detection; "Duplicate & Edit" opens the edit modal for the new copy immediately
@@ -28,19 +31,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Local git hooks via lefthook — pre-commit runs typecheck, pre-push runs unit tests; hooks auto-install via `bun install`
 
 ### Fixed
+
 - PWA icons (`icon-192.png`, `icon-512.png`) are now committed so CI builds include them, fixing the installability check (#25)
 
 ### Changed
+
 - `SSH_HOST`, `SSH_USER`, `SSH_PATH` moved from GitHub Actions secrets to repository variables for easier auditing in the Actions UI (#24)
 - GitHub Actions upgraded: `actions/checkout` → v6, `actions/upload-artifact` → v7, `actions/download-artifact` → v8 (Node.js 24, avoids deprecation warnings) (#22)
 
-## [0.1.1] - 2026-06-04
+## [0.1.1] — 2026-06-04
 
 ### Fixed
 
-- **CD pipeline**: `gh release create --skip-existing` is not supported on GitHub Actions runners; replaced with `gh release view ... || gh release create ...`.
+- **CD pipeline**: `gh release create --skip-existing` is not supported on GitHub Actions runners; replaced with `gh release view ... || gh release create ...`
 
-## [0.1.0] - 2026-06-04
+## [0.1.0] — 2026-06-04
 
 ### Added
 
@@ -63,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.4.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.4.0
 [0.2.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.2.0
 [0.1.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.1.1
 [0.1.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.1.0

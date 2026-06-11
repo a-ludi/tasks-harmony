@@ -12,6 +12,7 @@
     "test": "bun test --isolate src/",
     "test:e2e": "bunx playwright test",
     "typecheck": "tsc --noEmit",
+    "generate-changelog": "bun run scripts/generate-changelog.ts",
     "prepare": "lefthook install"
   },
   "devDependencies": {
