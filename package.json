@@ -44,6 +44,7 @@
     "@milkdown/plugin-history": "^7.21.2",
     "@milkdown/plugin-indent": "^7.21.2",
     "@milkdown/plugin-listener": "^7.21.2",
+    "@milkdown/preset-commonmark": "^7.21.2",
     "@milkdown/preset-gfm": "^7.21.2",
     "@milkdown/react": "^7.21.2",
     "@milkdown/theme-nord": "^7.21.2",
