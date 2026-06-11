@@ -130,6 +130,21 @@
     }
 }
 
+/* Milkdown Nord theme dark-mode overrides (Nord only responds to OS preference;
+   these mirror the same rules under the .dark class toggle) */
+.dark .milkdown-theme-nord.prose tr {
+  border-color: var(--color-gray-600);
+}
+.dark .milkdown-theme-nord.prose :where(td, th):nth-child(odd) {
+  background-color: var(--color-gray-900);
+}
+.dark .milkdown-theme-nord pre {
+  background-color: var(--color-gray-800);
+}
+.dark .milkdown-theme-nord code {
+  background-color: var(--color-gray-700);
+}
+
 /* Compact card mode */
 [data-compact] .chore-description,
 [data-compact] .chore-recurrence,
