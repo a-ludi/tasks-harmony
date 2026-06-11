@@ -41,7 +41,7 @@ export default function ChorePage() {
       <h1 className="mb-2 text-2xl font-bold text-foreground">{chore.title}</h1>
 
       {chore.description && (
-        <MarkdownDisplay content={chore.description} className="mb-4 text-sm text-muted-foreground" />
+        <MarkdownDisplay key={chore.description} content={chore.description} className="mb-4 text-sm text-muted-foreground" />
       )}
 
       <h2 className="mb-3 text-lg font-semibold text-foreground">Completion History</h2>

@@ -105,7 +105,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
         <CardContent className="chore-card-content pt-0 pb-3">
           {chore.description && (
             <div className="chore-description mb-1 max-h-10 overflow-hidden">
-              <MarkdownDisplay content={chore.description} className="text-sm text-muted-foreground" />
+              <MarkdownDisplay key={chore.description} content={chore.description} className="text-sm text-muted-foreground" />
             </div>
           )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

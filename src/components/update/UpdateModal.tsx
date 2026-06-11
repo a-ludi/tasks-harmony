@@ -29,7 +29,7 @@ export function UpdateModal({
 
   return (
     <Dialog open>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Update to v{version}</DialogTitle>
         </DialogHeader>
