@@ -31,5 +31,6 @@ public/*
 !public/icon-192.png
 !public/icon-512.png
 !public/changelog.json
+!public/apple-splash-*.jpg
 dev-dist/
 .codegraph/
