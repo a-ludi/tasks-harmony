@@ -27,8 +27,9 @@ test-results/
 .agents/
 .playwright/
 .playwright-cli/
-public/
+public/*
 !public/icon-192.png
 !public/icon-512.png
+!public/changelog.json
 dev-dist/
 .codegraph/
