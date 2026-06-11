@@ -7,6 +7,8 @@ import { calculatePackXP } from '@/xp/packXP';
 import PackDeletionDialog from './PackDeletionDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 
 export default function PackDashboard() {
   const { packId } = useParams<{ packId: string }>();
@@ -26,9 +28,12 @@ export default function PackDashboard() {
   const packChoreKeys = new Set(packChores.map((c) => c.key));
   const packQuestions = questions.filter((q) => packChoreKeys.has(q.choreKey));
 
+  const updatePackDescription = useAppStore((s) => s.updatePackDescription);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [showDeletionDialog, setShowDeletionDialog] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [descriptionValue, setDescriptionValue] = useState('');
 
   if (!pack) return <Navigate to="/" replace />;
 
@@ -128,6 +133,53 @@ export default function PackDashboard() {
           )}
         </div>
       </div>
+
+      {/* Pack description */}
+      {isEditingDescription ? (
+        <div className="mt-3 space-y-2">
+          <MarkdownEditor
+            value={descriptionValue}
+            onChange={setDescriptionValue}
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={async () => {
+                await updatePackDescription(pack.id, descriptionValue);
+                setIsEditingDescription(false);
+              }}
+            >
+              Save
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditingDescription(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 group flex items-start gap-2">
+          {pack.manifest.description ? (
+            <MarkdownDisplay content={pack.manifest.description} className="flex-1 text-sm text-muted-foreground" />
+          ) : (
+            <p className="flex-1 text-sm italic text-muted-foreground">No description</p>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => {
+              setDescriptionValue(pack.manifest.description ?? '');
+              setIsEditingDescription(true);
+            }}
+          >
+            Edit
+          </Button>
+        </div>
+      )}
 
       <Dashboard chores={packChores} currentPackId={pack.id} />
       {showDeletionDialog && pack && (
