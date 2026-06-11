@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction }
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 
 interface Props {
   chore: Chore;
@@ -103,7 +104,9 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
 
         <CardContent className="chore-card-content pt-0 pb-3">
           {chore.description && (
-            <p className="chore-description mb-1 text-sm text-muted-foreground line-clamp-2">{chore.description}</p>
+            <div className="chore-description mb-1 max-h-10 overflow-hidden">
+              <MarkdownDisplay content={chore.description} className="text-sm text-muted-foreground" />
+            </div>
           )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="chore-xp"><span className="font-medium text-foreground">{effectiveXP}</span> XP</span>

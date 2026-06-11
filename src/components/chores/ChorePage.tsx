@@ -2,6 +2,7 @@ import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { getAnswerDisplay } from '@/questions/display';
 import { Button } from '@/components/ui/button';
+import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 
 export default function ChorePage() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
@@ -40,7 +41,7 @@ export default function ChorePage() {
       <h1 className="mb-2 text-2xl font-bold text-foreground">{chore.title}</h1>
 
       {chore.description && (
-        <p className="mb-4 text-sm text-muted-foreground">{chore.description}</p>
+        <MarkdownDisplay content={chore.description} className="mb-4 text-sm text-muted-foreground" />
       )}
 
       <h2 className="mb-3 text-lg font-semibold text-foreground">Completion History</h2>

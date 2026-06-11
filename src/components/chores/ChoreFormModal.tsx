@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import QuestionBuilder from '@/components/questions/QuestionBuilder';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
@@ -138,8 +138,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="chore-description">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <Textarea id="chore-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Add extra details…" />
+              <Label>Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <MarkdownEditor value={description} onChange={setDescription} />
             </div>
 
             <div className="space-y-2">
