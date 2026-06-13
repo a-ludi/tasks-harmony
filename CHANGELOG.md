@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-13
+
+### Added
+
+- **Markdown descriptions** — chore and pack descriptions now use a Milkdown WYSIWYG editor with a formatting toolbar (bold, italic, strikethrough, inline code, headings H1–H3, bullet/ordered lists, blockquote, code block); rendered with `prose` styling in read-only display (#38)
+- **Conscious releases** — the app detects new versions automatically (PWA `prompt` mode), fetches the latest changelog, and opens an update modal with highlights and expandable full changelog; actions: Update Now, Remind Me Later, Ignore Update; nav burger icon badge and pill button remain visible even after ignoring (#2)
+- **GitHub link** — "View on GitHub" anchor at the bottom of the nav menu, opens the repository README in a new tab (#35)
+- **iOS PWA splash screens** — `apple-touch-startup-image` PNG assets at all required iOS device sizes, generated from `icon-template.svg`; meta tags injected in `index.html` (#30)
+
+### Fixed
+
+- Milkdown Nord theme dark mode — CSS overrides so the editor respects the `.dark` class toggle (the theme's built-in `@media` query uses OS preference, not the app's class-based toggle)
+- Stale MarkdownDisplay after editing — description display now re-mounts when content changes
+
 ## [0.4.0] — 2026-06-09
 
 ### Added
@@ -68,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.5.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.5.0
 [0.4.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.4.0
 [0.2.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.2.0
 [0.1.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.1.1

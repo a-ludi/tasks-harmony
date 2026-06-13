@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.5.0",
+    "date": "2026-06-13",
+    "highlights": [
+      "Markdown descriptions — chore and pack descriptions now support rich formatting via a WYSIWYG editor with a formatting toolbar",
+      "Conscious releases — the app detects updates automatically and shows a changelog modal before refreshing",
+      "GitHub link added to the nav menu",
+      "iOS PWA splash screens at all required device sizes"
+    ],
+    "sections": {
+      "Added": [
+        "**Markdown descriptions** — chore and pack descriptions now use a Milkdown WYSIWYG editor with a formatting toolbar (bold, italic, strikethrough, inline code, headings H1–H3, bullet/ordered lists, blockquote, code block); rendered with `prose` styling in read-only display (#38)",
+        "**Conscious releases** — the app detects new versions automatically (PWA `prompt` mode), fetches the latest changelog, and opens an update modal with highlights and expandable full changelog; actions: Update Now, Remind Me Later, Ignore Update; nav burger icon badge and pill button remain visible even after ignoring (#2)",
+        "**GitHub link** — \"View on GitHub\" anchor at the bottom of the nav menu, opens the repository README in a new tab (#35)",
+        "**iOS PWA splash screens** — `apple-touch-startup-image` PNG assets at all required iOS device sizes, generated from `icon-template.svg`; meta tags injected in `index.html` (#30)"
+      ],
+      "Fixed": [
+        "Milkdown Nord theme dark mode — CSS overrides so the editor respects the `.dark` class toggle (the theme's built-in `@media` query uses OS preference, not the app's class-based toggle)",
+        "Stale MarkdownDisplay after editing — description display now re-mounts when content changes"
+      ]
+    }
+  },
+  {
     "version": "0.4.0",
     "date": "2026-06-09",
     "highlights": [],
