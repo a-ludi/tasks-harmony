@@ -9,6 +9,7 @@ import { block } from '@milkdown/plugin-block';
 import { emoji } from '@milkdown/plugin-emoji';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import '@milkdown/theme-nord/style.css';
+import { MarkdownToolbar } from './MarkdownToolbar';
 
 interface Props {
   value: string;
@@ -41,7 +42,10 @@ export function MarkdownEditor(props: Props) {
   return (
     <MilkdownProvider>
       <div className="milkdown-wrapper rounded-md border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 min-h-[80px]">
-        <InnerEditor {...props} />
+        <MarkdownToolbar />
+        <div className="p-2">
+          <InnerEditor {...props} />
+        </div>
       </div>
     </MilkdownProvider>
   );
