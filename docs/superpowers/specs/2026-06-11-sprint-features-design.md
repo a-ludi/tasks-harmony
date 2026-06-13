@@ -26,9 +26,29 @@ A plain anchor link at the bottom of the off-canvas nav menu, below the update b
 
 **Scope:** chore descriptions and pack descriptions — both editing and display.
 
-**Editor:** Milkdown WYSIWYG editor replaces the current plain `<textarea>`. Plugins: `gfm`, `history`, `indent`, `block`, `emoji`. The editor outputs and stores raw Markdown.
+**Editor:** Milkdown WYSIWYG editor replaces the current plain `<textarea>`. Presets: `commonmark` + `gfm` (commonmark provides the required `doc` node; gfm extends it). Plugins: `history`, `indent`, `block`, `emoji`, `listener`. The editor outputs and stores raw Markdown.
 
-**Display:** Milkdown in read-only mode wherever a description is rendered (chore cards, pack pages, detail views).
+**Toolbar:** A formatting toolbar sits above the editor inside the same `MilkdownProvider`. Buttons dispatch Milkdown commands via `editor.action(callCommand(...))`. Use `onMouseDown` + `e.preventDefault()` on each button so the editor does not lose focus. Buttons are defined as a pure exported `TOOLBAR_ITEMS` array (testable without DOM). Separators visually group related buttons.
+
+Toolbar buttons (in order):
+
+| Label | Title | Command | Payload |
+|---|---|---|---|
+| B | Bold | `toggleStrongCommand` | — |
+| *I* | Italic | `toggleEmphasisCommand` | — |
+| ~~S~~ | Strikethrough | `toggleStrikethroughCommand` | — |
+| `` ` `` | Inline code | `toggleInlineCodeCommand` | — |
+| *(sep)* | | | |
+| H1 | Heading 1 | `wrapInHeadingCommand` | 1 |
+| H2 | Heading 2 | `wrapInHeadingCommand` | 2 |
+| H3 | Heading 3 | `wrapInHeadingCommand` | 3 |
+| *(sep)* | | | |
+| • | Bullet list | `wrapInBulletListCommand` | — |
+| 1. | Ordered list | `wrapInOrderedListCommand` | — |
+| > | Blockquote | `wrapInBlockquoteCommand` | — |
+| ``` | Code block | `createCodeBlockCommand` | — |
+
+**Display:** Milkdown in read-only mode wherever a description is rendered (chore cards, pack pages, detail views). No toolbar in display mode.
 
 **Storage:** no schema change — descriptions are already plain strings; Markdown is valid plain text.
 
