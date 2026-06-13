@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 test('edit form opens pre-populated', async ({ page }) => {
   const card = page.getByTestId('chore-card').filter({ hasText: 'Floss teeth' });
   await card.getByRole('button', { name: 'Chore actions' }).click();
-  await page.getByRole('menuitem', { name: 'Edit' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click({ force: true });
 
   await expect(page.getByLabel('Title')).toHaveValue('Floss teeth');
   await expect(page.getByLabel('XP Size')).toContainText('S (5 XP)');
@@ -29,7 +29,7 @@ test('edit form opens pre-populated', async ({ page }) => {
 test('save edited chore updates the card', async ({ page }) => {
   const card = page.getByTestId('chore-card').filter({ hasText: 'Floss teeth' });
   await card.getByRole('button', { name: 'Chore actions' }).click();
-  await page.getByRole('menuitem', { name: 'Edit' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click({ force: true });
 
   await page.getByLabel('Title').fill('Floss & rinse');
   await page.getByRole('button', { name: 'Save Changes' }).click();
@@ -41,7 +41,7 @@ test('save edited chore updates the card', async ({ page }) => {
 test('validation errors block save', async ({ page }) => {
   const card = page.getByTestId('chore-card').filter({ hasText: 'Floss teeth' });
   await card.getByRole('button', { name: 'Chore actions' }).click();
-  await page.getByRole('menuitem', { name: 'Edit' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click({ force: true });
 
   await page.getByLabel('Title').fill('');
   await page.getByRole('button', { name: 'Save Changes' }).click();

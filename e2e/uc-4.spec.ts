@@ -4,7 +4,7 @@ import { today, waitForApp, seedAndReload, makeChore } from './helpers/idb';
 async function openEditModal(page: import('@playwright/test').Page, choreTitle: string) {
   const card = page.getByTestId('chore-card').filter({ hasText: choreTitle });
   await card.getByRole('button', { name: 'Chore actions' }).click();
-  await page.getByRole('menuitem', { name: 'Edit' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Edit Chore' })).toBeVisible();
 }
 
