@@ -11,6 +11,7 @@ function todayISO(): string {
 
 export interface UpdateState {
   available: boolean;
+  showIndicator: boolean;
   version: string | null;
   highlights: string[];
   fullChangelog: Array<{ version: string; sections: Record<string, string[]> }>;
@@ -22,6 +23,7 @@ export interface UpdateState {
 export function useUpdateNotification(): UpdateState {
   const currentVersion = import.meta.env.VITE_APP_VERSION;
   const [available, setAvailable] = useState(false);
+  const [showIndicator, setShowIndicator] = useState(false);
   const [latestEntry, setLatestEntry] = useState<ChangelogEntry | null>(null);
   const [fullChangelog, setFullChangelog] = useState<Array<{ version: string; sections: Record<string, string[]> }>>([]);
 
@@ -47,6 +49,7 @@ export function useUpdateNotification(): UpdateState {
         setLatestEntry(latest);
         setFullChangelog(buildFullChangelog(entries, currentVersion));
         setAvailable(true);
+        setShowIndicator(true);
       })
       .catch(() => {
         // Non-critical — silently ignore fetch failures
@@ -54,21 +57,25 @@ export function useUpdateNotification(): UpdateState {
   }, [needRefresh, currentVersion]);
 
   function updateNow() {
+    setShowIndicator(false);
     updateServiceWorker(true);
   }
 
   function remindLater() {
     localStorage.setItem(REMIND_KEY, todayISO());
     setAvailable(false);
+    // showIndicator remains true
   }
 
   function ignoreUpdate() {
     if (latestEntry) localStorage.setItem(IGNORED_KEY, latestEntry.version);
     setAvailable(false);
+    // showIndicator remains true
   }
 
   return {
     available,
+    showIndicator,
     version: latestEntry?.version ?? null,
     highlights: latestEntry?.highlights ?? [],
     fullChangelog,

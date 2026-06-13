@@ -104,7 +104,7 @@ export default function App() {
       {/* Mobile sidebar: Sheet */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="w-64 p-0">
-          <Sidebar onClose={() => setSidebarOpen(false)} onNewPack={() => setShowNewPackDialog(true)} updateVersion={update.available ? update.version : null} onUpdateClick={() => setShowUpdateModal(true)} />
+          <Sidebar onClose={() => setSidebarOpen(false)} onNewPack={() => setShowNewPackDialog(true)} updateVersion={update.showIndicator ? update.version : null} onUpdateClick={() => setShowUpdateModal(true)} />
         </SheetContent>
       </Sheet>
 
@@ -113,7 +113,7 @@ export default function App() {
         style={{ width: sidebarWidth }}
         className="hidden md:flex flex-col relative bg-background border-r"
       >
-        <Sidebar onClose={() => {}} onNewPack={() => setShowNewPackDialog(true)} updateVersion={update.available ? update.version : null} onUpdateClick={() => setShowUpdateModal(true)} />
+        <Sidebar onClose={() => {}} onNewPack={() => setShowNewPackDialog(true)} updateVersion={update.showIndicator ? update.version : null} onUpdateClick={() => setShowUpdateModal(true)} />
         <div
           onMouseDown={handleResizeMouseDown}
           className="absolute inset-y-0 right-0 w-1 cursor-col-resize bg-transparent hover:bg-primary/30"
@@ -129,7 +129,7 @@ export default function App() {
             aria-label="Open menu"
           >
             ☰
-            {update.available && (
+            {update.showIndicator && (
               <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary" />
             )}
           </button>
