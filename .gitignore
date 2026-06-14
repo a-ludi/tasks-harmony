@@ -34,3 +34,4 @@ public/*
 !public/apple-splash-*.jpg
 dev-dist/
 .codegraph/
+.superpowers/
