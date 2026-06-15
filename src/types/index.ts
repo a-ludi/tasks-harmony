@@ -1,7 +1,13 @@
 export type XPSize = 'XXS' | 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL' | 'XXXL';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
+export type DuePeriodUnit = 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
 export type ChoreStatus = 'overdue' | 'due' | 'completed' | 'upcoming';
 export type ChoreSyncStatus = 'in-sync' | 'out-of-sync';
+
+export interface DuePeriod {
+  value: number;
+  unit: DuePeriodUnit;
+}
 
 export interface Recurrence {
   frequency: RecurrenceFrequency;
@@ -55,6 +61,7 @@ export interface Chore {
   recurrence: Recurrence;
   repeatable: boolean;          // if true, multiple completions per window are allowed
   active: boolean;
+  duePeriod?: DuePeriod;
   createdAt: string;            // ISO datetime
   syncStatus?: ChoreSyncStatus; // set after "Update from URL"; only present on URL-imported chores
 }
@@ -67,6 +74,10 @@ export interface PackManifest {
   revision?: string;
   revisionHistory?: string;
   cdpCreatedAt?: string;
+  streak?: boolean;         // default true; false disables streak mechanics for all chores
+  xpTarget?: number;
+  targetDate?: string;      // ISO date 'YYYY-MM-DD'
+  allowShiftOnImport?: boolean; // default false; when true, import dialog offers date shifting
 }
 
 export interface Pack {
