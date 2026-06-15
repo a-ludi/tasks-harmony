@@ -13,6 +13,15 @@
     "questions": {
       "type": "array",
       "items": { "$ref": "#/definitions/question" }
+    },
+    "duePeriod": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "minimum": 0 },
+        "unit": { "type": "string", "enum": ["minutes", "hours", "days", "weeks", "months"] }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false,
