@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAppStore } from '@/store';
-import { SyncButton } from '@/components/sync/SyncButton';
 import { CDPImportDialog } from '@/components/cdp/CDPImportDialog';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { useTheme } from '@/hooks/useTheme';
 import { getDisplayName } from '@/components/layout/displayName';
 import { calculatePackXP } from '@/xp/packXP';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 
 interface Props {
   onClose: () => void;
@@ -29,7 +25,6 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
   const profile = useAppStore((s) => s.profile);
   const displayName = getDisplayName(profile?.displayName ?? '');
   const isOnline = useOnlineStatus();
-  const { theme, toggle } = useTheme();
   const [showCDPDialog, setShowCDPDialog] = useState(false);
 
   const totalXP = completions.reduce((sum, c) => sum + c.xpEarned, 0);
@@ -91,14 +86,6 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
         <NavLink to="/profile" onClick={onClose} className={NAV_LINK_CLASS}>Profile</NavLink>
       </div>
 
-      <div className="border-t pt-4 space-y-3">
-        <SyncButton />
-        <div className="flex items-center gap-2 px-1">
-          <Switch checked={theme === 'dark'} onCheckedChange={toggle} />
-          <Label className="text-sm font-normal cursor-pointer" onClick={toggle}>Dark mode</Label>
-        </div>
-      </div>
-
       <div className="mt-4 space-y-2">
         {updateVersion && (
           <button
@@ -108,14 +95,6 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
             Update to v{updateVersion}
           </button>
         )}
-        <a
-          href="https://github.com/a-ludi/tasks-harmony"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          View on GitHub
-        </a>
       </div>
 
       <footer className="mt-auto pt-4 text-xs text-muted-foreground select-none">
