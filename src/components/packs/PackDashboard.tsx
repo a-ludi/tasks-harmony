@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function PackDashboard() {
   const { packId } = useParams<{ packId: string }>();
@@ -75,9 +75,9 @@ export default function PackDashboard() {
   const [showDeletionDialog, setShowDeletionDialog] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState('');
-  const [showXpTargetPopover, setShowXpTargetPopover] = useState(false);
+  const [showXpTargetDialog, setShowXpTargetDialog] = useState(false);
   const [xpTargetInput, setXpTargetInput] = useState('');
-  const [showTargetDatePopover, setShowTargetDatePopover] = useState(false);
+  const [showTargetDateDialog, setShowTargetDateDialog] = useState(false);
   const [targetDateInput, setTargetDateInput] = useState('');
 
   if (!pack) return <Navigate to="/" replace />;
@@ -180,100 +180,23 @@ export default function PackDashboard() {
                 Allow shift on import
               </DropdownMenuCheckboxItem>
 
-              <Popover open={showXpTargetPopover} onOpenChange={setShowXpTargetPopover}>
-                <PopoverTrigger asChild>
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setXpTargetInput(pack.manifest.xpTarget != null ? String(pack.manifest.xpTarget) : '');
-                      setShowXpTargetPopover(true);
-                    }}
-                  >
-                    {pack.manifest.xpTarget != null ? `XP target: ${pack.manifest.xpTarget.toLocaleString()}` : 'Set XP target…'}
-                  </DropdownMenuItem>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 space-y-2">
-                  <p className="text-sm font-medium">XP target</p>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="e.g. 1000"
-                    value={xpTargetInput}
-                    onChange={(e) => setXpTargetInput(e.target.value)}
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        const val = xpTargetInput.trim() ? Number(xpTargetInput) : undefined;
-                        await updatePackManifest(pack.id, { xpTarget: val });
-                        setShowXpTargetPopover(false);
-                      }}
-                    >
-                      Save
-                    </Button>
-                    {pack.manifest.xpTarget != null && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          await updatePackManifest(pack.id, { xpTarget: undefined });
-                          setShowXpTargetPopover(false);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setXpTargetInput(pack.manifest.xpTarget != null ? String(pack.manifest.xpTarget) : '');
+                  setShowXpTargetDialog(true);
+                }}
+              >
+                {pack.manifest.xpTarget != null ? `XP target: ${pack.manifest.xpTarget.toLocaleString()}` : 'Set XP target…'}
+              </DropdownMenuItem>
 
-              <Popover open={showTargetDatePopover} onOpenChange={setShowTargetDatePopover}>
-                <PopoverTrigger asChild>
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setTargetDateInput(pack.manifest.targetDate ?? '');
-                      setShowTargetDatePopover(true);
-                    }}
-                  >
-                    {pack.manifest.targetDate ? `Target date: ${pack.manifest.targetDate}` : 'Set target date…'}
-                  </DropdownMenuItem>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 space-y-2">
-                  <p className="text-sm font-medium">Target date</p>
-                  <Input
-                    type="date"
-                    value={targetDateInput}
-                    onChange={(e) => setTargetDateInput(e.target.value)}
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await updatePackManifest(pack.id, { targetDate: targetDateInput || undefined });
-                        setShowTargetDatePopover(false);
-                      }}
-                    >
-                      Save
-                    </Button>
-                    {pack.manifest.targetDate && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          await updatePackManifest(pack.id, { targetDate: undefined });
-                          setShowTargetDatePopover(false);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setTargetDateInput(pack.manifest.targetDate ?? '');
+                  setShowTargetDateDialog(true);
+                }}
+              >
+                {pack.manifest.targetDate ? `Target date: ${pack.manifest.targetDate}` : 'Set target date…'}
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
@@ -295,6 +218,46 @@ export default function PackDashboard() {
           </DropdownMenu>
         </div>
       </div>
+
+      {(xpProgress !== null || timeProgress !== null) && (
+        <div className="mt-3 space-y-2">
+          {xpProgress !== null && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>XP progress</span>
+                {xpCompleted
+                  ? <span className="rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-green-800 dark:text-green-300 font-medium">Completed</span>
+                  : <span>{packXP.toLocaleString()} / {pack.manifest.xpTarget!.toLocaleString()} XP</span>
+                }
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-amber-400 transition-all"
+                  style={{ width: `${Math.round(xpProgress * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {timeProgress !== null && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Time progress</span>
+                {timeLapsed
+                  ? <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-red-800 dark:text-red-300 font-medium">Lapsed</span>
+                  : <span>Target: {pack.manifest.targetDate}</span>
+                }
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-blue-400 transition-all"
+                  style={{ width: `${Math.round(Math.max(0, timeProgress) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Pack description */}
       {isEditingDescription ? (
@@ -343,46 +306,6 @@ export default function PackDashboard() {
         </div>
       )}
 
-      {(xpProgress !== null || timeProgress !== null) && (
-        <div className="mt-3 space-y-2">
-          {xpProgress !== null && (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>XP progress</span>
-                {xpCompleted
-                  ? <span className="rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-green-800 dark:text-green-300 font-medium">Completed</span>
-                  : <span>{packXP.toLocaleString()} / {pack.manifest.xpTarget!.toLocaleString()} XP</span>
-                }
-              </div>
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-amber-400 transition-all"
-                  style={{ width: `${Math.round(xpProgress * 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {timeProgress !== null && (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Time progress</span>
-                {timeLapsed
-                  ? <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-red-800 dark:text-red-300 font-medium">Lapsed</span>
-                  : <span>Target: {pack.manifest.targetDate}</span>
-                }
-              </div>
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-blue-400 transition-all"
-                  style={{ width: `${Math.round(Math.max(0, timeProgress) * 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       <Dashboard chores={packChores} currentPackId={pack.id} />
       {showDeletionDialog && pack && (
         <PackDeletionDialog
@@ -391,6 +314,79 @@ export default function PackDashboard() {
           onClose={() => setShowDeletionDialog(false)}
         />
       )}
+
+      <Dialog open={showXpTargetDialog} onOpenChange={setShowXpTargetDialog}>
+        <DialogContent className="sm:max-w-xs" aria-describedby={undefined}>
+          <DialogHeader><DialogTitle>XP target</DialogTitle></DialogHeader>
+          <Input
+            type="number"
+            min="0"
+            placeholder="e.g. 1000"
+            value={xpTargetInput}
+            onChange={(e) => setXpTargetInput(e.target.value)}
+            autoFocus
+          />
+          <div className="flex gap-2 mt-1">
+            <Button
+              size="sm"
+              onClick={async () => {
+                const val = xpTargetInput.trim() ? Number(xpTargetInput) : undefined;
+                await updatePackManifest(pack.id, { xpTarget: val });
+                setShowXpTargetDialog(false);
+              }}
+            >
+              Save
+            </Button>
+            {pack.manifest.xpTarget != null && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  await updatePackManifest(pack.id, { xpTarget: undefined });
+                  setShowXpTargetDialog(false);
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showTargetDateDialog} onOpenChange={setShowTargetDateDialog}>
+        <DialogContent className="sm:max-w-xs" aria-describedby={undefined}>
+          <DialogHeader><DialogTitle>Target date</DialogTitle></DialogHeader>
+          <Input
+            type="date"
+            value={targetDateInput}
+            onChange={(e) => setTargetDateInput(e.target.value)}
+            autoFocus
+          />
+          <div className="flex gap-2 mt-1">
+            <Button
+              size="sm"
+              onClick={async () => {
+                await updatePackManifest(pack.id, { targetDate: targetDateInput || undefined });
+                setShowTargetDateDialog(false);
+              }}
+            >
+              Save
+            </Button>
+            {pack.manifest.targetDate && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  await updatePackManifest(pack.id, { targetDate: undefined });
+                  setShowTargetDateDialog(false);
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
