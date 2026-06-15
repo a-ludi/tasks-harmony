@@ -110,9 +110,10 @@ export async function fetchCDP(
       xpTarget: manifestRaw.xpTarget,
       targetDate: manifestRaw.targetDate
         ? (() => {
-            const d = new Date(manifestRaw.targetDate + 'T00:00:00');
-            d.setDate(d.getDate() + startDateOffsetDays);
-            return d.toISOString().substring(0, 10);
+            const [y, m, d] = manifestRaw.targetDate!.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            date.setDate(date.getDate() + startDateOffsetDays);
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
           })()
         : undefined,
       allowShiftOnImport: manifestRaw.allowShiftOnImport,
@@ -131,7 +132,7 @@ export async function fetchCDPManifestOnly(
 ): Promise<{ targetDate?: string; allowShiftOnImport?: boolean }> {
   const manifestUrl = `${baseUrl}/__pack__.yaml`;
   const res = await fetch(manifestUrl);
-  if (!res.ok) throw new Error(`Failed to fetch CDP manifest: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to fetch CDP manifest from ${manifestUrl}: ${res.status}`);
   const raw = jsYaml.load(await res.text()) as PackYaml;
   return {
     targetDate: raw.targetDate,
