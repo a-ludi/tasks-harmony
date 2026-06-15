@@ -9,6 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export default function PackDashboard() {
   const { packId } = useParams<{ packId: string }>();
@@ -29,11 +38,16 @@ export default function PackDashboard() {
   const packQuestions = questions.filter((q) => packChoreKeys.has(q.choreKey));
 
   const updatePackDescription = useAppStore((s) => s.updatePackDescription);
+  const updatePackManifest = useAppStore((s) => s.updatePackManifest);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [showDeletionDialog, setShowDeletionDialog] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState('');
+  const [showXpTargetPopover, setShowXpTargetPopover] = useState(false);
+  const [xpTargetInput, setXpTargetInput] = useState('');
+  const [showTargetDatePopover, setShowTargetDatePopover] = useState(false);
+  const [targetDateInput, setTargetDateInput] = useState('');
 
   if (!pack) return <Navigate to="/" replace />;
 
@@ -113,24 +127,141 @@ export default function PackDashboard() {
             </span>
           </>
         )}
-        <div className="ml-auto flex gap-2">
-          <Button
-            onClick={handleExport}
-            variant="outline"
-            size="sm"
-          >
-            Download as CDP
-          </Button>
-          {!pack.isPersonal && (
-            <Button
-              onClick={handleDelete}
-              variant="outline"
-              size="sm"
-              className="border-destructive text-destructive hover:bg-destructive/10 dark:border-destructive/60 dark:hover:bg-destructive/20"
-            >
-              Delete Pack
-            </Button>
-          )}
+        <div className="ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Pack options">
+                ⋮
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuCheckboxItem
+                checked={pack.manifest.streak ?? true}
+                onCheckedChange={(checked) => updatePackManifest(pack.id, { streak: checked })}
+              >
+                Streaks enabled
+              </DropdownMenuCheckboxItem>
+
+              <DropdownMenuCheckboxItem
+                checked={pack.manifest.allowShiftOnImport ?? false}
+                onCheckedChange={(checked) => updatePackManifest(pack.id, { allowShiftOnImport: checked })}
+              >
+                Allow shift on import
+              </DropdownMenuCheckboxItem>
+
+              <Popover open={showXpTargetPopover} onOpenChange={setShowXpTargetPopover}>
+                <PopoverTrigger asChild>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setXpTargetInput(pack.manifest.xpTarget != null ? String(pack.manifest.xpTarget) : '');
+                      setShowXpTargetPopover(true);
+                    }}
+                  >
+                    {pack.manifest.xpTarget != null ? `XP target: ${pack.manifest.xpTarget.toLocaleString()}` : 'Set XP target…'}
+                  </DropdownMenuItem>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 space-y-2">
+                  <p className="text-sm font-medium">XP target</p>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 1000"
+                    value={xpTargetInput}
+                    onChange={(e) => setXpTargetInput(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        const val = xpTargetInput.trim() ? Number(xpTargetInput) : undefined;
+                        await updatePackManifest(pack.id, { xpTarget: val });
+                        setShowXpTargetPopover(false);
+                      }}
+                    >
+                      Save
+                    </Button>
+                    {pack.manifest.xpTarget != null && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          await updatePackManifest(pack.id, { xpTarget: undefined });
+                          setShowXpTargetPopover(false);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Popover open={showTargetDatePopover} onOpenChange={setShowTargetDatePopover}>
+                <PopoverTrigger asChild>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setTargetDateInput(pack.manifest.targetDate ?? '');
+                      setShowTargetDatePopover(true);
+                    }}
+                  >
+                    {pack.manifest.targetDate ? `Target date: ${pack.manifest.targetDate}` : 'Set target date…'}
+                  </DropdownMenuItem>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 space-y-2">
+                  <p className="text-sm font-medium">Target date</p>
+                  <Input
+                    type="date"
+                    value={targetDateInput}
+                    onChange={(e) => setTargetDateInput(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await updatePackManifest(pack.id, { targetDate: targetDateInput || undefined });
+                        setShowTargetDatePopover(false);
+                      }}
+                    >
+                      Save
+                    </Button>
+                    {pack.manifest.targetDate && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          await updatePackManifest(pack.id, { targetDate: undefined });
+                          setShowTargetDatePopover(false);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem onClick={handleExport}>
+                Download as CDP
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              {!pack.isPersonal && (
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  Delete Pack
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
