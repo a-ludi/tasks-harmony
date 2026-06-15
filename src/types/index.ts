@@ -61,7 +61,7 @@ export interface Chore {
   recurrence: Recurrence;
   repeatable: boolean;          // if true, multiple completions per window are allowed
   active: boolean;
-  duePeriod?: DuePeriod;
+  duePeriod?: DuePeriod;   // if set, chore shows as upcoming until this long before window end
   createdAt: string;            // ISO datetime
   syncStatus?: ChoreSyncStatus; // set after "Update from URL"; only present on URL-imported chores
 }
@@ -75,7 +75,7 @@ export interface PackManifest {
   revisionHistory?: string;
   cdpCreatedAt?: string;
   streak?: boolean;         // default true; false disables streak mechanics for all chores
-  xpTarget?: number;
+  xpTarget?: number;        // total XP goal for the pack
   targetDate?: string;      // ISO date 'YYYY-MM-DD'
   allowShiftOnImport?: boolean; // default false; when true, import dialog offers date shifting
 }
