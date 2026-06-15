@@ -5,7 +5,7 @@ import { parseChoreQuestions } from './cdp-import';
 const mockFetch = mock(async (_url: string) => new Response('{}', { status: 200 }));
 global.fetch = mockFetch as unknown as typeof fetch;
 
-const { fetchCDP } = await import('./cdp-import');
+const { fetchCDP, fetchCDPManifestOnly } = await import('./cdp-import');
 
 const PACK_YAML = `title: "Morning Routines"\nauthor: "Alice"\nlicense: "MIT"\ndescription: "Morning habit pack"\nchores:\n  - make-bed.yaml\n  - brush-teeth.yaml`;
 const MAKE_BED_YAML = `title: "Make Bed"\ndescription: "Straighten sheets and fluff pillow"\nxpSize: XS\nfrequency: daily\ninterval: 1`;
@@ -123,5 +123,98 @@ describe('fetchCDP', () => {
   it('throws when a chore YAML fetch fails', async () => {
     setupFetchResponses({ [`${BASE}/__pack__.yaml`]: PACK_YAML, [`${BASE}/make-bed.yaml`]: MAKE_BED_YAML });
     await expect(fetchCDP(BASE)).rejects.toThrow('brush-teeth.yaml');
+  });
+});
+
+describe('fetchCDP — sprint fields', () => {
+  const BASE = 'https://example.com/packs/sprint';
+  const CHORE_URL = `${BASE}/run.yaml`;
+
+  const SPRINT_PACK_YAML = `title: "Sprint Pack"\nchores:\n  - run.yaml\nstreak: false\nxpTarget: 500\ntargetDate: "2026-12-31"\nallowShiftOnImport: true`;
+  const RUN_YAML = `title: "Run"\nxpSize: S\nfrequency: daily\ninterval: 1\nduePeriod:\n  value: 2\n  unit: days`;
+  const RUN_NO_DUE_PERIOD_YAML = `title: "Run"\nxpSize: S\nfrequency: daily\ninterval: 1`;
+
+  beforeEach(() => { mockFetch.mockReset(); });
+
+  it('imports streak: false from pack YAML', async () => {
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: SPRINT_PACK_YAML, [CHORE_URL]: RUN_YAML });
+    const { pack } = await fetchCDP(BASE);
+    expect(pack.manifest.streak).toBe(false);
+  });
+
+  it('imports xpTarget from pack YAML', async () => {
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: SPRINT_PACK_YAML, [CHORE_URL]: RUN_YAML });
+    const { pack } = await fetchCDP(BASE);
+    expect(pack.manifest.xpTarget).toBe(500);
+  });
+
+  it('imports targetDate from pack YAML', async () => {
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: SPRINT_PACK_YAML, [CHORE_URL]: RUN_YAML });
+    const { pack } = await fetchCDP(BASE);
+    expect(pack.manifest.targetDate).toBe('2026-12-31');
+  });
+
+  it('imports allowShiftOnImport from pack YAML', async () => {
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: SPRINT_PACK_YAML, [CHORE_URL]: RUN_YAML });
+    const { pack } = await fetchCDP(BASE);
+    expect(pack.manifest.allowShiftOnImport).toBe(true);
+  });
+
+  it('imports duePeriod from chore YAML', async () => {
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: SPRINT_PACK_YAML, [CHORE_URL]: RUN_YAML });
+    const { chores } = await fetchCDP(BASE);
+    const chore = chores[0];
+    expect(chore.duePeriod?.value).toBe(2);
+    expect(chore.duePeriod?.unit).toBe('days');
+  });
+
+  it('omits duePeriod when not in chore YAML', async () => {
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: SPRINT_PACK_YAML, [CHORE_URL]: RUN_NO_DUE_PERIOD_YAML });
+    const { chores } = await fetchCDP(BASE);
+    const chore = chores[0];
+    expect(chore.duePeriod).toBeUndefined();
+  });
+
+  it('startDateOffsetDays shifts chore startDate by N days', async () => {
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: PACK_YAML, [`${BASE}/make-bed.yaml`]: MAKE_BED_YAML, [`${BASE}/brush-teeth.yaml`]: BRUSH_TEETH_YAML });
+    const { chores } = await fetchCDP(BASE, 7);
+    const d = new Date(); d.setDate(d.getDate() + 7);
+    const expected = d.toISOString().substring(0, 10);
+    for (const chore of chores) {
+      expect(chore.recurrence.startDate).toBe(expected);
+    }
+  });
+
+  it('startDateOffsetDays shifts targetDate by same delta', async () => {
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: SPRINT_PACK_YAML, [CHORE_URL]: RUN_YAML });
+    const { pack } = await fetchCDP(BASE, 7);
+    expect(pack.manifest.targetDate).toBe('2027-01-07');
+  });
+});
+
+describe('fetchCDPManifestOnly', () => {
+  const BASE = 'https://example.com/packs/sprint';
+
+  beforeEach(() => { mockFetch.mockReset(); });
+
+  it('returns targetDate and allowShiftOnImport', async () => {
+    const yaml = `title: "Sprint Pack"\nchores:\n  - run.yaml\ntargetDate: "2026-10-01"\nallowShiftOnImport: true`;
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: yaml });
+    const result = await fetchCDPManifestOnly(BASE);
+    expect(result.targetDate).toBe('2026-10-01');
+    expect(result.allowShiftOnImport).toBe(true);
+  });
+
+  it('returns undefined for absent fields', async () => {
+    const yaml = `title: X\nchores:\n  - a.yaml`;
+    setupFetchResponses({ [`${BASE}/__pack__.yaml`]: yaml });
+    const result = await fetchCDPManifestOnly(BASE);
+    expect(result.targetDate).toBeUndefined();
+    expect(result.allowShiftOnImport).toBeUndefined();
+  });
+
+  it('throws when fetch fails', async () => {
+    setupFetchResponses({});
+    await expect(fetchCDPManifestOnly(BASE)).rejects.toThrow();
   });
 });
