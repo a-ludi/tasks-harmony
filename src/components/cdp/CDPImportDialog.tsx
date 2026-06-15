@@ -24,6 +24,7 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
   const [shiftStartDate, setShiftStartDate] = useState('');
   const [shiftTargetDate, setShiftTargetDate] = useState('');
   const [shiftDurationDays, setShiftDurationDays] = useState(0);
+  const [shiftHasTargetDate, setShiftHasTargetDate] = useState(false);
 
   function todayStr(): string {
     const d = new Date();
@@ -43,13 +44,18 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
     setImporting(true); setMessage(null);
     try {
       const meta = await fetchCDPManifestOnly(trimmed);
-      if (meta.allowShiftOnImport && meta.targetDate) {
+      if (meta.allowShiftOnImport) {
         const today = todayStr();
-        const duration = dateDiffDays(today, meta.targetDate);
-        setShiftDurationDays(duration);
         setShiftStartDate(today);
-        setShiftTargetDate(meta.targetDate);
         setPendingUrl(trimmed);
+        if (meta.targetDate) {
+          const duration = dateDiffDays(today, meta.targetDate);
+          setShiftDurationDays(duration);
+          setShiftTargetDate(meta.targetDate);
+          setShiftHasTargetDate(true);
+        } else {
+          setShiftHasTargetDate(false);
+        }
         setStep('date-shift');
         return;
       }
@@ -126,7 +132,7 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
             <p className="text-sm text-muted-foreground">
               This pack supports date shifting. Set when you want to start, and the target date will adjust automatically.
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${shiftHasTargetDate ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <div className="space-y-1">
                 <Label htmlFor="shift-start">Start date</Label>
                 <Input
@@ -135,7 +141,7 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
                   value={shiftStartDate}
                   onChange={(e) => {
                     setShiftStartDate(e.target.value);
-                    if (e.target.value) {
+                    if (e.target.value && shiftHasTargetDate) {
                       const d = new Date(e.target.value + 'T00:00:00');
                       d.setDate(d.getDate() + shiftDurationDays);
                       setShiftTargetDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
@@ -143,26 +149,30 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
                   }}
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="shift-target">Target date</Label>
-                <Input
-                  id="shift-target"
-                  type="date"
-                  value={shiftTargetDate}
-                  onChange={(e) => {
-                    setShiftTargetDate(e.target.value);
-                    if (e.target.value) {
-                      const d = new Date(e.target.value + 'T00:00:00');
-                      d.setDate(d.getDate() - shiftDurationDays);
-                      setShiftStartDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-                    }
-                  }}
-                />
-              </div>
+              {shiftHasTargetDate && (
+                <div className="space-y-1">
+                  <Label htmlFor="shift-target">Target date</Label>
+                  <Input
+                    id="shift-target"
+                    type="date"
+                    value={shiftTargetDate}
+                    onChange={(e) => {
+                      setShiftTargetDate(e.target.value);
+                      if (e.target.value) {
+                        const d = new Date(e.target.value + 'T00:00:00');
+                        d.setDate(d.getDate() - shiftDurationDays);
+                        setShiftStartDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                      }
+                    }}
+                  />
+                </div>
+              )}
             </div>
-            <p className="text-center text-xs text-muted-foreground">
-              Duration: {shiftDurationDays} days
-            </p>
+            {shiftHasTargetDate && (
+              <p className="text-center text-xs text-muted-foreground">
+                Duration: {shiftDurationDays} days
+              </p>
+            )}
             <div className="flex gap-2">
               <Button onClick={handleConfirmShift} disabled={importing} className="flex-1">
                 {importing ? 'Importing…' : 'Import with these dates'}
@@ -175,6 +185,7 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
                   setShiftStartDate('');
                   setShiftTargetDate('');
                   setShiftDurationDays(0);
+                  setShiftHasTargetDate(false);
                 }}
                 disabled={importing}
               >

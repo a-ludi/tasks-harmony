@@ -22,7 +22,15 @@ chores:
   - run.yaml
 `.trim();
 
+const PACK_YAML_NO_DATE = `
+title: "No Date Pack"
+chores:
+  - run.yaml
+allowShiftOnImport: true
+`.trim();
+
 const PACK_URL = 'https://example.com/packs/fitness';
+const PACK_URL_NO_DATE = 'https://example.com/packs/nodatepack';
 
 async function openImportDialog(page: Parameters<typeof waitForApp>[0]) {
   await page.getByRole('button', { name: 'Pack actions' }).click();
@@ -88,6 +96,18 @@ test.describe('CDP import date-shift prompt', () => {
 
     await expect(page.getByLabel('Pack base URL')).toBeVisible();
     await expect(page.getByLabel('Start date')).not.toBeVisible();
+    await expect(page.getByLabel('Target date')).not.toBeVisible();
+  });
+
+  test('shows date-shift step when only allowShiftOnImport is true (no targetDate)', async ({ page }) => {
+    await routeMockPack(page, PACK_YAML_NO_DATE);
+    await openImportDialog(page);
+
+    await page.getByLabel('Pack base URL').fill(PACK_URL_NO_DATE);
+    await page.getByRole('button', { name: 'Import pack' }).click();
+
+    await expect(page.getByLabel('Start date')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Import with these dates' })).toBeVisible();
     await expect(page.getByLabel('Target date')).not.toBeVisible();
   });
 
