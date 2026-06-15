@@ -1,5 +1,26 @@
 [
   {
+    "version": "0.6.0",
+    "date": "2026-06-15",
+    "highlights": [
+      "Completable packs — set an XP target and/or target date; progress bars track your goal with Completed and Lapsed badges",
+      "CDP date shifting — import a chore pack and shift all start dates to fit your schedule",
+      "Due period — delay a chore's 'due' status until near the end of its window",
+      "Pack streak control — opt out of streak tracking for variety-focused or rotation packs"
+    ],
+    "sections": {
+      "Added": [
+        "**Completable packs** — set an XP target and/or target date on any pack; an amber XP bar and a blue time bar appear on the pack page; XP goal shows a \"Completed\" badge once reached, time goal shows a \"Lapsed\" badge if the date passes without meeting the XP target (#33)",
+        "**CDP import date shifting** — when a pack has `allowShiftOnImport: true`, the import dialog prompts for a start date and shifts all chore dates accordingly; if the pack also has a `targetDate`, both dates are shown and automatically kept in sync (#33)",
+        "**Pack streak control** — disable streak mechanics for an entire pack via the pack kebab menu; streak count is hidden on chore cards and the streak multiplier is fixed at 1; useful for variety-focused or rotation packs (#36)",
+        "**Due period** — per-chore optional field that delays the `due` status until N time before the window ends; configured in the chore edit form with a number + unit selector; exported in CDP YAML (#40)"
+      ],
+      "Changed": [
+        "**Nav menu cleanup** — sync button, dark mode toggle, and \"View on GitHub\" link moved from the sidebar footer to the Profile page; Profile gains an \"App\" section and an \"About\" section with app metadata (#39)"
+      ]
+    }
+  },
+  {
     "version": "0.5.0",
     "date": "2026-06-13",
     "highlights": [

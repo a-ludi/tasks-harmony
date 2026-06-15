@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-06-15
+
+### Added
+
+- **Completable packs** — set an XP target and/or target date on any pack; an amber XP bar and a blue time bar appear on the pack page; XP goal shows a "Completed" badge once reached, time goal shows a "Lapsed" badge if the date passes without meeting the XP target (#33)
+- **CDP import date shifting** — when a pack has `allowShiftOnImport: true`, the import dialog prompts for a start date and shifts all chore dates accordingly; if the pack also has a `targetDate`, both dates are shown and automatically kept in sync (#33)
+- **Pack streak control** — disable streak mechanics for an entire pack via the pack kebab menu; streak count is hidden on chore cards and the streak multiplier is fixed at 1; useful for variety-focused or rotation packs (#36)
+- **Due period** — per-chore optional field that delays the `due` status until N time before the window ends; configured in the chore edit form with a number + unit selector; exported in CDP YAML (#40)
+
+### Changed
+
+- **Nav menu cleanup** — sync button, dark mode toggle, and "View on GitHub" link moved from the sidebar footer to the Profile page; Profile gains an "App" section and an "About" section with app metadata (#39)
+
 ## [0.5.0] — 2026-06-13
 
 ### Added
@@ -82,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.6.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.6.0
 [0.5.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.5.0
 [0.4.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.4.0
 [0.2.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.2.0
