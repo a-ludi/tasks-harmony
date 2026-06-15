@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
-import type { Chore, XPSize, RecurrenceFrequency } from '@/types';
+import type { Chore, XPSize, RecurrenceFrequency, DuePeriodUnit } from '@/types';
 import type { QuickAnswerSet } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -62,6 +62,12 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const [startDate, setStartDate] = useState(chore?.recurrence.startDate ?? todayString());
   const [windowStartTime, setWindowStartTime] = useState(chore?.recurrence.windowStartTime ?? '00:00');
   const [repeatable, setRepeatable] = useState(chore?.repeatable ?? false);
+  const [duePeriodValue, setDuePeriodValue] = useState<string>(
+    chore?.duePeriod ? String(chore.duePeriod.value) : ''
+  );
+  const [duePeriodUnit, setDuePeriodUnit] = useState<DuePeriodUnit>(
+    chore?.duePeriod?.unit ?? 'hours'
+  );
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState(packId);
@@ -101,6 +107,10 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
     setErrors({});
     setSubmitting(true);
     try {
+      const duePeriod = duePeriodValue.trim() && Number(duePeriodValue) > 0
+        ? { value: Number(duePeriodValue), unit: duePeriodUnit }
+        : undefined;
+
       if (isEdit && chore) {
         const packChanged = selectedPackId !== chore.packId;
         if (packChanged) {
@@ -108,12 +118,12 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           if (!moved) { setErrors((prev) => ({ ...prev, pack: `A chore with ID "${chore.choreId}" already exists in this pack.` })); setSubmitting(false); return; }
         }
         const activeChoreKey = packChanged ? `${selectedPackId}/${chore.choreId}` : chore.key;
-        await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable });
+        await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod });
         if (questionDrafts.length > 0 || initialQuestions.length > 0) {
           await saveQuestions(activeChoreKey, questionDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
         }
       } else {
-        const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, active: true });
+        const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, active: true });
         if (questionDrafts.some((d) => !d._deleted)) {
           await saveQuestions(newChoreKey, questionDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
         }
@@ -202,6 +212,35 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
             <div className="flex items-center gap-3">
               <input id="chore-repeatable" type="checkbox" checked={repeatable} onChange={(e) => setRepeatable(e.target.checked)} className="h-4 w-4 rounded border-input accent-primary" />
               <Label htmlFor="chore-repeatable" className="font-normal">Repeatable (allow multiple completions per window)</Label>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Due period</Label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={duePeriodValue}
+                  onChange={(e) => setDuePeriodValue(e.target.value)}
+                  placeholder="e.g. 12"
+                  className="w-24 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <Select value={duePeriodUnit} onValueChange={(v) => setDuePeriodUnit(v as DuePeriodUnit)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minutes">minutes</SelectItem>
+                    <SelectItem value="hours">hours</SelectItem>
+                    <SelectItem value="days">days</SelectItem>
+                    <SelectItem value="weeks">weeks</SelectItem>
+                    <SelectItem value="months">months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Chore becomes due this long before the window ends. Leave blank to show as due from window open.
+              </p>
             </div>
 
             <div>
