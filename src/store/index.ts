@@ -12,6 +12,7 @@ import type {
   Completion,
   MultiplierQuestion,
   Pack,
+  PackManifest,
   Question,
   XPSettings,
   UserProfile,
@@ -49,6 +50,7 @@ interface AppState {
   addPack: (name: string) => Promise<string>;
   renamePack: (packId: string, newTitle: string) => Promise<void>;
   updatePackDescription: (packId: string, description: string) => Promise<void>;
+  updatePackManifest: (packId: string, changes: Partial<PackManifest>) => Promise<void>;
   deletePack: (packId: string, dispositions?: ChoreDisposition[]) => Promise<void>;
   saveQuickAnswerSet: (qas: QuickAnswerSet) => Promise<void>;
   removeQuickAnswerSet: (id: string) => Promise<void>;
@@ -157,6 +159,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const chore = chores.find((c) => c.key === choreKey);
     if (!chore) throw new Error(`Chore not found: ${choreKey}`);
 
+    const chorePack = get().packs.find((p) => p.id === chore.packId);
+    const packStreak = chorePack?.manifest.streak ?? true;
+
     const now = recordCompletionWithTimestamp(new Date());
 
     const activeSettingsId = profile?.activeXPSettingsId;
@@ -166,7 +171,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const choreCompletions = completions.filter((c) => c.choreKey === choreKey);
 
-    const streak = computeNewStreak(chore, choreCompletions, now);
+    const streak = packStreak ? computeNewStreak(chore, choreCompletions, now) : 0;
     const totalCompletions = choreCompletions.length;
     const { questions } = get();
     let xpEarned = calculateXP(chore.xpSize, streak, totalCompletions, activeSettings);
@@ -303,6 +308,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     const updated: Pack = {
       ...pack,
       manifest: { ...pack.manifest, description },
+      updatedAt: new Date().toISOString(),
+    };
+    await putPack(db, updated);
+    set((state) => ({
+      packs: state.packs.map((p) => (p.id === packId ? updated : p)),
+    }));
+  },
+
+  updatePackManifest: async (packId, changes) => {
+    const { db, packs } = get();
+    if (!db) throw new Error('DB not initialised');
+    const pack = packs.find((p) => p.id === packId);
+    if (!pack) throw new Error(`Pack '${packId}' not found`);
+    const updated: Pack = {
+      ...pack,
+      manifest: { ...pack.manifest, ...changes },
       updatedAt: new Date().toISOString(),
     };
     await putPack(db, updated);
