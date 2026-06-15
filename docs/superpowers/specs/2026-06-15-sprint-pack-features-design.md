@@ -96,13 +96,18 @@ Note: XP target and target date use `Dialog` (not `Popover`) because Radix `Popo
 
 ### CDP import date shifting
 
-When an imported CDP has both a `targetDate` and `allowShiftOnImport: true`, the import dialog switches to a date-shift step showing:
+When an imported CDP has `allowShiftOnImport: true` (regardless of whether `targetDate` is set), the import dialog switches to a date-shift step. The layout depends on whether the pack also has a `targetDate`:
 
+**With `targetDate`:**
 - A two-column grid: **Start date** input (left) and **Target date** input (right)
 - A "Duration: N days" label below the grid
-- "Import with these dates" and "Back" buttons
+- Editing either date recomputes the other by preserving the original offset between them
 
-Editing either date recomputes the other by preserving the original offset between them. All chore start dates are shifted by the same delta. When `allowShiftOnImport` is `false` or absent, dates are imported as-is and no shifting UI is shown.
+**Without `targetDate`:**
+- A single-column grid with only the **Start date** input
+- No duration label
+
+Both variants show "Import with these dates" and "Back" buttons. All chore start dates are shifted by the same delta (offset from today to the chosen start date). When `allowShiftOnImport` is `false` or absent, dates are imported as-is and no shifting UI is shown.
 
 ---
 
