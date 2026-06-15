@@ -206,3 +206,97 @@ describe('buildCDPZip — question serialisation', () => {
     expect(qs[1].id).toBe('q-b');
   });
 });
+
+describe('buildCDPZip — sprint pack fields', () => {
+  test('omits streak when not set', () => {
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.streak).toBeUndefined();
+  });
+
+  test('omits streak when true', () => {
+    const packWithStreakTrue: Pack = {
+      ...PACK,
+      manifest: { ...PACK.manifest, streak: true },
+    };
+    const files = unzipSync(buildCDPZip(packWithStreakTrue, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.streak).toBeUndefined();
+  });
+
+  test('exports streak: false when set', () => {
+    const packWithStreakFalse: Pack = {
+      ...PACK,
+      manifest: { ...PACK.manifest, streak: false },
+    };
+    const files = unzipSync(buildCDPZip(packWithStreakFalse, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.streak).toBe(false);
+  });
+
+  test('exports xpTarget when set', () => {
+    const packWithXpTarget: Pack = {
+      ...PACK,
+      manifest: { ...PACK.manifest, xpTarget: 1200 },
+    };
+    const files = unzipSync(buildCDPZip(packWithXpTarget, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.xpTarget).toBe(1200);
+  });
+
+  test('omits xpTarget when not set', () => {
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.xpTarget).toBeUndefined();
+  });
+
+  test('exports targetDate when set', () => {
+    const packWithTargetDate: Pack = {
+      ...PACK,
+      manifest: { ...PACK.manifest, targetDate: '2026-12-31' },
+    };
+    const files = unzipSync(buildCDPZip(packWithTargetDate, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.targetDate).toBe('2026-12-31');
+  });
+
+  test('omits targetDate when not set', () => {
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.targetDate).toBeUndefined();
+  });
+
+  test('exports allowShiftOnImport when true', () => {
+    const packWithAllowShift: Pack = {
+      ...PACK,
+      manifest: { ...PACK.manifest, allowShiftOnImport: true },
+    };
+    const files = unzipSync(buildCDPZip(packWithAllowShift, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.allowShiftOnImport).toBe(true);
+  });
+
+  test('omits allowShiftOnImport when false or not set', () => {
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.allowShiftOnImport).toBeUndefined();
+  });
+
+  test('exports duePeriod in chore YAML when set', () => {
+    const choreWithDuePeriod: Chore = {
+      ...ACTIVE_CHORE,
+      duePeriod: { value: 2, unit: 'days' },
+    };
+    const files = unzipSync(buildCDPZip(PACK, [choreWithDuePeriod], [], PROFILE));
+    const chore = jsYaml.load(strFromU8(files['morning-routines/brush-teeth.yaml'])) as Record<string, unknown>;
+    const duePeriod = chore.duePeriod as Record<string, unknown>;
+    expect(duePeriod.value).toBe(2);
+    expect(duePeriod.unit).toBe('days');
+  });
+
+  test('omits duePeriod when not set', () => {
+    const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], [], PROFILE));
+    const chore = jsYaml.load(strFromU8(files['morning-routines/brush-teeth.yaml'])) as Record<string, unknown>;
+    expect(chore.duePeriod).toBeUndefined();
+  });
+});
