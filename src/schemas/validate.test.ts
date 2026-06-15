@@ -89,3 +89,87 @@ describe('validateChoreDefinition — questions', () => {
     expect(result.valid).toBe(false);
   });
 });
+
+describe('validatePackManifest — sprint fields', () => {
+  it('accepts streak: false', () => {
+    expect(validatePackManifest({ title: 'T', streak: false }).valid).toBe(true);
+  });
+
+  it('accepts streak: true', () => {
+    expect(validatePackManifest({ title: 'T', streak: true }).valid).toBe(true);
+  });
+
+  it('rejects non-boolean streak', () => {
+    expect(validatePackManifest({ title: 'T', streak: 'yes' }).valid).toBe(false);
+  });
+
+  it('accepts xpTarget number', () => {
+    expect(validatePackManifest({ title: 'T', xpTarget: 1200 }).valid).toBe(true);
+  });
+
+  it('rejects negative xpTarget', () => {
+    expect(validatePackManifest({ title: 'T', xpTarget: -1 }).valid).toBe(false);
+  });
+
+  it('accepts valid targetDate', () => {
+    expect(validatePackManifest({ title: 'T', targetDate: '2026-12-31' }).valid).toBe(true);
+  });
+
+  it('rejects malformed targetDate', () => {
+    expect(validatePackManifest({ title: 'T', targetDate: '31-12-2026' }).valid).toBe(false);
+  });
+
+  it('accepts allowShiftOnImport: true', () => {
+    expect(validatePackManifest({ title: 'T', allowShiftOnImport: true }).valid).toBe(true);
+  });
+});
+
+describe('validateChoreDefinition — duePeriod', () => {
+  it('accepts valid duePeriod', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      duePeriod: { value: 2, unit: 'days' },
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts duePeriod with unit: minutes', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      duePeriod: { value: 30, unit: 'minutes' },
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects duePeriod with unknown unit', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      duePeriod: { value: 1, unit: 'years' },
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects duePeriod missing value', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      duePeriod: { unit: 'days' },
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects duePeriod missing unit', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      duePeriod: { value: 1 },
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects negative duePeriod value', () => {
+    const result = validateChoreDefinition({
+      title: 'T', xpSize: 'S', frequency: 'daily', interval: 1,
+      duePeriod: { value: -1, unit: 'hours' },
+    });
+    expect(result.valid).toBe(false);
+  });
+});
