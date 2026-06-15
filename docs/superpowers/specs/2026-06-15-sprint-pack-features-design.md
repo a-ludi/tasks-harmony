@@ -79,7 +79,7 @@ All three optional and independent. Exported in CDP `__pack__.yaml`.
 
 ### Pack page display
 
-Below the title row, show whichever progress bars are configured:
+Between the title row and the pack description, show whichever progress bars are configured (most prominent feature after the title):
 
 - **XP bar (amber):** `packXP / xpTarget`, label "840 / 1 200 XP". Replaced by a "Completed" badge once `packXP >= xpTarget`.
 - **Time bar (blue):** `(today − earliestChoreStart) / (targetDate − earliestChoreStart)`, label showing the target date. Not rendered if the pack has no chores. Replaced by a "Lapsed" badge once `today > targetDate` and the XP target is not yet met (or no XP target is set).
@@ -89,8 +89,10 @@ Below the title row, show whichever progress bars are configured:
 Three new items in the pack kebab menu (see #36 table above):
 
 - **"Allow shift on import"** — `DropdownMenuCheckboxItem`, sets `allowShiftOnImport`.
-- **"Set XP target…"** — opens an inline popover with a number input. Clearing the field removes the goal.
-- **"Set target date…"** — opens an inline popover with a date input. Clearing the field removes the goal.
+- **"Set XP target…"** — opens a `Dialog` modal with a number input. Clearing the field removes the goal.
+- **"Set target date…"** — opens a `Dialog` modal with a date input. Clearing the field removes the goal.
+
+Note: XP target and target date use `Dialog` (not `Popover`) because Radix `Popover` nested inside `DropdownMenu` loses focus and disappears when the mouse moves between the two.
 
 ### CDP import date shifting
 
@@ -123,7 +125,15 @@ v0.5.0 · 2026-06-15  ← version line, unchanged
 
 ### Profile page additions
 
-Add to `ProfilePage`, in a clearly labelled section:
+Add two sections to `ProfilePage`:
+
+**"App" section:**
 - `SyncButton`
 - Dark mode toggle (Switch + Label)
+
+**"About" section:**
+- App title ("Tasks Harmony")
+- Short description
+- Version and build date
+- Author
 - "View on GitHub" link

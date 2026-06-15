@@ -193,6 +193,16 @@ export function ProfilePage() {
           <Switch checked={theme === 'dark'} onCheckedChange={toggle} />
           <Label className="text-sm font-normal cursor-pointer" onClick={toggle}>Dark mode</Label>
         </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">About</h2>
+        <p className="text-sm font-semibold text-foreground">Tasks Harmony</p>
+        <p className="text-sm text-muted-foreground">A personal chore tracker with streaks and XP rewards.</p>
+        <p className="text-xs text-muted-foreground">
+          v{import.meta.env.VITE_APP_VERSION} · {import.meta.env.VITE_BUILD_DATE}
+        </p>
+        <p className="text-xs text-muted-foreground">By Arne Ludwig</p>
         <a
           href="https://github.com/a-ludi/tasks-harmony"
           target="_blank"
