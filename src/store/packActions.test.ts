@@ -126,3 +126,41 @@ describe('deletePack', () => {
     await expect(useAppStore.getState().deletePack('personal')).rejects.toThrow();
   });
 });
+
+describe('updatePackManifest', () => {
+  beforeAll(async () => {
+    await useAppStore.getState().init();
+  });
+
+  test('merges partial changes without wiping existing fields', async () => {
+    const packId = await useAppStore.getState().addPack('Original Title');
+    await useAppStore.getState().updatePackManifest(packId, { xpTarget: 500 });
+    const pack = useAppStore.getState().packs.find((p) => p.id === packId);
+    expect(pack?.manifest.xpTarget).toBe(500);
+    expect(pack?.manifest.title).toBe('Original Title');
+  });
+
+  test('sets streak to false', async () => {
+    const packId = await useAppStore.getState().addPack('Streak Pack');
+    await useAppStore.getState().updatePackManifest(packId, { streak: false });
+    const pack = useAppStore.getState().packs.find((p) => p.id === packId);
+    expect(pack?.manifest.streak).toBe(false);
+  });
+
+  test('sets and then clears xpTarget', async () => {
+    const packId = await useAppStore.getState().addPack('XP Pack');
+    await useAppStore.getState().updatePackManifest(packId, { xpTarget: 1000 });
+    let pack = useAppStore.getState().packs.find((p) => p.id === packId);
+    expect(pack?.manifest.xpTarget).toBe(1000);
+
+    await useAppStore.getState().updatePackManifest(packId, { xpTarget: undefined });
+    pack = useAppStore.getState().packs.find((p) => p.id === packId);
+    expect(pack?.manifest.xpTarget).toBeUndefined();
+  });
+
+  test('throws when pack not found', async () => {
+    await expect(
+      useAppStore.getState().updatePackManifest('nonexistent-pack', { xpTarget: 1 })
+    ).rejects.toThrow();
+  });
+});
