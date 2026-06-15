@@ -39,6 +39,10 @@ function buildPackYaml(pack: Pack, choreFilenames: string[], profile: UserProfil
   if (pack.manifest.description) data.description = pack.manifest.description;
   data.createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   data.chores = choreFilenames;
+  if (pack.manifest.streak === false) data.streak = false;
+  if (pack.manifest.xpTarget != null) data.xpTarget = pack.manifest.xpTarget;
+  if (pack.manifest.targetDate) data.targetDate = pack.manifest.targetDate;
+  if (pack.manifest.allowShiftOnImport) data.allowShiftOnImport = true;
   return jsYaml.dump(data);
 }
 
@@ -52,6 +56,7 @@ function buildChoreYaml(chore: Chore, questions: Question[]): string {
     repeatable: chore.repeatable,
   };
   if (chore.description) data.description = chore.description;
+  if (chore.duePeriod) data.duePeriod = chore.duePeriod;
   if (questions.length > 0) {
     data.questions = [...questions]
       .sort((a, b) => a.order - b.order)
