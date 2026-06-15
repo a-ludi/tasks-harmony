@@ -5,6 +5,10 @@ import { exportAppState } from '@/sync/export';
 import { wrapStateInZip, buildBackupFilename, unwrapStateFromZip, isAppStatePristine } from '@/backup/backup';
 import { importAppState } from '@/sync/import';
 import { validateAppState } from '@/schemas/validate';
+import { SyncButton } from '@/components/sync/SyncButton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useTheme } from '@/hooks/useTheme';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -20,6 +24,7 @@ export function ProfilePage() {
   const db = useAppStore((s) => s.db);
   const packs = useAppStore((s) => s.packs);
   const reload = useAppStore((s) => s.reload);
+  const { theme, toggle } = useTheme();
 
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [email, setEmail] = useState(profile?.email ?? '');
@@ -179,6 +184,23 @@ export function ProfilePage() {
         {importSuccess && (
           <p className="text-sm text-green-600 dark:text-green-400" role="status">Backup imported successfully.</p>
         )}
+      </section>
+
+      <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">App</h2>
+        <SyncButton />
+        <div className="flex items-center gap-2">
+          <Switch checked={theme === 'dark'} onCheckedChange={toggle} />
+          <Label className="text-sm font-normal cursor-pointer" onClick={toggle}>Dark mode</Label>
+        </div>
+        <a
+          href="https://github.com/a-ludi/tasks-harmony"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          View on GitHub ↗
+        </a>
       </section>
     </div>
   );
