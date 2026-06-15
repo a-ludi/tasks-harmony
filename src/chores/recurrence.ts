@@ -1,11 +1,11 @@
-import type { Chore, Completion, ChoreStatus, Recurrence, DuePeriod } from '@/types';
+import type { Chore, Completion, ChoreStatus, Recurrence, DuePeriod, DuePeriodUnit } from '@/types';
 
-const DUE_PERIOD_MS: Record<import('@/types').DuePeriodUnit, number> = {
+const DUE_PERIOD_MS: Record<DuePeriodUnit, number> = {
   minutes: 60_000,
   hours:   3_600_000,
   days:    86_400_000,
   weeks:   604_800_000,
-  months:  2_592_000_000,
+  months:  2_592_000_000, // approx 30 days — imprecise for 28/31-day months
 };
 
 export function duePeriodToMs(dp: DuePeriod): number {
@@ -107,6 +107,7 @@ export function getChoreStatus(
     }
 
     if (chore.duePeriod) {
+      // if duePeriod >= window length, dueFromMs may precede windowStart (chore stays upcoming all window)
       const dueFromMs = windowEnd.getTime() - duePeriodToMs(chore.duePeriod);
       if (now.getTime() < dueFromMs) return 'upcoming';
     }
