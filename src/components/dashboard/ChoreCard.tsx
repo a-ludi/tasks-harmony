@@ -43,6 +43,8 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
   const [quickCompleting, setQuickCompleting] = useState<string | null>(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [editAfterDuplicateKey, setEditAfterDuplicateKey] = useState<string | null>(null);
+  const chorePack = useAppStore((s) => s.packs.find((p) => p.id === chore.packId));
+  const packStreak = chorePack?.manifest.streak ?? true;
 
   async function handleQuickComplete(set: QuickAnswerSet) {
     if (quickCompleting) return;
@@ -54,7 +56,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
   const choreCompletions = completions.filter((c) => c.choreKey === chore.key);
   const status = getChoreStatus(chore, choreCompletions, now);
   const activeSettings = xpSettings.find((s) => s.id === profile?.activeXPSettingsId) ?? xpSettings[0];
-  const nextStreak = activeSettings ? computeNewStreak(chore, choreCompletions, now) : 1;
+  const nextStreak = activeSettings && packStreak ? computeNewStreak(chore, choreCompletions, now) : 0;
   const nextTotalCompletions = choreCompletions.length;
   const effectiveXP = activeSettings ? calculateXP(chore.xpSize, nextStreak, nextTotalCompletions, activeSettings) : 0;
   const sortedCompletions = [...choreCompletions].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
@@ -110,7 +112,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
           )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="chore-xp"><span className="font-medium text-foreground">{effectiveXP}</span> XP</span>
-            {currentStreak > 0 && (
+            {packStreak && currentStreak > 0 && (
               <span>Streak: <span className="font-medium text-foreground">{currentStreak}</span></span>
             )}
             <span className="chore-recurrence">{formatRecurrence(chore.recurrence)}</span>
