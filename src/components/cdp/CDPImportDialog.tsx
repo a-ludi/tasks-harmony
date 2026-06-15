@@ -51,7 +51,6 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
         setShiftTargetDate(meta.targetDate);
         setPendingUrl(trimmed);
         setStep('date-shift');
-        setImporting(false);
         return;
       }
       await importCDP(trimmed);
@@ -170,7 +169,13 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setStep('url')}
+                onClick={() => {
+                  setStep('url');
+                  setPendingUrl('');
+                  setShiftStartDate('');
+                  setShiftTargetDate('');
+                  setShiftDurationDays(0);
+                }}
                 disabled={importing}
               >
                 Back
