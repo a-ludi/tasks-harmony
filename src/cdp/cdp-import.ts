@@ -1,5 +1,5 @@
 import jsYaml from 'js-yaml';
-import type { Pack, Chore, Question, XPSize, RecurrenceFrequency } from '@/types';
+import type { Pack, Chore, Question, XPSize, RecurrenceFrequency, DuePeriodUnit } from '@/types';
 import { validatePackManifest, validateChoreDefinition } from '@/schemas/validate';
 
 interface PackYaml {
@@ -8,6 +8,10 @@ interface PackYaml {
   license?: string;
   description?: string;
   chores: string[];
+  streak?: boolean;
+  xpTarget?: number;
+  targetDate?: string;
+  allowShiftOnImport?: boolean;
 }
 
 interface ChoreYaml {
@@ -19,6 +23,7 @@ interface ChoreYaml {
   windowStartTime?: string;
   repeatable?: boolean;
   questions?: unknown[];
+  duePeriod?: { value: number; unit: DuePeriodUnit };
 }
 
 export function parseChoreQuestions(
@@ -34,6 +39,7 @@ export function parseChoreQuestions(
 
 export async function fetchCDP(
   baseUrl: string,
+  startDateOffsetDays = 0,
 ): Promise<{ pack: Pack; chores: Chore[]; questions: Question[] }> {
   const manifestUrl = `${baseUrl}/__pack__.yaml`;
   const manifestRes = await fetch(manifestUrl);
@@ -50,7 +56,9 @@ export async function fetchCDP(
 
   const urlPath = baseUrl.replace(/\/$/, '');
   const packId = urlPath.substring(urlPath.lastIndexOf('/') + 1);
-  const today = new Date().toISOString().substring(0, 10);
+  const baseDate = new Date();
+  baseDate.setDate(baseDate.getDate() + startDateOffsetDays);
+  const today = baseDate.toISOString().substring(0, 10);
   const now = new Date().toISOString();
 
   const allQuestions: Question[] = [];
@@ -86,6 +94,7 @@ export async function fetchCDP(
         repeatable: choreRaw.repeatable ?? false,
         active: true,
         createdAt: now,
+        duePeriod: choreRaw.duePeriod,
       } satisfies Chore;
     }),
   );
@@ -97,6 +106,16 @@ export async function fetchCDP(
       author: manifestRaw.author,
       license: manifestRaw.license,
       description: manifestRaw.description,
+      streak: manifestRaw.streak,
+      xpTarget: manifestRaw.xpTarget,
+      targetDate: manifestRaw.targetDate
+        ? (() => {
+            const d = new Date(manifestRaw.targetDate + 'T00:00:00');
+            d.setDate(d.getDate() + startDateOffsetDays);
+            return d.toISOString().substring(0, 10);
+          })()
+        : undefined,
+      allowShiftOnImport: manifestRaw.allowShiftOnImport,
     },
     isPersonal: false,
     importedAt: now,
@@ -105,4 +124,17 @@ export async function fetchCDP(
   };
 
   return { pack, chores, questions: allQuestions };
+}
+
+export async function fetchCDPManifestOnly(
+  baseUrl: string,
+): Promise<{ targetDate?: string; allowShiftOnImport?: boolean }> {
+  const manifestUrl = `${baseUrl}/__pack__.yaml`;
+  const res = await fetch(manifestUrl);
+  if (!res.ok) throw new Error(`Failed to fetch CDP manifest: ${res.status}`);
+  const raw = jsYaml.load(await res.text()) as PackYaml;
+  return {
+    targetDate: raw.targetDate,
+    allowShiftOnImport: raw.allowShiftOnImport,
+  };
 }

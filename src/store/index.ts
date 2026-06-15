@@ -45,7 +45,7 @@ interface AppState {
   updateProfile: (profile: UserProfile) => Promise<void>;
   updateSyncState: (state: SyncState) => Promise<void>;
   saveQuestions: (choreKey: string, drafts: DraftQuestion[]) => Promise<void>;
-  importCDP: (baseUrl: string) => Promise<void>;
+  importCDP: (baseUrl: string, startDateOffsetDays?: number) => Promise<void>;
   updateCDP: (packId: string) => Promise<void>;
   addPack: (name: string) => Promise<string>;
   renamePack: (packId: string, newTitle: string) => Promise<void>;
@@ -233,10 +233,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ questions: allQuestions });
   },
 
-  importCDP: async (baseUrl) => {
+  importCDP: async (baseUrl, startDateOffsetDays = 0) => {
     const { db } = get();
     if (!db) throw new Error('Database not initialised');
-    const { pack, chores, questions } = await fetchCDP(baseUrl);
+    const { pack, chores, questions } = await fetchCDP(baseUrl, startDateOffsetDays);
     await putPack(db, pack);
     for (const chore of chores) await putChore(db, chore);
     for (const question of questions) await putQuestion(db, question);
