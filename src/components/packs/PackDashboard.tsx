@@ -37,6 +37,33 @@ export default function PackDashboard() {
   const packChoreKeys = new Set(packChores.map((c) => c.key));
   const packQuestions = questions.filter((q) => packChoreKeys.has(q.choreKey));
 
+  const earliestStartDate: Date | null = packChores.length > 0
+    ? packChores.reduce<Date | null>((earliest, c) => {
+        const d = new Date(c.recurrence.startDate);
+        return earliest === null || d < earliest ? d : earliest;
+      }, null)
+    : null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const xpProgress = pack?.manifest.xpTarget != null
+    ? Math.min(1, packXP / pack.manifest.xpTarget)
+    : null;
+  const xpCompleted = pack?.manifest.xpTarget != null && packXP >= pack.manifest.xpTarget;
+
+  const targetDate = pack?.manifest.targetDate ? (() => {
+    const [y, m, d] = pack.manifest.targetDate!.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  })() : null;
+
+  const timeProgress = targetDate && earliestStartDate
+    ? Math.min(1, (today.getTime() - earliestStartDate.getTime()) / (targetDate.getTime() - earliestStartDate.getTime()))
+    : null;
+  const timeLapsed = targetDate !== null
+    && today > targetDate
+    && (pack?.manifest.xpTarget == null || packXP < pack.manifest.xpTarget);
+
   const updatePackDescription = useAppStore((s) => s.updatePackDescription);
   const updatePackManifest = useAppStore((s) => s.updatePackManifest);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -309,6 +336,46 @@ export default function PackDashboard() {
           >
             Edit
           </Button>
+        </div>
+      )}
+
+      {(xpProgress !== null || timeProgress !== null) && (
+        <div className="mt-3 space-y-2">
+          {xpProgress !== null && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>XP progress</span>
+                {xpCompleted
+                  ? <span className="rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-green-800 dark:text-green-300 font-medium">Completed</span>
+                  : <span>{packXP.toLocaleString()} / {pack.manifest.xpTarget!.toLocaleString()} XP</span>
+                }
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-amber-400 transition-all"
+                  style={{ width: `${Math.round(xpProgress * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {timeProgress !== null && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Time progress</span>
+                {timeLapsed
+                  ? <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-red-800 dark:text-red-300 font-medium">Lapsed</span>
+                  : <span>Target: {pack.manifest.targetDate}</span>
+                }
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-blue-400 transition-all"
+                  style={{ width: `${Math.round(Math.max(0, timeProgress) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
