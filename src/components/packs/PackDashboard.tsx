@@ -58,7 +58,11 @@ export default function PackDashboard() {
   })() : null;
 
   const timeProgress = targetDate && earliestStartDate
-    ? Math.min(1, (today.getTime() - earliestStartDate.getTime()) / (targetDate.getTime() - earliestStartDate.getTime()))
+    ? (() => {
+        const total = targetDate.getTime() - earliestStartDate.getTime();
+        if (total <= 0) return 1;
+        return Math.min(1, (today.getTime() - earliestStartDate.getTime()) / total);
+      })()
     : null;
   const timeLapsed = targetDate !== null
     && today > targetDate
