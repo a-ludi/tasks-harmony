@@ -273,3 +273,65 @@ describe('getChoreStatus — malformed recurrence', () => {
     expect(() => getWindowStart(rec, 0)).toThrow('malformed recurrence: missing frequency');
   });
 });
+
+// ── duePeriod ─────────────────────────────────────────────────────────────────
+
+describe('getChoreStatus with duePeriod', () => {
+  it('returns upcoming when inside window but before due period (daily, 12h due period)', () => {
+    // daily chore starting 2026-01-10; window 0: Jan 10 00:00 → Jan 11 00:00
+    // due period: 12 hours → becomes due at Jan 10 12:00
+    const rec = makeRecurrence('daily', 1, '2026-01-10');
+    const chore: Chore = {
+      ...makeChore(rec),
+      duePeriod: { value: 12, unit: 'hours' },
+    };
+    // 09:00 on Jan 10 — inside window, before due period
+    const now = new Date(2026, 0, 10, 9, 0, 0, 0);
+    expect(getChoreStatus(chore, [], now)).toBe('upcoming');
+  });
+
+  it('returns due when at the start of the due period', () => {
+    const rec = makeRecurrence('daily', 1, '2026-01-10');
+    const chore: Chore = {
+      ...makeChore(rec),
+      duePeriod: { value: 12, unit: 'hours' },
+    };
+    // 12:00 on Jan 10 — exactly at due period start
+    const now = new Date(2026, 0, 10, 12, 0, 0, 0);
+    expect(getChoreStatus(chore, [], now)).toBe('due');
+  });
+
+  it('returns due when inside due period', () => {
+    const rec = makeRecurrence('daily', 1, '2026-01-10');
+    const chore: Chore = {
+      ...makeChore(rec),
+      duePeriod: { value: 6, unit: 'hours' },
+    };
+    // 20:00 on Jan 10 — in the last 6h of the 24h window
+    const now = new Date(2026, 0, 10, 20, 0, 0, 0);
+    expect(getChoreStatus(chore, [], now)).toBe('due');
+  });
+
+  it('omitted duePeriod preserves existing behaviour (due from window open)', () => {
+    const rec = makeRecurrence('daily', 1, '2026-01-10');
+    const chore = makeChore(rec);
+    const now = new Date(2026, 0, 10, 1, 0, 0, 0);
+    expect(getChoreStatus(chore, [], now)).toBe('due');
+  });
+
+  it('handles weekly chore with 2-day due period', () => {
+    // weekly chore starting Mon 2026-01-05; window 0: Jan 5 → Jan 12
+    // due period: 2 days → becomes due Jan 10 00:00
+    const rec = makeRecurrence('weekly', 1, '2026-01-05');
+    const chore: Chore = {
+      ...makeChore(rec),
+      duePeriod: { value: 2, unit: 'days' },
+    };
+    // Jan 8 — inside window, before due period
+    const beforeDue = new Date(2026, 0, 8, 12, 0, 0, 0);
+    expect(getChoreStatus(chore, [], beforeDue)).toBe('upcoming');
+    // Jan 10 — inside due period
+    const inDue = new Date(2026, 0, 10, 12, 0, 0, 0);
+    expect(getChoreStatus(chore, [], inDue)).toBe('due');
+  });
+});

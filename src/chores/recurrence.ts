@@ -1,4 +1,16 @@
-import type { Chore, Completion, ChoreStatus, Recurrence } from '@/types';
+import type { Chore, Completion, ChoreStatus, Recurrence, DuePeriod } from '@/types';
+
+const DUE_PERIOD_MS: Record<import('@/types').DuePeriodUnit, number> = {
+  minutes: 60_000,
+  hours:   3_600_000,
+  days:    86_400_000,
+  weeks:   604_800_000,
+  months:  2_592_000_000,
+};
+
+export function duePeriodToMs(dp: DuePeriod): number {
+  return dp.value * DUE_PERIOD_MS[dp.unit];
+}
 
 export function getWindowStart(recurrence: Recurrence, index: number): Date {
   if (!recurrence.startDate) {
@@ -92,6 +104,11 @@ export function getChoreStatus(
       });
 
       if (!hasPrevCompletion) return 'overdue';
+    }
+
+    if (chore.duePeriod) {
+      const dueFromMs = windowEnd.getTime() - duePeriodToMs(chore.duePeriod);
+      if (now.getTime() < dueFromMs) return 'upcoming';
     }
 
     return 'due';
