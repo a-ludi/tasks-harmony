@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { fetchCDPManifestOnly } from '@/cdp/cdp-import';
+import { normalizePackUrl } from '@/cdp/normalizePackUrl';
 
 interface CDPImportDialogProps { onClose: () => void; }
 
@@ -39,7 +40,7 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
   }
 
   async function handleImport() {
-    const trimmed = url.trim();
+    const trimmed = normalizePackUrl(url.trim());
     if (!trimmed) return;
     setImporting(true); setMessage(null);
     try {
