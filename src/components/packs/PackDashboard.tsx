@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { buildCDPZip } from '@/cdp/cdp-export';
 import { calculatePackXP } from '@/xp/packXP';
@@ -29,6 +30,7 @@ export default function PackDashboard() {
   const deletePack = useAppStore((s) => s.deletePack);
   const profile = useAppStore((s) => s.profile);
   const navigate = useNavigate();
+  const isOnline = useOnlineStatus();
 
   const completions = useAppStore((s) => s.completions);
 
@@ -160,7 +162,8 @@ export default function PackDashboard() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowCDPDialog(true)}
-                title="Update imported pack"
+                disabled={!isOnline}
+                title={!isOnline ? 'Offline — CDP import unavailable' : 'Update imported pack'}
                 aria-label="Update imported pack"
                 className="text-muted-foreground hover:text-foreground"
               >

@@ -87,7 +87,8 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowCDPDialog(true)}
-                  title="Update imported pack"
+                  disabled={!isOnline}
+                  title={!isOnline ? 'Offline — CDP import unavailable' : 'Update imported pack'}
                   aria-label="Update imported pack"
                   className="shrink-0 text-muted-foreground hover:text-foreground"
                 >
