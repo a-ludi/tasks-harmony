@@ -75,12 +75,9 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
               <NavLink
                 to={`/packs/${pack.id}`}
                 onClick={onClose}
-                className={({ isActive }) => `${NAV_LINK_CLASS({ isActive })} flex-1`}
+                className={({ isActive }) => `${NAV_LINK_CLASS({ isActive })} flex-1 truncate`}
               >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="truncate">{pack.manifest.title}</span>
-                  {packXP > 0 && <span className="shrink-0 text-xs font-normal text-amber-600">{packXP.toLocaleString()} XP</span>}
-                </span>
+                {pack.manifest.title}
               </NavLink>
               {pack.sourceUrl && (
                 <Button
@@ -94,6 +91,9 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
                 >
                   ↻
                 </Button>
+              )}
+              {packXP > 0 && (
+                <span className="shrink-0 text-xs font-normal text-amber-600">{packXP.toLocaleString()} XP</span>
               )}
             </div>
           );
