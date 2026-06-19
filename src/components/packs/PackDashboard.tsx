@@ -5,6 +5,7 @@ import Dashboard from '@/components/dashboard/Dashboard';
 import { buildCDPZip } from '@/cdp/cdp-export';
 import { calculatePackXP } from '@/xp/packXP';
 import PackDeletionDialog from './PackDeletionDialog';
+import { CDPImportDialog } from '@/components/cdp/CDPImportDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
@@ -79,6 +80,7 @@ export default function PackDashboard() {
   const [xpTargetInput, setXpTargetInput] = useState('');
   const [showTargetDateDialog, setShowTargetDateDialog] = useState(false);
   const [targetDateInput, setTargetDateInput] = useState('');
+  const [showCDPDialog, setShowCDPDialog] = useState(false);
 
   if (!pack) return <Navigate to="/" replace />;
 
@@ -153,6 +155,18 @@ export default function PackDashboard() {
             >
               ✏️
             </Button>
+            {pack.sourceUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCDPDialog(true)}
+                title="Update imported pack"
+                aria-label="Update imported pack"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ↻
+              </Button>
+            )}
             <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-sm font-semibold text-amber-800 dark:text-amber-300">
               {packXP.toLocaleString()} XP
             </span>
@@ -314,6 +328,7 @@ export default function PackDashboard() {
           onClose={() => setShowDeletionDialog(false)}
         />
       )}
+      {showCDPDialog && <CDPImportDialog onClose={() => setShowCDPDialog(false)} />}
 
       <Dialog open={showXpTargetDialog} onOpenChange={setShowXpTargetDialog}>
         <DialogContent className="sm:max-w-xs" aria-describedby={undefined}>
