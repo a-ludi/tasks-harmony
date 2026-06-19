@@ -71,12 +71,30 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
         {sortedPacks.map((pack) => {
           const packXP = calculatePackXP(pack.id, chores, completions);
           return (
-            <NavLink key={pack.id} to={`/packs/${pack.id}`} onClick={onClose} className={NAV_LINK_CLASS}>
-              <span className="flex items-center justify-between gap-2">
-                <span className="truncate">{pack.manifest.title}</span>
-                {packXP > 0 && <span className="shrink-0 text-xs font-normal text-amber-600">{packXP.toLocaleString()} XP</span>}
-              </span>
-            </NavLink>
+            <div key={pack.id} className="flex items-center gap-1">
+              <NavLink
+                to={`/packs/${pack.id}`}
+                onClick={onClose}
+                className={({ isActive }) => `${NAV_LINK_CLASS({ isActive })} flex-1`}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="truncate">{pack.manifest.title}</span>
+                  {packXP > 0 && <span className="shrink-0 text-xs font-normal text-amber-600">{packXP.toLocaleString()} XP</span>}
+                </span>
+              </NavLink>
+              {pack.sourceUrl && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCDPDialog(true)}
+                  title="Update imported pack"
+                  aria-label="Update imported pack"
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                >
+                  ↻
+                </Button>
+              )}
+            </div>
           );
         })}
       </div>
