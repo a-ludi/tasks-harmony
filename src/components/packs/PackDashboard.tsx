@@ -148,15 +148,6 @@ export default function PackDashboard() {
         ) : (
           <>
             <h1 className="text-2xl font-bold text-foreground">{pack.manifest.title}</h1>
-            <Button
-              onClick={() => { setRenameValue(pack.manifest.title); setIsRenaming(true); }}
-              title="Rename pack"
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              ✏️
-            </Button>
             {pack.sourceUrl && (
               <Button
                 variant="ghost"
@@ -173,6 +164,15 @@ export default function PackDashboard() {
             <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-sm font-semibold text-amber-800 dark:text-amber-300">
               {packXP.toLocaleString()} XP
             </span>
+            <Button
+              onClick={() => { setRenameValue(pack.manifest.title); setIsRenaming(true); }}
+              title="Rename pack"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ✏️
+            </Button>
           </>
         )}
         <div className="ml-auto">
