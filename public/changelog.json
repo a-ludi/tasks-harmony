@@ -1,5 +1,21 @@
 [
   {
+    "version": "0.7.0",
+    "date": "2026-06-20",
+    "highlights": [
+      "CDP URL normalization — paste any GitHub, GitLab, or GitHub Enterprise browser URL and it's automatically prepared for import",
+      "Sync button on imported packs — a ↻ button in the sidebar and pack header opens the update dialog with one click",
+      "Navigate after import — the import dialog closes and takes you directly to the new pack's page"
+    ],
+    "sections": {
+      "Added": [
+        "**CDP URL normalization** — paste any browser URL from GitHub (tree/blob), GitLab.com, self-hosted GitLab, or GitHub Enterprise; it is automatically normalized to the raw CDN base URL before fetching and storing (#42)",
+        "**Sync button on imported packs** — a ↻ button appears next to each imported pack in the sidebar and on the pack page header; clicking it opens the CDP update dialog; the button is disabled when offline (#43)",
+        "**Navigate after import** — after a successful initial CDP import, the dialog closes and navigates directly to the new pack's page"
+      ]
+    }
+  },
+  {
     "version": "0.6.0",
     "date": "2026-06-15",
     "highlights": [
