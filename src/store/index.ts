@@ -45,7 +45,7 @@ interface AppState {
   updateProfile: (profile: UserProfile) => Promise<void>;
   updateSyncState: (state: SyncState) => Promise<void>;
   saveQuestions: (choreKey: string, drafts: DraftQuestion[]) => Promise<void>;
-  importCDP: (baseUrl: string, startDateOffsetDays?: number) => Promise<void>;
+  importCDP: (baseUrl: string, startDateOffsetDays?: number) => Promise<string>;
   updateCDP: (packId: string) => Promise<void>;
   addPack: (name: string) => Promise<string>;
   renamePack: (packId: string, newTitle: string) => Promise<void>;
@@ -244,6 +244,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       getPacks(db), getAllChores(db), getAllQuestions(db),
     ]);
     set({ packs: updatedPacks, chores: updatedChores, questions: updatedQuestions });
+    return pack.id;
   },
 
   updateCDP: async (packId) => {
