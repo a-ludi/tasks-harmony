@@ -81,7 +81,7 @@ test.describe('CDP import date-shift prompt', () => {
     await expect(page.getByLabel('Start date')).toBeVisible();
     await page.getByRole('button', { name: 'Import with these dates' }).click();
 
-    await expect(page.getByText('Pack imported successfully.')).toBeVisible();
+    await expect(page).toHaveURL(/\/packs\/fitness/);
   });
 
   test('Back button returns to URL entry', async ({ page }) => {
@@ -118,8 +118,8 @@ test.describe('CDP import date-shift prompt', () => {
     await page.getByLabel('Pack base URL').fill(PACK_URL);
     await page.getByRole('button', { name: 'Import pack' }).click();
 
-    // Should go straight to success, no date inputs
-    await expect(page.getByText('Pack imported successfully.')).toBeVisible({ timeout: 10_000 });
+    // Should navigate to the pack page directly, no date inputs
+    await expect(page).toHaveURL(/\/packs\/fitness/, { timeout: 10_000 });
     await expect(page.getByLabel('Start date')).not.toBeVisible();
   });
 });
