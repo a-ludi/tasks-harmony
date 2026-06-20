@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-06-20
+
+### Added
+
+- **CDP URL normalization** — paste any browser URL from GitHub (tree/blob), GitLab.com, self-hosted GitLab, or GitHub Enterprise; it is automatically normalized to the raw CDN base URL before fetching and storing (#42)
+- **Sync button on imported packs** — a ↻ button appears next to each imported pack in the sidebar and on the pack page header; clicking it opens the CDP update dialog; the button is disabled when offline (#43)
+- **Navigate after import** — after a successful initial CDP import, the dialog closes and navigates directly to the new pack's page
+
 ## [0.6.0] — 2026-06-15
 
 ### Added
@@ -95,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.7.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.7.0
 [0.6.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.6.0
 [0.5.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.5.0
 [0.4.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.4.0
