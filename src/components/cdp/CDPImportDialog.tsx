@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,6 +13,7 @@ interface CDPImportDialogProps { onClose: () => void; }
 
 export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
   const isOnline = useOnlineStatus();
+  const navigate = useNavigate();
   const packs = useAppStore((s) => s.packs);
   const importCDP = useAppStore((s) => s.importCDP);
   const updateCDP = useAppStore((s) => s.updateCDP);
@@ -60,9 +62,9 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
         setStep('date-shift');
         return;
       }
-      await importCDP(trimmed);
-      setMessage({ type: 'success', text: 'Pack imported successfully.' });
-      setUrl('');
+      const packId = await importCDP(trimmed);
+      onClose();
+      navigate(`/packs/${packId}`);
     } catch (err: unknown) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Import failed.' });
     } finally {
@@ -75,10 +77,9 @@ export function CDPImportDialog({ onClose }: CDPImportDialogProps) {
     try {
       const today = todayStr();
       const offsetDays = dateDiffDays(today, shiftStartDate);
-      await importCDP(pendingUrl, offsetDays);
-      setMessage({ type: 'success', text: 'Pack imported successfully.' });
-      setUrl('');
-      setStep('url');
+      const packId = await importCDP(pendingUrl, offsetDays);
+      onClose();
+      navigate(`/packs/${packId}`);
     } catch (err: unknown) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Import failed.' });
     } finally {
