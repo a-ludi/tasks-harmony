@@ -47,11 +47,47 @@ export async function waitForApp(page: Page): Promise<void> {
   await page.waitForSelector('nav', { state: 'visible', timeout: 15_000 });
 }
 
+export async function clearAndSeedDatabase(
+  page: Page,
+  data: Record<string, unknown[]>,
+): Promise<void> {
+  await page.evaluate(async (data) => {
+    await new Promise<void>((resolve, reject) => {
+      const req = indexedDB.open('tasks-harmony');
+      req.onsuccess = () => {
+        const db = req.result;
+        const storeNames = Object.keys(data);
+        if (storeNames.length === 0) { resolve(); return; }
+        const tx = (db as IDBDatabase).transaction(storeNames, 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject((tx as IDBTransaction).error);
+        for (const [name, records] of Object.entries(data)) {
+          const store = tx.objectStore(name);
+          store.clear();
+          for (const record of records as object[]) {
+            store.put(record);
+          }
+        }
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }, data as Record<string, object[]>);
+}
+
 export async function seedAndReload(
   page: Page,
   data: Record<string, unknown[]>,
 ): Promise<void> {
   await seedDatabase(page, data);
+  await page.reload();
+  await waitForApp(page);
+}
+
+export async function clearAndReload(
+  page: Page,
+  data: Record<string, unknown[]>,
+): Promise<void> {
+  await clearAndSeedDatabase(page, data);
   await page.reload();
   await waitForApp(page);
 }
