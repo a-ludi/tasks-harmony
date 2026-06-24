@@ -26,6 +26,10 @@ export function compactMenuLabel(compact: boolean): string {
   return compact ? 'Normal view' : 'Compact view';
 }
 
+export function archiveMenuLabel(archiveMode: boolean): string {
+  return archiveMode ? 'Exit archive' : 'View archived';
+}
+
 export default function Dashboard({ chores: choresProp, currentPackId }: DashboardProps = {}) {
   const storeChores = useAppStore((s) => s.chores);
   const chores = choresProp ?? storeChores;
