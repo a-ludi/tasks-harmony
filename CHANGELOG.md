@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-06-24
+
+### Added
+
+- **Issues archive** — a new 'View archived' toggle in the dashboard and pack view dropdown lets you switch to archive mode, which shows only archived (inactive) chores; switching back restores the normal view; mode persists across page reloads (#46)
+
 ## [0.8.0] — 2026-06-24
 
 ### Changed
@@ -110,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.9.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.9.0
 [0.8.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.8.0
 [0.7.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.7.0
 [0.6.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.6.0

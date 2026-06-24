@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.9.0",
+    "date": "2026-06-24",
+    "highlights": [
+      "Issues archive — view your archived chores by switching the dashboard or pack view to archive mode"
+    ],
+    "sections": {
+      "Added": [
+        "**Issues archive** — a new 'View archived' toggle in the dashboard and pack view dropdown lets you switch to archive mode, which shows only archived (inactive) chores; switching back restores the normal view; mode persists across page reloads (#46)"
+      ]
+    }
+  },
+  {
     "version": "0.8.0",
     "date": "2026-06-24",
     "highlights": [
