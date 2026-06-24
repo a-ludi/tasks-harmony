@@ -122,7 +122,7 @@ export default function App() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-border bg-background px-4 py-3 md:hidden">
+        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background px-4 py-3 md:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
             className="relative text-xl text-muted-foreground"
