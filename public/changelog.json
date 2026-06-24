@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.8.0",
+    "date": "2026-06-24",
+    "highlights": [
+      "Sticky navigation — the header bar on mobile and the sidebar on desktop now stay fixed as you scroll through long chore lists"
+    ],
+    "sections": {
+      "Changed": [
+        "**Sticky mobile header** — the top navigation bar stays fixed at the top of the screen on mobile so the sidebar is always reachable without scrolling back up (#47)",
+        "**Sticky desktop sidebar** — the sidebar stays in view while scrolling through a long chore list on desktop; it becomes independently scrollable when its content overflows (#47)"
+      ]
+    }
+  },
+  {
     "version": "0.7.0",
     "date": "2026-06-20",
     "highlights": [
