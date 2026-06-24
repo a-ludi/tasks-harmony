@@ -6,6 +6,7 @@ import ChoreCard from './ChoreCard';
 import ChoreFormModal from '@/components/chores/ChoreFormModal';
 import { Button } from '@/components/ui/button';
 import { useCompactMode } from '@/hooks/useCompactMode';
+import { useArchiveMode } from '@/hooks/useArchiveMode';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const SECTION_LABELS: Record<ChoreStatus, string> = {
@@ -39,11 +40,12 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
   const packs = useAppStore((s) => s.packs);
   const [showNewChoreModal, setShowNewChoreModal] = useState(false);
   const { compact, toggle: toggleCompact } = useCompactMode();
+  const { archiveMode, toggle: toggleArchiveMode } = useArchiveMode();
 
   const now = new Date();
-  const activeChores = chores.filter((c) => c.active);
+  const visibleChores = chores.filter((c) => (archiveMode ? !c.active : c.active));
 
-  const withStatus: Array<{ chore: Chore; status: ChoreStatus }> = activeChores.map((chore) => {
+  const withStatus: Array<{ chore: Chore; status: ChoreStatus }> = visibleChores.map((chore) => {
     const choreCompletions = completions.filter((c) => c.choreKey === chore.key);
     const status = getChoreStatus(chore, choreCompletions, now);
     return { chore, status };
@@ -84,15 +86,17 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
         {!currentPackId && <h1 className="text-2xl font-bold">Dashboard</h1>}
         <div className={`flex items-center ${currentPackId ? 'ml-auto' : ''}`}>
           <div data-slot="button-group" className="flex">
-            <Button onClick={() => setShowNewChoreModal(true)} className="rounded-r-none">
-              + New Chore
-            </Button>
+            {!archiveMode && (
+              <Button onClick={() => setShowNewChoreModal(true)} className="rounded-r-none">
+                + New Chore
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   size="icon"
                   aria-label={compact ? 'Exit compact view' : 'Toggle compact view'}
-                  className="rounded-l-none border-l border-primary-foreground/20 px-2"
+                  className={archiveMode ? 'rounded-md px-2' : 'rounded-l-none border-l border-primary-foreground/20 px-2'}
                 >
                   ⌄
                 </Button>
@@ -102,16 +106,20 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
                   <span>{compact ? '⊞' : '⊟'}</span>
                   <span>{compactMenuLabel(compact)}</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleArchiveMode} className="flex items-center gap-2">
+                  <span>{archiveMode ? '↩' : '🗄'}</span>
+                  <span>{archiveMenuLabel(archiveMode)}</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
       </div>
 
-      {activeChores.length === 0 && (
+      {visibleChores.length === 0 && (
         <div className="rounded-xl border border-dashed p-12 text-center">
-          <p className="text-muted-foreground">No chores yet.</p>
-          <p className="mt-1 text-sm text-muted-foreground">Add your first chore to get started.</p>
+          <p className="text-muted-foreground">{archiveMode ? 'No archived chores.' : 'No chores yet.'}</p>
+          {!archiveMode && <p className="mt-1 text-sm text-muted-foreground">Add your first chore to get started.</p>}
         </div>
       )}
 
