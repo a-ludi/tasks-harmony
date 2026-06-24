@@ -111,7 +111,7 @@ export default function App() {
       {/* Desktop sidebar: static aside */}
       <aside
         style={{ width: sidebarWidth }}
-        className="hidden md:flex flex-col relative bg-background border-r"
+        className="hidden md:flex flex-col relative bg-background border-r sticky top-0 h-screen overflow-y-auto"
       >
         <Sidebar onClose={() => {}} onNewPack={() => setShowNewPackDialog(true)} updateVersion={update.showIndicator ? update.version : null} onUpdateClick={() => setShowUpdateModal(true)} />
         <div
