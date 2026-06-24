@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-06-24
+
+### Changed
+
+- **Sticky mobile header** — the top navigation bar stays fixed at the top of the screen on mobile so the sidebar is always reachable without scrolling back up (#47)
+- **Sticky desktop sidebar** — the sidebar stays in view while scrolling through a long chore list on desktop; it becomes independently scrollable when its content overflows (#47)
+
 ## [0.7.0] — 2026-06-20
 
 ### Added
@@ -103,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.8.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.8.0
 [0.7.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.7.0
 [0.6.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.6.0
 [0.5.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.5.0
