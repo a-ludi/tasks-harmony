@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "sync:dev": "cd sync-server && bun run dev",
     "generate-icons": "rsvg-convert -w 192 -h 192 icon-template.svg -o public/icon-192.png && rsvg-convert -w 512 -h 512 icon-template.svg -o public/icon-512.png",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
