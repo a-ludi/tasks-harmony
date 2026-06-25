@@ -408,16 +408,13 @@ Unchanged — CDPs are always plaintext ZIP files. This feature is unrelated to 
 | `DEPLOY_DIR` | `/opt/tasks-harmony` | Root deployment directory on the server |
 | `SOCKET_DIR` | `/var/run/tasks-harmony` | Directory holding the Unix socket |
 | `NGINX_INCLUDE_DIR` | `/etc/nginx/tasks-harmony` | Directory for nginx include files |
+| `SYNC_URL` | `https://tasks-harmony.example.com` | Public base URL of the sync server; passed to bundle as `VITE_SYNC_URL` |
 
 ### GitHub secrets (`secrets.*`)
 
 | Secret | Purpose |
 |---|---|
-| `VITE_SYNC_APP_SECRET` | 256-bit random value, base64-encoded; baked into client bundle |
-| `VITE_SYNC_URL` | Public base URL of the sync server (e.g. `https://tasks-harmony.example.com`) |
-| `SYNC_APP_SECRET` | Same value as `VITE_SYNC_APP_SECRET`; written to server `.env` by CD |
-
-`VITE_SYNC_APP_SECRET` and `SYNC_APP_SECRET` must be identical. They are separate secrets to keep the separation between build-time and deploy-time environments explicit.
+| `SYNC_APP_SECRET` | 256-bit random value, base64-encoded; written to server `.env` and passed to bundle as `VITE_SYNC_APP_SECRET` |
 
 ### CD deploy job additions
 
@@ -451,8 +448,8 @@ Unchanged — CDPs are always plaintext ZIP files. This feature is unrelated to 
 ```yaml
 - name: Build
   env:
-    VITE_SYNC_APP_SECRET: ${{ secrets.VITE_SYNC_APP_SECRET }}
-    VITE_SYNC_URL: ${{ secrets.VITE_SYNC_URL }}
+    VITE_SYNC_APP_SECRET: ${{ secrets.SYNC_APP_SECRET }}
+    VITE_SYNC_URL: ${{ vars.SYNC_URL }}
   run: bun run build
 ```
 
