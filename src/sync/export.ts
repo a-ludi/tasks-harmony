@@ -5,6 +5,8 @@ import {
   getXPSettings, getProfile, getSyncState, getAllQuickAnswerSets,
 } from '@/db/index';
 import type { AppState } from '@/types';
+import { getOrCreateSyncKey } from '@/sync/credentials';
+import { encryptState } from '@/sync/encrypt';
 
 export async function exportAppState(db: IDBPDatabase<TasksHarmonyDB>): Promise<AppState> {
   const [packs, chores, questions, completions, xpSettings, profile, syncState, quickAnswerSets] =
@@ -20,4 +22,10 @@ export async function exportAppState(db: IDBPDatabase<TasksHarmonyDB>): Promise<
     profile: profile!,
     syncState: syncState!,
   };
+}
+
+export async function encryptedExport(db: IDBPDatabase<TasksHarmonyDB>): Promise<Uint8Array> {
+  const key = await getOrCreateSyncKey(db);
+  const state = await exportAppState(db);
+  return encryptState(key, state);
 }
