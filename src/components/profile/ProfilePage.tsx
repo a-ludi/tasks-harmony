@@ -1,16 +1,18 @@
 import { useRef, useState } from 'react';
 import { useAppStore } from '@/store';
 import type { UserProfile, XPSettings } from '@/types';
-import { exportAppState } from '@/sync/export';
+import { exportAppState, encryptedExport } from '@/sync/export';
 import { wrapStateInZip, buildBackupFilename, unwrapStateFromZip, isAppStatePristine } from '@/backup/backup';
-import { importAppState } from '@/sync/import';
+import { importAppState, decryptedImport } from '@/sync/import';
 import { validateAppState } from '@/schemas/validate';
-import { SyncButton } from '@/components/sync/SyncButton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/hooks/useTheme';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getOrCreateSyncKey, exportKeyFile, importKeyFile } from '@/sync/credentials';
+import { putCredentials } from '@/db';
+import { SyncPanel } from '@/components/sync/SyncPanel';
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -34,6 +36,11 @@ export function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'encrypted' | 'plain'>('encrypted');
+  const [keyExportError, setKeyExportError] = useState<string | null>(null);
+  const [keyImportError, setKeyImportError] = useState<string | null>(null);
+  const [keyImportSuccess, setKeyImportSuccess] = useState(false);
+  const keyFileInputRef = useRef<HTMLInputElement>(null);
 
   if (!profile) return <div className="p-6 text-muted-foreground">Loading profile…</div>;
 
@@ -50,17 +57,28 @@ export function ProfilePage() {
 
   async function handleExport() {
     if (!db) return;
-    const state = await exportAppState(db);
-    const zipBytes = wrapStateInZip(state);
-    const date = new Date().toISOString().substring(0, 10);
-    const filename = buildBackupFilename(date);
-    const blob = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    if (exportFormat === 'encrypted') {
+      const blob = await encryptedExport(db);
+      const file = new Blob([blob.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tasks-harmony-backup-${new Date().toISOString().substring(0, 10)}.enc`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } else {
+      const state = await exportAppState(db);
+      const zipBytes = wrapStateInZip(state);
+      const date = new Date().toISOString().substring(0, 10);
+      const filename = buildBackupFilename(date);
+      const file = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -81,8 +99,14 @@ export function ProfilePage() {
 
     try {
       const buffer = await file.arrayBuffer();
-      const zipBytes = new Uint8Array(buffer);
-      const state = unwrapStateFromZip(zipBytes);
+      let state;
+      if (file.name.endsWith('.enc')) {
+        const blob = new Uint8Array(buffer);
+        state = await decryptedImport(db, blob);
+      } else {
+        const zipBytes = new Uint8Array(buffer);
+        state = unwrapStateFromZip(zipBytes);
+      }
       const validation = validateAppState(state);
       if (!validation.valid) {
         setImportError(`Invalid backup file: ${validation.errors.join('; ')}`);
@@ -95,6 +119,48 @@ export function ProfilePage() {
       setImportError(err instanceof Error ? err.message : 'Failed to import backup');
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleKeyExport() {
+    if (!db) return;
+    setKeyExportError(null);
+    try {
+      const key = await getOrCreateSyncKey(db);
+      const json = await exportKeyFile(key);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tasks-harmony-sync-key.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch {
+      setKeyExportError('Failed to export sync key.');
+    }
+  }
+
+  async function handleKeyImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !db) return;
+    setKeyImportError(null);
+    setKeyImportSuccess(false);
+    const ok = window.confirm(
+      'Importing a new key will make your existing server data inaccessible. Your local data is unaffected. Continue?'
+    );
+    if (!ok) {
+      if (keyFileInputRef.current) keyFileInputRef.current.value = '';
+      return;
+    }
+    try {
+      const text = await file.text();
+      const key = await importKeyFile(text);
+      await putCredentials(db, { id: 'main', cryptoKey: key });
+      setKeyImportSuccess(true);
+    } catch {
+      setKeyImportError('Invalid key file.');
+    } finally {
+      if (keyFileInputRef.current) keyFileInputRef.current.value = '';
     }
   }
 
@@ -158,6 +224,29 @@ export function ProfilePage() {
         <p className="text-sm text-muted-foreground">
           Export all your data as a ZIP file, or restore from a previously exported backup.
         </p>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-foreground">Format</span>
+          <label className="flex items-center gap-1 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="exportFormat"
+              value="encrypted"
+              checked={exportFormat === 'encrypted'}
+              onChange={() => setExportFormat('encrypted')}
+            />
+            Encrypted
+          </label>
+          <label className="flex items-center gap-1 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="exportFormat"
+              value="plain"
+              checked={exportFormat === 'plain'}
+              onChange={() => setExportFormat('plain')}
+            />
+            Plain
+          </label>
+        </div>
         <button
           onClick={handleExport}
           className="w-full rounded-md bg-muted px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted/80 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -167,7 +256,7 @@ export function ProfilePage() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".zip"
+          accept=".zip,.enc"
           onChange={handleImport}
           className="hidden"
           aria-label="Import backup file"
@@ -186,9 +275,40 @@ export function ProfilePage() {
         )}
       </section>
 
+      <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Sync Key</h2>
+        <p className="text-sm text-muted-foreground">
+          Export your sync key to set up another device, or import a key from another device.
+        </p>
+        <button
+          onClick={handleKeyExport}
+          className="w-full rounded-md bg-muted px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted/80 focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          Export Sync Key
+        </button>
+        <input
+          ref={keyFileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleKeyImport}
+          className="hidden"
+          aria-label="Import sync key file"
+        />
+        <button
+          onClick={() => keyFileInputRef.current?.click()}
+          className="w-full rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          Import Sync Key
+        </button>
+        {keyExportError && <p className="text-sm text-destructive" role="alert">{keyExportError}</p>}
+        {keyImportError && <p className="text-sm text-destructive" role="alert">{keyImportError}</p>}
+        {keyImportSuccess && <p className="text-sm text-green-600 dark:text-green-400" role="status">Sync key imported successfully.</p>}
+      </section>
+
+      <SyncPanel />
+
       <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">App</h2>
-        <SyncButton />
         <div className="flex items-center gap-2">
           <Switch checked={theme === 'dark'} onCheckedChange={toggle} />
           <Label className="text-sm font-normal cursor-pointer" onClick={toggle}>Dark mode</Label>
