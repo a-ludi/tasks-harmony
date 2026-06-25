@@ -122,8 +122,6 @@ export interface UserProfile {
 
 export interface SyncState {
   id: 'main';
-  webdavUrl?: string;
-  serverEtag?: string;
   lastSyncedAt?: string;
   pendingSync: boolean;
 }

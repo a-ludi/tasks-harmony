@@ -105,6 +105,7 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
         <NavLink to="/profile" onClick={onClose} className={NAV_LINK_CLASS}>Profile</NavLink>
       </div>
 
+
       <div className="mt-4 space-y-2">
         {updateVersion && (
           <button
