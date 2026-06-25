@@ -218,12 +218,16 @@ Docker Compose reads `.env` from the working directory automatically — no `Env
 
 ### nginx additions
 
+Two template files live in `nginx/` in the repo. CD renders and deploys both.
+
+**`nginx/sync-http.conf`** — included at `http` level, no substitution needed:
 ```nginx
-# Add to http block (one-time manual setup)
 limit_req_zone $binary_remote_addr zone=sync_challenge:10m rate=5r/m;
 limit_req_zone $binary_remote_addr zone=sync_write:10m rate=30r/m;
+```
 
-# nginx/sync-location.conf.template in repo — __SOCKET_DIR__ substituted by CD
+**`nginx/sync-location.conf.template`** — included inside `server` block, `__SOCKET_DIR__` substituted by CD:
+```nginx
 location /sync/challenge {
     limit_req zone=sync_challenge burst=2 nodelay;
     proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
@@ -243,7 +247,7 @@ location /sync/ {
 }
 ```
 
-The rate limiting `limit_req_zone` directives belong in the `http` block and are applied once manually. The `location` blocks live in `nginx/sync-location.conf.template` in the repo; CD substitutes `__SOCKET_DIR__` before rsyncing the rendered file to `$NGINX_INCLUDE_DIR/sync-location.conf` on the server.
+The one-time manual nginx setup adds two include directives and reloads — after that, all nginx config changes are CD-managed.
 
 ### Server setup (one-time, manual)
 
@@ -266,8 +270,10 @@ perl -pe 's|__DEPLOY_DIR__|$ENV{DEPLOY_DIR}|g' sync-server/tasks-harmony-sync.se
 sudo systemctl daemon-reload
 sudo systemctl enable tasks-harmony-sync
 
-# 4. Create nginx include directory and add rate limiting zones + include
-#    directive to the nginx config, then reload nginx
+# 4. Create nginx include directory and add two include directives to nginx.conf:
+#      http block:    include $NGINX_INCLUDE_DIR/sync-http.conf;
+#      server block:  include $NGINX_INCLUDE_DIR/sync-location.conf;
+#    Then reload nginx — CD manages the included files from this point on.
 sudo mkdir -p "$NGINX_INCLUDE_DIR"
 
 # 5. Run CD — it writes .env, renders templates, deploys, and starts the service
@@ -428,7 +434,8 @@ Unchanged — CDPs are always plaintext ZIP files. This feature is unrelated to 
     rsync -a docker-compose.yml deploy@server:$DEPLOY_DIR/
     rsync -a sync-server/ deploy@server:$DEPLOY_DIR/sync-server/
 
-    # Render and sync nginx location config
+    # Deploy nginx configs (http-level zones + server-level locations)
+    rsync -a nginx/sync-http.conf deploy@server:$NGINX_INCLUDE_DIR/
     perl -pe 's|__SOCKET_DIR__|$ENV{SOCKET_DIR}|g' nginx/sync-location.conf.template \
       | ssh deploy@server "cat > $NGINX_INCLUDE_DIR/sync-location.conf"
 
