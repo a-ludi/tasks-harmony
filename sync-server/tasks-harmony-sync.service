@@ -1,0 +1,20 @@
+# Sudoers entries needed for the deploy user (add via visudo):
+#   deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart tasks-harmony-sync
+#   deploy ALL=(ALL) NOPASSWD: /usr/sbin/nginx -s reload
+
+[Unit]
+Description=Tasks Harmony Sync Server
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=__DEPLOY_DIR__
+ExecStartPre=/usr/bin/docker-compose build
+ExecStart=/usr/bin/docker-compose up
+ExecStop=/usr/bin/docker-compose down
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
