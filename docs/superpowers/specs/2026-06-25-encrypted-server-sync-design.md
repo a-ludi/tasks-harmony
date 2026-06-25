@@ -302,7 +302,7 @@ deploy ALL=(ALL) NOPASSWD: /usr/sbin/nginx -s reload
 
 ```
 startup    → pull()
-any write  → markDirty() → debounced push() after 300 ms
+any write  → markDirty() → debounced push() after 10 s
 pagehide   → if dirty: push()
 ```
 
