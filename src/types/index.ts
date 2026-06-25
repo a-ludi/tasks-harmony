@@ -143,6 +143,7 @@ export interface AppState {
   xpSettings: XPSettings[];
   profile: UserProfile;
   syncState: SyncState;
+  quickAnswerSets: QuickAnswerSet[];
 }
 
 export interface ChoreDisposition {

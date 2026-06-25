@@ -11,6 +11,7 @@ const MINIMAL_STATE: AppState = {
   questions: [],
   completions: [],
   xpSettings: [],
+  quickAnswerSets: [],
   profile: { id: 'me', displayName: 'Test', email: 'test@example.com', activeXPSettingsId: 'default' },
   syncState: { id: 'main', pendingSync: false },
 };
