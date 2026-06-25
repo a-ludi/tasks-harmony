@@ -314,10 +314,12 @@ pagehide   → if dirty: push()
 1. Ensure session token (challenge-response if absent or expired)
 2. appState = exportAppState(db)
 3. appState.syncState.lastSyncedAt = now        ← version timestamp
-4. blob = encryptState(key, appState)           ← gzip → AES-256-GCM, fresh IV
-5. PUT /sync/{token}   Authorization: Bearer {sessionToken}
-6. On success: update local syncState.lastSyncedAt, clear dirty flag
-7. On 401: clear localStorage session token, retry once from step 1
+4. dirty = false                                ← clear before push; concurrent writes re-raise it
+5. blob = encryptState(key, appState)           ← gzip → AES-256-GCM, fresh IV
+6. PUT /sync/{token}   Authorization: Bearer {sessionToken}
+7. On success: update local syncState.lastSyncedAt
+8. On failure: dirty = true                     ← re-raise so the debounce retries
+9. On 401: dirty = true, clear localStorage session token, retry once from step 1
 ```
 
 ### Pull flow (startup only)
