@@ -25,9 +25,9 @@ PRODUCTION
 ──────────────────────────────────────────────────────────────
 nginx (existing, any user)
   rate limiting zones in http block (one-time manual setup)
-  location /sync/* → unix:/var/run/tasks-harmony/sync.sock
+  location /sync/* → unix:$SOCKET_DIR/sync.sock          (vars.SOCKET_DIR)
 
-/var/run/tasks-harmony/sync.sock   mode 0666
+$SOCKET_DIR/sync.sock   mode 0666
   bind-mounted into sync container at /run/sync/sync.sock
 
 Docker Compose  (isolated bridge network)
@@ -158,7 +158,7 @@ services:
   sync:
     build: ./sync-server
     volumes:
-      - /var/run/tasks-harmony:/run/sync
+      - ${SOCKET_DIR}:/run/sync
       - sync-data:/data
     environment:
       - SYNC_APP_SECRET=${SYNC_APP_SECRET}
@@ -203,7 +203,7 @@ Requires=docker.service
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/tasks-harmony
+WorkingDirectory=__DEPLOY_DIR__
 ExecStartPre=/usr/bin/docker-compose build
 ExecStart=/usr/bin/docker-compose up
 ExecStop=/usr/bin/docker-compose down
@@ -223,48 +223,54 @@ Docker Compose reads `.env` from the working directory automatically — no `Env
 limit_req_zone $binary_remote_addr zone=sync_challenge:10m rate=5r/m;
 limit_req_zone $binary_remote_addr zone=sync_write:10m rate=30r/m;
 
-# Add to server block (kept in nginx/sync-location.conf, rsynced by CD)
+# nginx/sync-location.conf.template in repo — __SOCKET_DIR__ substituted by CD
 location /sync/challenge {
     limit_req zone=sync_challenge burst=2 nodelay;
-    proxy_pass http://unix:/var/run/tasks-harmony/sync.sock;
+    proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
     proxy_http_version 1.1;
 }
 
 location ~ ^/sync/[a-f0-9]{64}$ {
     limit_req zone=sync_write burst=5 nodelay;
     client_max_body_size 1m;
-    proxy_pass http://unix:/var/run/tasks-harmony/sync.sock;
+    proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
     proxy_http_version 1.1;
 }
 
 location /sync/ {
-    proxy_pass http://unix:/var/run/tasks-harmony/sync.sock;
+    proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
     proxy_http_version 1.1;
 }
 ```
 
-The rate limiting `limit_req_zone` directives belong in the `http` block and are applied once manually. The `location` blocks live in `nginx/sync-location.conf` in the repo, included inside the existing `server` block, and rsynced by CD.
+The rate limiting `limit_req_zone` directives belong in the `http` block and are applied once manually. The `location` blocks live in `nginx/sync-location.conf.template` in the repo; CD substitutes `__SOCKET_DIR__` before rsyncing the rendered file to `$NGINX_INCLUDE_DIR/sync-location.conf` on the server.
 
 ### Server setup (one-time, manual)
 
 ```bash
+# Set from GitHub vars (same values as vars.DEPLOY_DIR / SOCKET_DIR / NGINX_INCLUDE_DIR)
+DEPLOY_DIR=/opt/tasks-harmony
+SOCKET_DIR=/var/run/tasks-harmony
+NGINX_INCLUDE_DIR=/etc/nginx/tasks-harmony
+
 # 1. Install Docker + docker-compose 1.17.1+
 
 # 2. Create directories
-sudo mkdir -p /opt/tasks-harmony
-sudo chown deploy:deploy /opt/tasks-harmony
-sudo mkdir -p /var/run/tasks-harmony
+sudo mkdir -p "$DEPLOY_DIR"
+sudo chown deploy:deploy "$DEPLOY_DIR"
+sudo mkdir -p "$SOCKET_DIR"
 
-# 3. Copy and enable the systemd unit
-sudo cp sync-server/tasks-harmony-sync.service /etc/systemd/system/
+# 3. Render, install, and enable the systemd unit
+sed "s|__DEPLOY_DIR__|$DEPLOY_DIR|g" sync-server/tasks-harmony-sync.service \
+  | sudo tee /etc/systemd/system/tasks-harmony-sync.service
 sudo systemctl daemon-reload
 sudo systemctl enable tasks-harmony-sync
 
 # 4. Create nginx include directory and add rate limiting zones + include
 #    directive to the nginx config, then reload nginx
-sudo mkdir -p /etc/nginx/tasks-harmony
+sudo mkdir -p "$NGINX_INCLUDE_DIR"
 
-# 5. Run CD — it writes .env, deploys sync-server/, and starts the service
+# 5. Run CD — it writes .env, renders templates, deploys, and starts the service
 ```
 
 ### Sudoers (narrow CD privileges)
@@ -386,7 +392,15 @@ Unchanged — CDPs are always plaintext ZIP files. This feature is unrelated to 
 
 ## 7. Deployment
 
-### GitHub secrets required
+### GitHub variables (`vars.*`)
+
+| Variable | Example | Purpose |
+|---|---|---|
+| `DEPLOY_DIR` | `/opt/tasks-harmony` | Root deployment directory on the server |
+| `SOCKET_DIR` | `/var/run/tasks-harmony` | Directory holding the Unix socket |
+| `NGINX_INCLUDE_DIR` | `/etc/nginx/tasks-harmony` | Directory for nginx include files |
+
+### GitHub secrets (`secrets.*`)
 
 | Secret | Purpose |
 |---|---|
@@ -400,17 +414,25 @@ Unchanged — CDPs are always plaintext ZIP files. This feature is unrelated to 
 
 ```yaml
 - name: Deploy sync server
+  env:
+    DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+    SOCKET_DIR: ${{ vars.SOCKET_DIR }}
+    NGINX_INCLUDE_DIR: ${{ vars.NGINX_INCLUDE_DIR }}
   run: |
-    # Write server env file
-    echo "SYNC_APP_SECRET=${{ secrets.SYNC_APP_SECRET }}" \
-      | ssh deploy@server "cat > /opt/tasks-harmony/.env"
+    # Write server env file (includes SOCKET_DIR for docker-compose volume mount)
+    printf 'SYNC_APP_SECRET=%s\nSOCKET_DIR=%s\n' \
+      "${{ secrets.SYNC_APP_SECRET }}" "$SOCKET_DIR" \
+      | ssh deploy@server "cat > $DEPLOY_DIR/.env"
 
     # Sync compose config and server source
-    rsync -a docker-compose.yml deploy@server:/opt/tasks-harmony/
-    rsync -a sync-server/ deploy@server:/opt/tasks-harmony/sync-server/
+    rsync -a docker-compose.yml deploy@server:$DEPLOY_DIR/
+    rsync -a sync-server/ deploy@server:$DEPLOY_DIR/sync-server/
 
-    # Sync nginx location config and reload
-    rsync -a nginx/sync-location.conf deploy@server:/etc/nginx/tasks-harmony/
+    # Render and sync nginx location config
+    sed "s|__SOCKET_DIR__|$SOCKET_DIR|g" nginx/sync-location.conf.template \
+      | ssh deploy@server "cat > $NGINX_INCLUDE_DIR/sync-location.conf"
+
+    # Restart service and reload nginx
     ssh deploy@server "sudo systemctl restart tasks-harmony-sync \
                     && sudo nginx -s reload"
 ```
