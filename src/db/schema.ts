@@ -5,6 +5,11 @@ import type {
   XPSettings, UserProfile, SyncState, QuickAnswerSet,
 } from '@/types';
 
+export interface SyncCredentials {
+  id: 'main';
+  cryptoKey: CryptoKey;
+}
+
 export interface TasksHarmonyDB extends DBSchema {
   packs:           { key: string; value: Pack };
   chores:          { key: string; value: Chore; indexes: { 'by-pack': string } };
@@ -14,4 +19,5 @@ export interface TasksHarmonyDB extends DBSchema {
   profile:         { key: string; value: UserProfile };
   syncState:       { key: string; value: SyncState };
   quickAnswerSets: { key: string; value: QuickAnswerSet; indexes: { 'by-chore': string } };
+  credentials:     { key: string; value: SyncCredentials };
 }

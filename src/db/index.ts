@@ -1,6 +1,6 @@
 // src/db/index.ts
 import { openDB as idbOpen, type IDBPDatabase } from 'idb';
-import type { TasksHarmonyDB } from './schema';
+import type { TasksHarmonyDB, SyncCredentials } from './schema';
 import { seed } from './seed';
 import type {
   Pack, Chore, Question, Completion,
@@ -8,7 +8,7 @@ import type {
 } from '@/types';
 
 const DB_NAME = 'tasks-harmony';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export function migrateXpPerUnit(xpPerUnit: number): number {
   return xpPerUnit < 1 ? 1 / Math.round(1 / xpPerUnit) : xpPerUnit;
@@ -52,6 +52,9 @@ export async function openDB(
           }
         })();
         migrationPromise.catch(() => transaction.abort());
+      }
+      if (oldVersion < 4) {
+        db.createObjectStore('credentials', { keyPath: 'id' });
       }
     },
   });
@@ -196,3 +199,14 @@ export const deleteQuickAnswerSet = (
   id: string,
 ): Promise<void> =>
   db.delete('quickAnswerSets', id);
+
+export const getCredentials = (
+  db: IDBPDatabase<TasksHarmonyDB>,
+): Promise<SyncCredentials | undefined> =>
+  db.get('credentials', 'main');
+
+export const putCredentials = (
+  db: IDBPDatabase<TasksHarmonyDB>,
+  creds: SyncCredentials,
+): Promise<string> =>
+  db.put('credentials', creds);
