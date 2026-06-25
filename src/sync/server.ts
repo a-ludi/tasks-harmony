@@ -134,7 +134,9 @@ export async function pull(db: IDBPDatabase<TasksHarmonyDB>): Promise<boolean> {
       return true;
     }
 
-    markDirty();
+    if (localTs > serverTs) {
+      markDirty();
+    }
     return false;
   } catch {
     return false;
