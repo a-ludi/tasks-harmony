@@ -55,3 +55,46 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key" \
             dist/ \
             "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/"
+
+  deploy-sync:
+    needs: [ci, release]
+    runs-on: ubuntu-latest
+    environment: production
+    permissions: {}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ vars.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy sync server
+        env:
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+          SOCKET_DIR: ${{ vars.SOCKET_DIR }}
+          NGINX_INCLUDE_DIR: ${{ vars.NGINX_INCLUDE_DIR }}
+          SSH_USER: ${{ vars.SSH_USER }}
+          SSH_HOST: ${{ vars.SSH_HOST }}
+        run: |
+          # Write server env file
+          printf 'SYNC_APP_SECRET=%s\nSOCKET_DIR=%s\n' \
+            "${{ secrets.SYNC_APP_SECRET }}" "$SOCKET_DIR" \
+            | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "cat > $DEPLOY_DIR/.env"
+
+          # Sync compose config and server source
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
+            docker-compose.yml "$SSH_USER@$SSH_HOST:$DEPLOY_DIR/"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
+            sync-server/ "$SSH_USER@$SSH_HOST:$DEPLOY_DIR/sync-server/"
+
+          # Render and sync nginx location config
+          perl -pe 's|__SOCKET_DIR__|$ENV{SOCKET_DIR}|g' nginx/sync-location.conf.template \
+            | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
+              "cat > $NGINX_INCLUDE_DIR/sync-location.conf"
+
+          # Restart service and reload nginx
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
+            "sudo systemctl restart tasks-harmony-sync && sudo nginx -s reload"
