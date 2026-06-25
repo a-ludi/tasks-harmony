@@ -261,7 +261,7 @@ sudo chown deploy:deploy "$DEPLOY_DIR"
 sudo mkdir -p "$SOCKET_DIR"
 
 # 3. Render, install, and enable the systemd unit
-sed "s|__DEPLOY_DIR__|$DEPLOY_DIR|g" sync-server/tasks-harmony-sync.service \
+perl -pe 's|__DEPLOY_DIR__|$ENV{DEPLOY_DIR}|g' sync-server/tasks-harmony-sync.service \
   | sudo tee /etc/systemd/system/tasks-harmony-sync.service
 sudo systemctl daemon-reload
 sudo systemctl enable tasks-harmony-sync
@@ -429,7 +429,7 @@ Unchanged — CDPs are always plaintext ZIP files. This feature is unrelated to 
     rsync -a sync-server/ deploy@server:$DEPLOY_DIR/sync-server/
 
     # Render and sync nginx location config
-    sed "s|__SOCKET_DIR__|$SOCKET_DIR|g" nginx/sync-location.conf.template \
+    perl -pe 's|__SOCKET_DIR__|$ENV{SOCKET_DIR}|g' nginx/sync-location.conf.template \
       | ssh deploy@server "cat > $NGINX_INCLUDE_DIR/sync-location.conf"
 
     # Restart service and reload nginx
