@@ -21,7 +21,7 @@ function makeReq(method: string, token: string, body?: Uint8Array, auth = SESSIO
       Authorization: `Bearer ${auth}`,
       ...(body ? { 'Content-Type': 'application/octet-stream', 'Content-Length': String(body.length) } : {}),
     },
-    body: body ?? undefined,
+    body: body ? Buffer.from(body) : undefined,
   });
 }
 
