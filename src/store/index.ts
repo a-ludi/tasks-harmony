@@ -6,6 +6,7 @@ import { fetchCDP } from '@/cdp/cdp-import';
 import { calculateXP } from '@/xp/calculator';
 import { computeNewStreak } from '@/chores/streak';
 import { recordCompletionWithTimestamp } from './recordCompletion';
+import { markDirty } from '@/sync/dirty';
 import type { ChoreDisposition } from '@/types';
 import type {
   Chore,
@@ -125,6 +126,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await putChore(db, newChore);
     set((state) => ({ chores: [...state.chores, newChore] }));
+    markDirty();
     return newChore.key;
   },
 
@@ -136,6 +138,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       chores: state.chores.map((c) => (c.key === chore.key ? chore : c)),
     }));
+    markDirty();
   },
 
   deactivateChore: async (key) => {
@@ -150,6 +153,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       chores: state.chores.map((c) => (c.key === key ? deactivated : c)),
     }));
+    markDirty();
   },
 
   recordCompletion: async (choreKey, answers = []) => {
@@ -196,6 +200,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await putCompletion(db, newCompletion);
     set((state) => ({ completions: [...state.completions, newCompletion] }));
+    markDirty();
   },
 
   updateProfile: async (profile) => {
@@ -204,6 +209,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await putProfile(db, profile);
     set({ profile });
+    markDirty();
   },
 
   updateSyncState: async (state) => {
@@ -231,6 +237,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const allQuestions = await getAllQuestions(db);
     set({ questions: allQuestions });
+    markDirty();
   },
 
   importCDP: async (baseUrl, startDateOffsetDays = 0) => {
@@ -244,6 +251,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       getPacks(db), getAllChores(db), getAllQuestions(db),
     ]);
     set({ packs: updatedPacks, chores: updatedChores, questions: updatedQuestions });
+    markDirty();
     return pack.id;
   },
 
@@ -262,6 +270,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       getPacks(db), getAllChores(db), getAllQuestions(db),
     ]);
     set({ packs: finalPacks, chores: finalChores, questions: finalQuestions });
+    markDirty();
   },
 
   addPack: async (name) => {
@@ -280,6 +289,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await putPack(db, newPack);
     set((state) => ({ packs: [...state.packs, newPack] }));
+    markDirty();
     return packId;
   },
 
@@ -299,6 +309,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       packs: state.packs.map((p) => (p.id === packId ? updated : p)),
     }));
+    markDirty();
   },
 
   updatePackDescription: async (packId, description) => {
@@ -315,6 +326,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       packs: state.packs.map((p) => (p.id === packId ? updated : p)),
     }));
+    markDirty();
   },
 
   updatePackManifest: async (packId, changes) => {
@@ -392,6 +404,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       questions: updatedQuestions,
       completions: updatedCompletions,
     });
+    markDirty();
   },
 
   saveQuickAnswerSet: async (qas) => {
@@ -404,6 +417,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         qas,
       ],
     }));
+    markDirty();
   },
 
   removeQuickAnswerSet: async (id) => {
@@ -413,6 +427,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       quickAnswerSets: state.quickAnswerSets.filter((s) => s.id !== id),
     }));
+    markDirty();
   },
 
   moveChore: async (choreKey, targetPackId) => {
@@ -449,6 +464,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         c.choreKey === choreKey ? { ...c, choreKey: newKey } : c,
       ),
     }));
+    markDirty();
 
     return true;
   },
@@ -494,6 +510,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       chores: [...state.chores, newChore],
       questions: [...state.questions, ...newQuestions],
     }));
+    markDirty();
 
     return newKey;
   },
