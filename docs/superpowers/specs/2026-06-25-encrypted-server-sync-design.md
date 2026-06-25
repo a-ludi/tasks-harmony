@@ -317,10 +317,17 @@ pagehide   → if dirty: push()
 4. dirty = false                                ← clear before push; concurrent writes re-raise it
 5. blob = encryptState(key, appState)           ← gzip → AES-256-GCM, fresh IV
 6. PUT /sync/{token}   Authorization: Bearer {sessionToken}
-7. On success: update local syncState.lastSyncedAt
-8. On failure: dirty = true                     ← re-raise so the debounce retries
+7. On success: update local syncState.lastSyncedAt, consecutiveFailures = 0, clear error state
+8. On failure: dirty = true, consecutiveFailures++
+               if consecutiveFailures >= 3: stop debounce cycle, surface sync error to user
+               else: debounce fires again normally
 9. On 401: dirty = true, clear localStorage session token, retry once from step 1
+           counts as a failure if the retry also fails
 ```
+
+`consecutiveFailures` is an in-memory counter (not persisted). A page reload resets it to 0 and the startup pull re-establishes a clean state.
+
+**Sync error UI:** a persistent non-blocking banner in the settings sync section — *"Sync failed after 3 attempts. [Retry now]"*. Tapping Retry resets the counter and re-enters the push flow immediately. The banner clears on the next successful push.
 
 ### Pull flow (startup only)
 
