@@ -1,0 +1,21 @@
+# Rate limiting zones belong in the nginx http block (one-time manual setup):
+#   limit_req_zone $binary_remote_addr zone=sync_challenge:10m rate=5r/m;
+#   limit_req_zone $binary_remote_addr zone=sync_write:10m rate=30r/m;
+
+location /sync/challenge {
+    limit_req zone=sync_challenge burst=2 nodelay;
+    proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
+    proxy_http_version 1.1;
+}
+
+location ~ ^/sync/[a-f0-9]{64}$ {
+    limit_req zone=sync_write burst=5 nodelay;
+    client_max_body_size 1m;
+    proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
+    proxy_http_version 1.1;
+}
+
+location /sync/ {
+    proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
+    proxy_http_version 1.1;
+}
