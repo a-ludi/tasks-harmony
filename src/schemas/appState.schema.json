@@ -33,7 +33,8 @@
     "completions": { "type": "array" },
     "xpSettings": { "type": "array" },
     "profile": { "type": "object", "required": ["id", "displayName", "email", "activeXPSettingsId"] },
-    "syncState": { "type": "object", "required": ["id", "pendingSync"] }
+    "syncState": { "type": "object", "required": ["id", "pendingSync"] },
+    "quickAnswerSets": { "type": "array" }
   },
   "additionalProperties": false
 }
