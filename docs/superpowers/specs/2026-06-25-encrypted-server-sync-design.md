@@ -338,7 +338,7 @@ pagehide   → if dirty: push()
 4. 200 → decryptState(key, blob) → validateAppState → serverState
 5. If serverState.syncState.lastSyncedAt > local lastSyncedAt:
        importAppState(db, serverState)
-   Else: discard — local is newer; next debounced push will update server
+   Else: discard — local is newer; markDirty() so the debounce push updates the server
 6. On 401: clear session token, retry once
 ```
 
