@@ -73,7 +73,7 @@ jobs:
 
       - name: Deploy sync server
         env:
-          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+          SERVER_DIR: ${{ vars.SERVER_DIR }}
           SOCKET_DIR: ${{ vars.SOCKET_DIR }}
           NGINX_INCLUDE_DIR: ${{ vars.NGINX_INCLUDE_DIR }}
           SSH_USER: ${{ vars.SSH_USER }}
@@ -82,13 +82,13 @@ jobs:
           # Write server env file
           printf 'SYNC_APP_SECRET=%s\nSOCKET_DIR=%s\n' \
             "${{ secrets.SYNC_APP_SECRET }}" "$SOCKET_DIR" \
-            | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "cat > $DEPLOY_DIR/.env"
+            | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "cat > $SERVER_DIR/.env"
 
           # Sync compose config and server source
           rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
-            docker-compose.yml "$SSH_USER@$SSH_HOST:$DEPLOY_DIR/"
+            docker-compose.yml "$SSH_USER@$SSH_HOST:$SERVER_DIR/"
           rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
-            sync-server/ "$SSH_USER@$SSH_HOST:$DEPLOY_DIR/sync-server/"
+            sync-server/ "$SSH_USER@$SSH_HOST:$SERVER_DIR/sync-server/"
 
           # Render and sync nginx location config
           perl -pe 's|__SOCKET_DIR__|$ENV{SOCKET_DIR}|g' nginx/sync-location.conf.template \

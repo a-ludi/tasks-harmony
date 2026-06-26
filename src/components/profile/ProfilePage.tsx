@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getOrCreateSyncKey, exportKeyFile, importKeyFile } from '@/sync/credentials';
 import { putCredentials } from '@/db';
+import { pull } from '@/sync/server';
 import { SyncPanel } from '@/components/sync/SyncPanel';
 
 function isValidEmail(value: string): boolean {
@@ -156,6 +157,8 @@ export function ProfilePage() {
       const text = await file.text();
       const key = await importKeyFile(text);
       await putCredentials(db, { id: 'main', cryptoKey: key });
+      const imported = await pull(db);
+      if (imported) await reload();
       setKeyImportSuccess(true);
     } catch {
       setKeyImportError('Invalid key file.');

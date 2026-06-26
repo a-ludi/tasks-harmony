@@ -56,7 +56,6 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
     'import.meta.env.VITE_BUILD_DATE': JSON.stringify(buildDate),
-    'import.meta.env.VITE_SYNC_URL': JSON.stringify(process.env.VITE_SYNC_URL ?? ''),
     '__SYNC_PART_A__': JSON.stringify(partA),
     '__SYNC_PART_B__': JSON.stringify(partB),
     '__SYNC_PART_C__': JSON.stringify(partC),
