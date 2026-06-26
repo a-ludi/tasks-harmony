@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.5] — 2026-06-26
+
+### Fixed
+
+- **SYNC_APP_SECRET not available in CD build** — GitHub Actions does not automatically pass secrets into reusable workflows; added `secrets: inherit` to the `ci` job call in `cd.yml` so `SYNC_APP_SECRET` reaches the build step
+
 ## [0.10.4] — 2026-06-26
 
 ### Fixed
@@ -161,6 +167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.10.5]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.5
 [0.10.4]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.4
 [0.10.3]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.3
 [0.10.2]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.2

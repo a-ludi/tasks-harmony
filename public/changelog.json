@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.10.5",
+    "date": "2026-06-26",
+    "highlights": [
+      "Sync secret now correctly passed through to the CD build step"
+    ],
+    "sections": {
+      "Fixed": [
+        "**SYNC_APP_SECRET not available in CD build** — GitHub Actions does not automatically pass secrets into reusable workflows; added `secrets: inherit` to the `ci` job call in `cd.yml` so `SYNC_APP_SECRET` reaches the build step"
+      ]
+    }
+  },
+  {
     "version": "0.10.4",
     "date": "2026-06-26",
     "highlights": [
