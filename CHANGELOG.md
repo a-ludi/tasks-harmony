@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.3] — 2026-06-26
+
+### Fixed
+
+- **VITE_SYNC_URL not injected into bundle** — `vite.config.ts` evaluates before Vite loads `.env` files, so `process.env.VITE_SYNC_URL` was undefined at config time and the URL was never baked in; the define block now conditionally injects it when the variable is present in the process environment (CI), while local dev continues to read from `.env.local` via Vite's normal env loading
+
 ## [0.10.2] — 2026-06-26
 
 ### Fixed
@@ -148,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.10.3]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.3
 [0.10.2]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.2
 [0.10.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.1
 [0.10.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.0
