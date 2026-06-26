@@ -35,3 +35,4 @@ public/*
 dev-dist/
 .codegraph/
 .superpowers/
+sync-server/.dev-sync-data/
