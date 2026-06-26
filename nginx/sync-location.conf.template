@@ -8,7 +8,7 @@ location /sync/challenge {
     proxy_http_version 1.1;
 }
 
-location ~ ^/sync/[a-f0-9]{64}$ {
+location ~ "^/sync/[a-f0-9]{64}$" {
     limit_req zone=sync_write burst=5 nodelay;
     client_max_body_size 1m;
     proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
