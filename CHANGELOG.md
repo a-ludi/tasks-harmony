@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.6] — 2026-06-26
+
+### Fixed
+
+- **Double slash in sync requests** — trailing slashes on `SYNC_URL` (e.g. set with a trailing `/` in GitHub variables) are now stripped in `vite.config.ts` before the value is baked into the bundle, preventing `//sync/challenge` 404s
+
 ## [0.10.5] — 2026-06-26
 
 ### Fixed
@@ -167,6 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.10.6]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.6
 [0.10.5]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.5
 [0.10.4]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.4
 [0.10.3]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.3
