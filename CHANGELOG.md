@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-06-26
+
+### Added
+
+- **Encrypted sync** — AES-256-GCM end-to-end encrypted backup sync via a self-hosted Bun HTTP server backed by Redis; data is encrypted on-device before upload and decrypted locally after download; sync is triggered automatically on every chore completion
+- **Sync key management** — generate, copy, and import a 256-bit sync key from the Profile page; the key is stored in IndexedDB and never transmitted in plain text; HMAC challenge-response authentication prevents unauthorized access
+- **Encrypted export format** — the Profile page export dialog now offers an "Encrypted" format option that produces a sync-compatible encrypted ZIP alongside the existing plain ZIP
+- **Sync server** — new `sync-server/` directory containing the Bun HTTP server, Docker Compose stack (Bun + Redis with AOF persistence), nginx reverse proxy config template, systemd service unit, and a `DEPLOYMENT.md` guide for self-hosting
+
+### Changed
+
+- **Auto-pull on key import** — importing a sync key immediately triggers a pull from the sync server so existing server data is loaded without a manual page reload
+- **Session retry on 403** — the sync client retries authentication on HTTP 403 (stale session after a key change) in addition to 401, preventing a silent failure after importing a new key
+- **`SERVER_DIR` renamed from `DEPLOY_DIR`** — GitHub Actions variable and systemd service placeholder renamed for clarity; `SERVER_DIR` (sync server files) is explicitly kept outside `SSH_PATH` (nginx web root) to protect the `.env` secret file
+
+### Fixed
+
+- **Blob directory auto-creation** — the sync server now creates the blob storage directory on first write instead of returning 500 ENOENT when the directory does not yet exist
+- **`VITE_SYNC_URL` silent override** — removed a `define` entry in `vite.config.ts` that was overriding `VITE_SYNC_URL` from `.env.local` with an empty string at build time, causing all sync requests to be skipped silently without any console error
+
 ## [0.9.0] — 2026-06-24
 
 ### Added
@@ -116,6 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.10.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.0
 [0.9.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.9.0
 [0.8.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.8.0
 [0.7.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.7.0
