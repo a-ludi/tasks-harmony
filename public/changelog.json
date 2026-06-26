@@ -1,5 +1,32 @@
 [
   {
+    "version": "0.10.0",
+    "date": "2026-06-26",
+    "highlights": [
+      "Encrypted sync — your data is encrypted end-to-end with AES-256-GCM before leaving the device and synced to a self-hosted server",
+      "Sync key management — generate, export, and import your 256-bit sync key from the Profile page",
+      "Auto-pull on key import — importing a sync key immediately fetches the latest data from the server",
+      "Deployment guide — new DEPLOYMENT.md covers the full server setup, nginx config, and GitHub Actions wiring"
+    ],
+    "sections": {
+      "Added": [
+        "**Encrypted sync** — AES-256-GCM end-to-end encrypted backup sync via a self-hosted Bun HTTP server backed by Redis; data is encrypted on-device before upload and decrypted locally after download; sync is triggered automatically on every chore completion",
+        "**Sync key management** — generate, copy, and import a 256-bit sync key from the Profile page; the key is stored in IndexedDB and never transmitted in plain text; HMAC challenge-response authentication prevents unauthorized access",
+        "**Encrypted export format** — the Profile page export dialog now offers an \"Encrypted\" format option that produces a sync-compatible encrypted ZIP alongside the existing plain ZIP",
+        "**Sync server** — new `sync-server/` directory containing the Bun HTTP server, Docker Compose stack (Bun + Redis with AOF persistence), nginx reverse proxy config template, systemd service unit, and a `DEPLOYMENT.md` guide for self-hosting"
+      ],
+      "Changed": [
+        "**Auto-pull on key import** — importing a sync key immediately triggers a pull from the sync server so existing server data is loaded without a manual page reload",
+        "**Session retry on 403** — the sync client retries authentication on HTTP 403 (stale session after a key change) in addition to 401, preventing a silent failure after importing a new key",
+        "**`SERVER_DIR` renamed from `DEPLOY_DIR`** — GitHub Actions variable and systemd service placeholder renamed for clarity; `SERVER_DIR` (sync server files) is explicitly kept outside `SSH_PATH` (nginx web root) to protect the `.env` secret file"
+      ],
+      "Fixed": [
+        "**Blob directory auto-creation** — the sync server now creates the blob storage directory on first write instead of returning 500 ENOENT when the directory does not yet exist",
+        "**`VITE_SYNC_URL` silent override** — removed a `define` entry in `vite.config.ts` that was overriding `VITE_SYNC_URL` from `.env.local` with an empty string at build time, causing all sync requests to be skipped silently without any console error"
+      ]
+    }
+  },
+  {
     "version": "0.9.0",
     "date": "2026-06-24",
     "highlights": [
