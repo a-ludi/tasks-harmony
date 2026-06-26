@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.10.4",
+    "date": "2026-06-26",
+    "highlights": [
+      "CI now fails fast with a clear error if SYNC_URL or SYNC_APP_SECRET are missing or set at the wrong scope"
+    ],
+    "sections": {
+      "Fixed": [
+        "**SYNC_URL/SYNC_APP_SECRET scope** — variables and secrets must be set at repository level, not inside a named environment; the `build` job has no environment context so environment-scoped values were silently empty; `DEPLOYMENT.md` now documents the exact GitHub UI path for each value",
+        "**Pre-build configuration check** — CI now fails with an explicit error message listing any missing repository-level variables or secrets before attempting the build"
+      ]
+    }
+  },
+  {
     "version": "0.10.3",
     "date": "2026-06-26",
     "highlights": [

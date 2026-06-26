@@ -93,7 +93,13 @@ Add via `sudo visudo`.
 
 ## GitHub configuration
 
-### Variables (`vars.*`)
+> **All variables and secrets must be set at repository level, not inside a named environment.**
+> The `build` job runs without an environment context and cannot read environment-scoped values.
+> Navigate to **Settings → Secrets and variables → Actions** and use the **"Repository secrets"** and **"Repository variables"** tabs.
+
+### Variables — repository level
+
+Go to **Settings → Secrets and variables → Actions → Variables tab → New repository variable**.
 
 | Variable | Example | Purpose |
 |---|---|---|
@@ -107,10 +113,13 @@ Add via `sudo visudo`.
 
 > **`SERVER_DIR` must not be inside `SSH_PATH`.** CD writes `.env` (containing `SYNC_APP_SECRET`) to `$SERVER_DIR/.env`. If `SERVER_DIR` were inside the web root, that file would be publicly accessible.
 
-### Secrets (`secrets.*`)
+### Secrets — repository level
+
+Go to **Settings → Secrets and variables → Actions → Secrets tab → New repository secret**.
 
 | Secret | How to generate | Purpose |
 |---|---|---|
+| `SSH_KEY` | Private key for the `deploy` user | Used by rsync and SSH steps to connect to the server |
 | `SYNC_APP_SECRET` | `openssl rand -base64 32` | Pre-shared secret for HMAC challenge-response; written to server `.env` and baked into the client bundle |
 
 ---
