@@ -117,7 +117,7 @@ export async function pull(db: IDBPDatabase<TasksHarmonyDB>): Promise<boolean> {
 
   try {
     const res = await authorizedFetch('GET', syncToken);
-    if (res.status === 404) return false;
+    if (res.status === 404) { markDirty(); return false; }
     if (!res.ok) return false;
 
     const blob = new Uint8Array(await res.arrayBuffer());

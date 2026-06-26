@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.7] — 2026-06-26
+
+### Fixed
+
+- **No initial push when server is empty** — `pull` was silently returning on a server 404 without marking the state dirty; it now calls `markDirty()` so the debounced push fires and uploads local data to a fresh server without requiring any user action
+
 ## [0.10.6] — 2026-06-26
 
 ### Fixed
@@ -173,6 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.10.7]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.7
 [0.10.6]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.6
 [0.10.5]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.5
 [0.10.4]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.4

@@ -85,6 +85,26 @@ function mockFetch(blobStatus: number[]): typeof fetch {
   }) as unknown as typeof fetch;
 }
 
+describe('pull — marks dirty on server 404', () => {
+  let originalFetch: typeof fetch;
+
+  beforeEach(() => {
+    Object.keys(localStore).forEach((k) => delete localStore[k]);
+    originalFetch = globalThis.fetch;
+  });
+
+  it('calls markDirty when server has no blob so local state gets pushed', async () => {
+    const dirty = await import('@/sync/dirty');
+    const callsBefore = (dirty.markDirty as ReturnType<typeof mock>).mock.calls.length;
+
+    globalThis.fetch = mockFetch([404]);
+    await pull({} as never);
+    globalThis.fetch = originalFetch;
+
+    expect((dirty.markDirty as ReturnType<typeof mock>).mock.calls.length).toBe(callsBefore + 1);
+  });
+});
+
 describe('pull — session retry on auth errors', () => {
   let originalFetch: typeof fetch;
 
