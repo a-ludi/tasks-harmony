@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.10.3",
+    "date": "2026-06-26",
+    "highlights": [
+      "Sync URL now correctly baked into the production bundle"
+    ],
+    "sections": {
+      "Fixed": [
+        "**VITE_SYNC_URL not injected into bundle** — `vite.config.ts` evaluates before Vite loads `.env` files, so `process.env.VITE_SYNC_URL` was undefined at config time and the URL was never baked in; the define block now conditionally injects it when the variable is present in the process environment (CI), while local dev continues to read from `.env.local` via Vite's normal env loading"
+      ]
+    }
+  },
+  {
     "version": "0.10.2",
     "date": "2026-06-26",
     "highlights": [
