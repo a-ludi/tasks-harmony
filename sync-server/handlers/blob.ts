@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'fs/promises';
+import { mkdir, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { redis } from '../redis';
 
@@ -33,6 +33,7 @@ export async function handleBlob(req: Request, token: string): Promise<Response>
     if (contentLength > MAX_BYTES) return new Response('Payload Too Large', { status: 413 });
     const data = await req.arrayBuffer();
     if (data.byteLength > MAX_BYTES) return new Response('Payload Too Large', { status: 413 });
+    await mkdir(BLOB_DIR, { recursive: true });
     await writeFile(blobPath, Buffer.from(data));
     return new Response(null, { status: 204 });
   }

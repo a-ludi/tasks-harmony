@@ -68,7 +68,7 @@ async function authorizedFetch(
     body: body ? new Uint8Array(body.buffer as ArrayBuffer, body.byteOffset, body.byteLength) : undefined,
     keepalive: method === 'PUT',
   });
-  if (res.status === 401 && !retried) {
+  if ((res.status === 401 || res.status === 403) && !retried) {
     localStorage.removeItem(SESSION_KEY);
     return authorizedFetch(method, syncToken, body, true);
   }

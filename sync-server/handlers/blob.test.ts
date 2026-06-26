@@ -69,4 +69,11 @@ describe('handleBlob', () => {
     const res = await handleBlob(makeReq('PUT', SYNC_TOKEN, big), SYNC_TOKEN);
     expect(res.status).toBe(413);
   });
+
+  it('PUT succeeds even when BLOB_DIR does not exist yet', async () => {
+    await rm(TEST_BLOB_DIR, { recursive: true, force: true });
+    const data = new Uint8Array([9, 8, 7]);
+    const res = await handleBlob(makeReq('PUT', SYNC_TOKEN, data), SYNC_TOKEN);
+    expect(res.status).toBe(204);
+  });
 });
