@@ -57,7 +57,7 @@ export default defineConfig({
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
     'import.meta.env.VITE_BUILD_DATE': JSON.stringify(buildDate),
     // Only inject when the env var is already present (CI sets it; local dev reads from .env.local instead)
-    ...(process.env.VITE_SYNC_URL ? { 'import.meta.env.VITE_SYNC_URL': JSON.stringify(process.env.VITE_SYNC_URL) } : {}),
+    ...(process.env.VITE_SYNC_URL ? { 'import.meta.env.VITE_SYNC_URL': JSON.stringify(process.env.VITE_SYNC_URL.replace(/\/+$/, '')) } : {}),
     '__SYNC_PART_A__': JSON.stringify(partA),
     '__SYNC_PART_B__': JSON.stringify(partB),
     '__SYNC_PART_C__': JSON.stringify(partC),

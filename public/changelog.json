@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.10.6",
+    "date": "2026-06-26",
+    "highlights": [
+      "Sync URL trailing slash is now stripped before baking into the bundle, fixing double-slash 404s"
+    ],
+    "sections": {
+      "Fixed": [
+        "**Double slash in sync requests** — trailing slashes on `SYNC_URL` (e.g. set with a trailing `/` in GitHub variables) are now stripped in `vite.config.ts` before the value is baked into the bundle, preventing `//sync/challenge` 404s"
+      ]
+    }
+  },
+  {
     "version": "0.10.5",
     "date": "2026-06-26",
     "highlights": [
