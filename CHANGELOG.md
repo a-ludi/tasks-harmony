@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] — 2026-06-26
+
+### Fixed
+
+- **nginx sync location** — regex braces in the `location ~ …` directive were unquoted, causing nginx to reject the config with "unknown directive"; the pattern is now quoted per nginx docs
+
 ## [0.10.0] — 2026-06-26
 
 ### Added
@@ -136,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.10.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.1
 [0.10.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.0
 [0.9.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.9.0
 [0.8.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.8.0

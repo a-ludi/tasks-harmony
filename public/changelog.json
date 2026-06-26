@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.10.1",
+    "date": "2026-06-26",
+    "highlights": [
+      "nginx config fix — the sync reverse-proxy location now loads correctly"
+    ],
+    "sections": {
+      "Fixed": [
+        "**nginx sync location** — regex braces in the `location ~ …` directive were unquoted, causing nginx to reject the config with \"unknown directive\"; the pattern is now quoted per nginx docs"
+      ]
+    }
+  },
+  {
     "version": "0.10.0",
     "date": "2026-06-26",
     "highlights": [
