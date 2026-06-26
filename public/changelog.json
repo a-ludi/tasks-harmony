@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.10.7",
+    "date": "2026-06-26",
+    "highlights": [
+      "Sync now pushes local data automatically on startup when the server has no blob yet — no user action required to seed the server"
+    ],
+    "sections": {
+      "Fixed": [
+        "**No initial push when server is empty** — `pull` was silently returning on a server 404 without marking the state dirty; it now calls `markDirty()` so the debounced push fires and uploads local data to a fresh server without requiring any user action"
+      ]
+    }
+  },
+  {
     "version": "0.10.6",
     "date": "2026-06-26",
     "highlights": [
