@@ -103,6 +103,21 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Check required variables and secrets
+        env:
+          SYNC_URL: ${{ vars.SYNC_URL }}
+          SYNC_APP_SECRET: ${{ secrets.SYNC_APP_SECRET }}
+        run: |
+          missing=()
+          [[ -z "$SYNC_URL" ]] && missing+=("SYNC_URL (repository variable)")
+          [[ -z "$SYNC_APP_SECRET" ]] && missing+=("SYNC_APP_SECRET (repository secret)")
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Missing required repository-level configuration:"
+            for item in "${missing[@]}"; do echo "  - $item"; done
+            echo "See docs/DEPLOYMENT.md — GitHub configuration for setup instructions."
+            exit 1
+          fi
+
       - name: Build
         env:
           VITE_SYNC_APP_SECRET: ${{ secrets.SYNC_APP_SECRET }}

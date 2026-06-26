@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.4] — 2026-06-26
+
+### Fixed
+
+- **SYNC_URL/SYNC_APP_SECRET scope** — variables and secrets must be set at repository level, not inside a named environment; the `build` job has no environment context so environment-scoped values were silently empty; `DEPLOYMENT.md` now documents the exact GitHub UI path for each value
+- **Pre-build configuration check** — CI now fails with an explicit error message listing any missing repository-level variables or secrets before attempting the build
+
 ## [0.10.3] — 2026-06-26
 
 ### Fixed
@@ -154,6 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.10.4]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.4
 [0.10.3]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.3
 [0.10.2]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.2
 [0.10.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.1
