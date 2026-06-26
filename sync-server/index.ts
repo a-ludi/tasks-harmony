@@ -1,4 +1,4 @@
-import { chmod } from 'fs/promises';
+import { chmod, unlink } from 'fs/promises';
 import { handleChallenge } from './handlers/challenge';
 import { handleSession } from './handlers/session';
 import { handleBlob } from './handlers/blob';
@@ -24,6 +24,7 @@ async function handler(req: Request): Promise<Response> {
 }
 
 if (SYNC_SOCKET) {
+  await unlink(SYNC_SOCKET).catch(() => {});
   Bun.serve({ unix: SYNC_SOCKET, fetch: handler, maxRequestBodySize: MAX_BODY_SIZE });
   await chmod(SYNC_SOCKET, 0o666);
   console.log(`Listening on unix:${SYNC_SOCKET}`);

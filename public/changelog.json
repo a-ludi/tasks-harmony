@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.10.2",
+    "date": "2026-06-26",
+    "highlights": [
+      "Sync server restart fix — the server no longer crashes on restart due to a stale socket file"
+    ],
+    "sections": {
+      "Fixed": [
+        "**Sync server EADDRINUSE on restart** — the Unix socket file left behind by a previous container run is now removed before binding, preventing the server from crashing with \"address already in use\" after a redeploy"
+      ]
+    }
+  },
+  {
     "version": "0.10.1",
     "date": "2026-06-26",
     "highlights": [
