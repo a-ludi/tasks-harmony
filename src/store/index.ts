@@ -345,6 +345,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       packs: state.packs.map((p) => (p.id === packId ? updated : p)),
     }));
+    markDirty();
   },
 
   deletePack: async (packId, dispositions = []) => {
