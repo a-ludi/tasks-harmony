@@ -6,27 +6,23 @@ import Dashboard from '@/components/dashboard/Dashboard';
 import { buildCDPZip } from '@/cdp/cdp-export';
 import { calculatePackXP } from '@/xp/packXP';
 import PackDeletionDialog from './PackDeletionDialog';
+import PackOptionsModal from './PackOptionsModal';
 import { CDPImportDialog } from '@/components/cdp/CDPImportDialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function PackDashboard() {
   const { packId } = useParams<{ packId: string }>();
   const packs = useAppStore((s) => s.packs);
   const chores = useAppStore((s) => s.chores);
   const questions = useAppStore((s) => s.questions);
-  const renamePack = useAppStore((s) => s.renamePack);
   const deletePack = useAppStore((s) => s.deletePack);
   const profile = useAppStore((s) => s.profile);
   const navigate = useNavigate();
@@ -71,26 +67,11 @@ export default function PackDashboard() {
     && today > targetDate
     && (pack?.manifest.xpTarget == null || packXP < pack.manifest.xpTarget);
 
-  const updatePackDescription = useAppStore((s) => s.updatePackDescription);
-  const updatePackManifest = useAppStore((s) => s.updatePackManifest);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [renameValue, setRenameValue] = useState('');
   const [showDeletionDialog, setShowDeletionDialog] = useState(false);
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [descriptionValue, setDescriptionValue] = useState('');
-  const [showXpTargetDialog, setShowXpTargetDialog] = useState(false);
-  const [xpTargetInput, setXpTargetInput] = useState('');
-  const [showTargetDateDialog, setShowTargetDateDialog] = useState(false);
-  const [targetDateInput, setTargetDateInput] = useState('');
   const [showCDPDialog, setShowCDPDialog] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   if (!pack) return <Navigate to="/" replace />;
-
-  async function handleRename() {
-    if (!renameValue.trim() || !pack) return;
-    await renamePack(pack.id, renameValue.trim());
-    setIsRenaming(false);
-  }
 
   function handleExport() {
     if (!pack || !profile) return;
@@ -119,62 +100,25 @@ export default function PackDashboard() {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3 pb-2 pt-4">
-        {isRenaming ? (
-          <>
-            <Input
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRename();
-                if (e.key === 'Escape') setIsRenaming(false);
-              }}
-              autoFocus
-              className="text-xl font-bold"
-            />
+        <>
+          <h1 className="text-2xl font-bold text-foreground">{pack.manifest.title}</h1>
+          {pack.sourceUrl && (
             <Button
-              onClick={handleRename}
-              size="sm"
-            >
-              Save
-            </Button>
-            <Button
-              onClick={() => setIsRenaming(false)}
-              variant="outline"
-              size="sm"
-            >
-              Cancel
-            </Button>
-          </>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold text-foreground">{pack.manifest.title}</h1>
-            {pack.sourceUrl && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCDPDialog(true)}
-                disabled={!isOnline}
-                title={!isOnline ? 'Offline — CDP import unavailable' : 'Update imported pack'}
-                aria-label="Update imported pack"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                ↻
-              </Button>
-            )}
-            <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-sm font-semibold text-amber-800 dark:text-amber-300">
-              {packXP.toLocaleString()} XP
-            </span>
-            <Button
-              onClick={() => { setRenameValue(pack.manifest.title); setIsRenaming(true); }}
-              title="Rename pack"
               variant="ghost"
               size="sm"
+              onClick={() => setShowCDPDialog(true)}
+              disabled={!isOnline}
+              title={!isOnline ? 'Offline — CDP import unavailable' : 'Update imported pack'}
+              aria-label="Update imported pack"
               className="text-muted-foreground hover:text-foreground"
             >
-              ✏️
+              ↻
             </Button>
-          </>
-        )}
+          )}
+          <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-sm font-semibold text-amber-800 dark:text-amber-300">
+            {packXP.toLocaleString()} XP
+          </span>
+        </>
         <div className="ml-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -183,36 +127,8 @@ export default function PackDashboard() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuCheckboxItem
-                checked={pack.manifest.streak ?? true}
-                onCheckedChange={(checked) => updatePackManifest(pack.id, { streak: checked })}
-              >
-                Streaks enabled
-              </DropdownMenuCheckboxItem>
-
-              <DropdownMenuCheckboxItem
-                checked={pack.manifest.allowShiftOnImport ?? false}
-                onCheckedChange={(checked) => updatePackManifest(pack.id, { allowShiftOnImport: checked })}
-              >
-                Allow shift on import
-              </DropdownMenuCheckboxItem>
-
-              <DropdownMenuItem
-                onSelect={() => {
-                  setXpTargetInput(pack.manifest.xpTarget != null ? String(pack.manifest.xpTarget) : '');
-                  setShowXpTargetDialog(true);
-                }}
-              >
-                {pack.manifest.xpTarget != null ? `XP target: ${pack.manifest.xpTarget.toLocaleString()}` : 'Set XP target…'}
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onSelect={() => {
-                  setTargetDateInput(pack.manifest.targetDate ?? '');
-                  setShowTargetDateDialog(true);
-                }}
-              >
-                {pack.manifest.targetDate ? `Target date: ${pack.manifest.targetDate}` : 'Set target date…'}
+              <DropdownMenuItem onClick={() => setOptionsOpen(true)}>
+                Options…
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
@@ -277,51 +193,13 @@ export default function PackDashboard() {
       )}
 
       {/* Pack description */}
-      {isEditingDescription ? (
-        <div className="mt-3 space-y-2">
-          <MarkdownEditor
-            value={descriptionValue}
-            onChange={setDescriptionValue}
-          />
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={async () => {
-                await updatePackDescription(pack.id, descriptionValue);
-                setIsEditingDescription(false);
-              }}
-            >
-              Save
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditingDescription(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-3 group flex items-start gap-2">
-          {pack.manifest.description ? (
-            <MarkdownDisplay key={pack.manifest.description} content={pack.manifest.description} className="flex-1 text-sm text-muted-foreground" />
-          ) : (
-            <p className="flex-1 text-sm italic text-muted-foreground">No description</p>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={() => {
-              setDescriptionValue(pack.manifest.description ?? '');
-              setIsEditingDescription(true);
-            }}
-          >
-            Edit
-          </Button>
-        </div>
-      )}
+      <div className="mt-3">
+        {pack.manifest.description ? (
+          <MarkdownDisplay key={pack.manifest.description} content={pack.manifest.description} className="text-sm text-muted-foreground" />
+        ) : (
+          <p className="text-sm italic text-muted-foreground">No description</p>
+        )}
+      </div>
 
       <Dashboard chores={packChores} currentPackId={pack.id} />
       {showDeletionDialog && pack && (
@@ -332,79 +210,9 @@ export default function PackDashboard() {
         />
       )}
       {showCDPDialog && <CDPImportDialog onClose={() => setShowCDPDialog(false)} />}
-
-      <Dialog open={showXpTargetDialog} onOpenChange={setShowXpTargetDialog}>
-        <DialogContent className="sm:max-w-xs" aria-describedby={undefined}>
-          <DialogHeader><DialogTitle>XP target</DialogTitle></DialogHeader>
-          <Input
-            type="number"
-            min="0"
-            placeholder="e.g. 1000"
-            value={xpTargetInput}
-            onChange={(e) => setXpTargetInput(e.target.value)}
-            autoFocus
-          />
-          <div className="flex gap-2 mt-1">
-            <Button
-              size="sm"
-              onClick={async () => {
-                const val = xpTargetInput.trim() ? Number(xpTargetInput) : undefined;
-                await updatePackManifest(pack.id, { xpTarget: val });
-                setShowXpTargetDialog(false);
-              }}
-            >
-              Save
-            </Button>
-            {pack.manifest.xpTarget != null && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  await updatePackManifest(pack.id, { xpTarget: undefined });
-                  setShowXpTargetDialog(false);
-                }}
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showTargetDateDialog} onOpenChange={setShowTargetDateDialog}>
-        <DialogContent className="sm:max-w-xs" aria-describedby={undefined}>
-          <DialogHeader><DialogTitle>Target date</DialogTitle></DialogHeader>
-          <Input
-            type="date"
-            value={targetDateInput}
-            onChange={(e) => setTargetDateInput(e.target.value)}
-            autoFocus
-          />
-          <div className="flex gap-2 mt-1">
-            <Button
-              size="sm"
-              onClick={async () => {
-                await updatePackManifest(pack.id, { targetDate: targetDateInput || undefined });
-                setShowTargetDateDialog(false);
-              }}
-            >
-              Save
-            </Button>
-            {pack.manifest.targetDate && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  await updatePackManifest(pack.id, { targetDate: undefined });
-                  setShowTargetDateDialog(false);
-                }}
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {optionsOpen && pack && (
+        <PackOptionsModal pack={pack} onClose={() => setOptionsOpen(false)} />
+      )}
     </div>
   );
 }
