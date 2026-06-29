@@ -87,7 +87,7 @@ export default function QuestionBuilder({ choreKey, initialQuestions, onChange }
           </div>
           {expandedId === draft.id && (
             <div className="border-t p-3">
-              <QuestionFormFields question={draft} onChange={handleUpdate} hasOtherMultiplier={drafts.some((d) => !d._deleted && d.type === 'MULTIPLIER' && d.id !== draft.id)} />
+              <QuestionFormFields question={draft} onChange={handleUpdate} />
             </div>
           )}
         </div>
