@@ -11,9 +11,10 @@ export default function WindowBar({ windowOpenDate, firstDueDate, duePeriodMs }:
   if (windowLengthMs <= 0) return null;
 
   const safedue = Math.min(duePeriodMs, windowLengthMs);
-  const upcomingMs = windowLengthMs - safedue;
+  // When no due period is set, treat entire window as "Due"
+  const upcomingMs = safedue === 0 ? 0 : windowLengthMs - safedue;
   const upcomingPct = (upcomingMs / windowLengthMs) * 100;
-  const duePct = (safedue / windowLengthMs) * 100;
+  const duePct = (safedue === 0 ? windowLengthMs : safedue) / windowLengthMs * 100;
 
   const dueStartDate = safedue > 0
     ? new Date(firstDueDate.getTime() - safedue)
