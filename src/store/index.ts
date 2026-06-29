@@ -165,6 +165,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const chorePack = get().packs.find((p) => p.id === chore.packId);
     const packStreak = chorePack?.manifest.streak ?? true;
+    const packDecay = chorePack?.manifest.decay ?? true;
 
     const now = recordCompletionWithTimestamp(new Date());
 
@@ -177,8 +178,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const streak = packStreak ? computeNewStreak(chore, choreCompletions, now) : 0;
     const totalCompletions = choreCompletions.length;
+    const effectiveTotalCompletions = packDecay ? totalCompletions : 0;
     const { questions } = get();
-    let xpEarned = calculateXP(chore.xpSize, streak, totalCompletions, activeSettings);
+    let xpEarned = calculateXP(chore.xpSize, streak, effectiveTotalCompletions, activeSettings);
     const multiplierQ = questions.find(
       (q): q is MultiplierQuestion => q.choreKey === choreKey && q.type === 'MULTIPLIER',
     );
