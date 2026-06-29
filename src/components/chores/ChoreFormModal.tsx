@@ -54,7 +54,14 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
 
   const [title, setTitle] = useState(chore?.title ?? '');
   const [description, setDescription] = useState(chore?.description ?? '');
-  const [xpSize, setXpSize] = useState<XPSize>((chore?.xpSize as XPSize | undefined) ?? 'S');
+  const initialXpSize = chore?.xpSize ?? 'S';
+  const [xpSize, setXpSize] = useState<XPSize | 'CUSTOM'>(
+    typeof initialXpSize === 'number' ? 'CUSTOM' : initialXpSize as XPSize
+  );
+  const [customXPValue, setCustomXPValue] = useState<string>(
+    typeof initialXpSize === 'number' ? String(initialXpSize) : '1'
+  );
+  const isCustomXP = xpSize === 'CUSTOM';
   const [frequency, setFrequency] = useState<RecurrenceFrequency>(chore?.recurrence.frequency ?? 'daily');
   const [interval, setInterval] = useState<string>(String(chore?.recurrence.interval ?? 1));
   const [firstDueDate, setFirstDueDate] = useState(() => {
@@ -76,7 +83,10 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const [selectedPackId, setSelectedPackId] = useState(packId);
 
   const activeSettings = xpSettings.find((s) => s.id === profile?.activeXPSettingsId) ?? xpSettings[0];
-  const xpPreview = activeSettings ? buildXPPreview(xpSize, activeSettings) : null;
+  const effectiveXpSize: XPSize | number = isCustomXP
+    ? Math.max(1, Math.floor(Number(customXPValue) || 1))
+    : xpSize as XPSize;
+  const xpPreview = activeSettings ? buildXPPreview(effectiveXpSize, activeSettings) : null;
 
   const choreKey = isEdit ? chore!.key : null;
   const initialQuestions = choreKey ? allQuestions.filter((q) => q.choreKey === choreKey) : [];
@@ -148,7 +158,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           if (!moved) { setErrors((prev) => ({ ...prev, pack: `A chore with ID "${chore.choreId}" already exists in this pack.` })); setSubmitting(false); return; }
         }
         const activeChoreKey = packChanged ? `${selectedPackId}/${chore.choreId}` : chore.key;
-        await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod });
+        await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod });
         const allDrafts = [
           ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
           ...(multiplierDraft ? [multiplierDraft] : []),
@@ -158,7 +168,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           await saveQuestions(activeChoreKey, allDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
         }
       } else {
-        const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, active: true });
+        const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, active: true });
         const allDrafts = [
           ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
           ...(multiplierDraft ? [multiplierDraft] : []),
@@ -207,14 +217,47 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
 
             <div className="space-y-2">
               <Label htmlFor="chore-xp-size">XP Size</Label>
-              <Select value={xpSize} onValueChange={(v) => setXpSize(v as XPSize)}>
-                <SelectTrigger id="chore-xp-size">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {XP_SIZES.map((size) => <SelectItem key={size} value={size}>{size} ({XP_BASE[size]} XP)</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {isCustomXP ? (
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={customXPValue}
+                    onChange={(e) => setCustomXPValue(e.target.value)}
+                    className="w-28"
+                    placeholder="e.g. 15"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setXpSize('S'); setCustomXPValue('1'); }}
+                  >
+                    Use preset
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value={xpSize}
+                  onValueChange={(v) => {
+                    if (v === 'CUSTOM') { setXpSize('CUSTOM'); }
+                    else { setXpSize(v as XPSize); }
+                  }}
+                >
+                  <SelectTrigger id="chore-xp-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {XP_SIZES.map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size} ({XP_BASE[size]} XP)
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="CUSTOM">Custom…</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               {xpPreview && <p className="text-xs text-primary">{xpPreview}</p>}
             </div>
 
@@ -276,7 +319,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
               const selectedPack = packs.find(p => p.id === selectedPackId);
               return (
                 <XPFormula
-                  xpSize={xpSize as XPSize | number}
+                  xpSize={effectiveXpSize}
                   settings={activeSettings}
                   multiplier={multiplierEnabled ? { xpPerUnit: multiplierXpPerUnit } : undefined}
                   streakEnabled={selectedPack?.manifest.streak ?? true}
