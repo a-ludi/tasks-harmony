@@ -54,7 +54,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
 
   const [title, setTitle] = useState(chore?.title ?? '');
   const [description, setDescription] = useState(chore?.description ?? '');
-  const initialXpSize = chore?.xpSize ?? 'S';
+  const pack = packs.find(p => p.id === packId);
+  const packDefault = pack?.manifest.defaultXPSize ?? 'S';
+  const initialXpSize = chore?.xpSize ?? packDefault;
   const [xpSize, setXpSize] = useState<XPSize | 'CUSTOM'>(
     typeof initialXpSize === 'number' ? 'CUSTOM' : initialXpSize as XPSize
   );
