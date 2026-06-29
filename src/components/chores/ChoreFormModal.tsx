@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
-import type { Chore, XPSize, RecurrenceFrequency, DuePeriodUnit } from '@/types';
-import type { MultiplierQuestion } from '@/types';
-import type { QuickAnswerSet } from '@/types';
+import type { Chore, XPSize, RecurrenceFrequency, DuePeriodUnit, MultiplierQuestion, QuickAnswerSet } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -154,6 +152,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         const allDrafts = [
           ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
           ...(multiplierDraft ? [multiplierDraft] : []),
+          ...(!multiplierEnabled && existingMultiplier ? [{ ...existingMultiplier, _deleted: true }] : []),
         ];
         if (allDrafts.length > 0 || initialQuestions.length > 0) {
           await saveQuestions(activeChoreKey, allDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
@@ -163,6 +162,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         const allDrafts = [
           ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
           ...(multiplierDraft ? [multiplierDraft] : []),
+          ...(!multiplierEnabled && existingMultiplier ? [{ ...existingMultiplier, _deleted: true }] : []),
         ];
         if (allDrafts.some((d) => !('_deleted' in d && d._deleted))) {
           await saveQuestions(newChoreKey, allDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
