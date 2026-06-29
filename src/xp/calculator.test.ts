@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { calculateXP, XP_BASE } from './calculator';
+import { calculateXP, XP_BASE, getXPBase } from './calculator';
 import type { XPSettings } from '@/types';
 
 const STANDARD: XPSettings = {
@@ -16,6 +16,18 @@ describe('XP_BASE', () => {
     expect(XP_BASE.XXS).toBe(2); expect(XP_BASE.XS).toBe(3); expect(XP_BASE.S).toBe(5);
     expect(XP_BASE.M).toBe(8); expect(XP_BASE.L).toBe(13); expect(XP_BASE.XL).toBe(21);
     expect(XP_BASE.XXL).toBe(34); expect(XP_BASE.XXXL).toBe(55);
+  });
+});
+
+describe('getXPBase', () => {
+  test('returns XP_BASE value for named size', () => {
+    expect(getXPBase('M')).toBe(8);
+    expect(getXPBase('XXS')).toBe(2);
+    expect(getXPBase('XXXL')).toBe(55);
+  });
+  test('returns the number itself for a custom numeric size', () => {
+    expect(getXPBase(10)).toBe(10);
+    expect(getXPBase(100)).toBe(100);
   });
 });
 

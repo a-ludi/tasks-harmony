@@ -56,7 +56,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
 
   const [title, setTitle] = useState(chore?.title ?? '');
   const [description, setDescription] = useState(chore?.description ?? '');
-  const [xpSize, setXpSize] = useState<XPSize>(chore?.xpSize ?? 'S');
+  const [xpSize, setXpSize] = useState<XPSize>((chore?.xpSize as XPSize | undefined) ?? 'S');
   const [frequency, setFrequency] = useState<RecurrenceFrequency>(chore?.recurrence.frequency ?? 'daily');
   const [interval, setInterval] = useState<string>(String(chore?.recurrence.interval ?? 1));
   const [startDate, setStartDate] = useState(chore?.recurrence.startDate ?? todayString());
