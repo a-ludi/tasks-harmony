@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
 import type { Chore, XPSize, RecurrenceFrequency, DuePeriodUnit } from '@/types';
+import type { MultiplierQuestion } from '@/types';
 import type { QuickAnswerSet } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import { QUICK_ANSWER_SET_LIMIT } from '@/config';
 import { toFirstDueDate, firstDueDateToStartDate } from '@/chores/dueDateConversion';
 import { getWindowStart, duePeriodToMs } from '@/chores/recurrence';
 import WindowBar from './WindowBar';
+import XPFormula from './XPFormula';
 
 interface Props {
   chore?: Chore;
@@ -81,6 +83,15 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const choreKey = isEdit ? chore!.key : null;
   const initialQuestions = choreKey ? allQuestions.filter((q) => q.choreKey === choreKey) : [];
   const [questionDrafts, setQuestionDrafts] = useState<DraftQuestion[]>(() => initialQuestions.map((q) => ({ ...q })));
+
+  const existingMultiplier = initialQuestions.find((q): q is MultiplierQuestion => q.type === 'MULTIPLIER');
+  const [multiplierEnabled, setMultiplierEnabled] = useState(!!existingMultiplier);
+  const [multiplierPrompt, setMultiplierPrompt] = useState(existingMultiplier?.prompt ?? '');
+  const [multiplierXpPerUnit, setMultiplierXpPerUnit] = useState(existingMultiplier?.xpPerUnit ?? 1);
+  const [multiplierAnswerType, setMultiplierAnswerType] = useState<'integer' | 'float'>(
+    existingMultiplier?.multiplierAnswerType ?? 'integer'
+  );
+
   const choreQuickSets = isEdit ? allQuickAnswerSets.filter((s) => s.choreKey === chore!.key) : [];
   const [editingSet, setEditingSet] = useState<QuickAnswerSet | null | 'new'>(null);
 
@@ -98,6 +109,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
     if (!Number.isInteger(intervalNum) || intervalNum < 1) errs.interval = 'Interval must be a whole number of 1 or more.';
     if (!firstDueDate) { errs.firstDueDate = 'First due date is required.'; }
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate)) { errs.firstDueDate = 'First due date must be in YYYY-MM-DD format.'; }
+    if (multiplierEnabled && !multiplierPrompt.trim()) {
+      errs.questions = 'Score multiplier requires a prompt.';
+    }
     return errs;
   }
 
@@ -116,6 +130,19 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
 
       const startDate = firstDueDateToStartDate(firstDueDate, frequency, Number(interval), windowStartTime);
 
+      const multiplierDraft: MultiplierQuestion | null = multiplierEnabled && multiplierPrompt.trim()
+        ? {
+            id: existingMultiplier?.id ?? crypto.randomUUID(),
+            choreKey: '',
+            prompt: multiplierPrompt.trim(),
+            required: true,
+            order: -1,
+            type: 'MULTIPLIER',
+            xpPerUnit: multiplierXpPerUnit,
+            multiplierAnswerType,
+          }
+        : null;
+
       if (isEdit && chore) {
         const packChanged = selectedPackId !== chore.packId;
         if (packChanged) {
@@ -124,13 +151,21 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         }
         const activeChoreKey = packChanged ? `${selectedPackId}/${chore.choreId}` : chore.key;
         await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod });
-        if (questionDrafts.length > 0 || initialQuestions.length > 0) {
-          await saveQuestions(activeChoreKey, questionDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
+        const allDrafts = [
+          ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
+          ...(multiplierDraft ? [multiplierDraft] : []),
+        ];
+        if (allDrafts.length > 0 || initialQuestions.length > 0) {
+          await saveQuestions(activeChoreKey, allDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
         }
       } else {
         const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, active: true });
-        if (questionDrafts.some((d) => !d._deleted)) {
-          await saveQuestions(newChoreKey, questionDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
+        const allDrafts = [
+          ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
+          ...(multiplierDraft ? [multiplierDraft] : []),
+        ];
+        if (allDrafts.some((d) => !('_deleted' in d && d._deleted))) {
+          await saveQuestions(newChoreKey, allDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
         }
       }
       onClose();
@@ -182,6 +217,73 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
               </Select>
               {xpPreview && <p className="text-xs text-primary">{xpPreview}</p>}
             </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <input
+                  id="multiplier-enabled"
+                  type="checkbox"
+                  checked={multiplierEnabled}
+                  onChange={(e) => setMultiplierEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <Label htmlFor="multiplier-enabled" className="font-normal">Score Multiplier</Label>
+              </div>
+              {multiplierEnabled && (
+                <div className="space-y-3 rounded-lg border bg-muted/30 p-3 ml-7">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Prompt <span className="text-destructive">*</span></Label>
+                    <Input
+                      value={multiplierPrompt}
+                      onChange={(e) => setMultiplierPrompt(e.target.value)}
+                      placeholder="e.g. How many reps did you do?"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Repetition Factor</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={Math.max(1, Math.round(1 / multiplierXpPerUnit))}
+                      onChange={(e) => {
+                        const n = Math.max(1, Math.floor(Number(e.target.value) || 1));
+                        setMultiplierXpPerUnit(1 / n);
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Answer type</Label>
+                    <div className="flex gap-4">
+                      {(['integer', 'float'] as const).map((t) => (
+                        <label key={t} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={multiplierAnswerType === t}
+                            onChange={() => setMultiplierAnswerType(t)}
+                            className="accent-primary"
+                          />
+                          {t.charAt(0).toUpperCase() + t.slice(1)}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {activeSettings && (() => {
+              const selectedPack = packs.find(p => p.id === selectedPackId);
+              return (
+                <XPFormula
+                  xpSize={xpSize as XPSize | number}
+                  settings={activeSettings}
+                  multiplier={multiplierEnabled ? { xpPerUnit: multiplierXpPerUnit } : undefined}
+                  streakEnabled={selectedPack?.manifest.streak ?? true}
+                  decayEnabled={selectedPack?.manifest.decay ?? true}
+                />
+              );
+            })()}
 
             <div className="space-y-2">
               <Label htmlFor="chore-frequency">Frequency</Label>
@@ -282,7 +384,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
                 </span>
               </div>
               {errors.questions && <p className="mb-2 text-xs text-destructive">{errors.questions}</p>}
-              <QuestionBuilder choreKey={isEdit ? chore!.key : ''} initialQuestions={isEdit ? initialQuestions : []} onChange={setQuestionDrafts} />
+              <QuestionBuilder choreKey={isEdit ? chore!.key : ''} initialQuestions={isEdit ? initialQuestions.filter(q => q.type !== 'MULTIPLIER') : []} onChange={setQuestionDrafts} />
             </div>
 
             {isEdit && (
