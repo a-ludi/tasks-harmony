@@ -57,7 +57,7 @@ export interface Chore {
   packId: string;
   title: string;
   description?: string;
-  xpSize: XPSize;
+  xpSize: XPSize | number;
   recurrence: Recurrence;
   repeatable: boolean;          // if true, multiple completions per window are allowed
   active: boolean;
@@ -78,6 +78,8 @@ export interface PackManifest {
   xpTarget?: number;        // total XP goal for the pack
   targetDate?: string;      // ISO date 'YYYY-MM-DD'
   allowShiftOnImport?: boolean; // default false; when true, import dialog offers date shifting
+  decay?: boolean;           // default true; false disables decay mechanics for all chores
+  defaultXPSize?: XPSize | number; // pre-fills XP size when creating a new chore in this pack
 }
 
 export interface Pack {
