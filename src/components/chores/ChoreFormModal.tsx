@@ -15,6 +15,9 @@ import { XP_BASE } from '@/xp/calculator';
 import { buildXPPreview } from '@/xp/xpPreview';
 import QuickAnswerSetModal from './QuickAnswerSetModal';
 import { QUICK_ANSWER_SET_LIMIT } from '@/config';
+import { toFirstDueDate, firstDueDateToStartDate } from '@/chores/dueDateConversion';
+import { getWindowStart, duePeriodToMs } from '@/chores/recurrence';
+import WindowBar from './WindowBar';
 
 interface Props {
   chore?: Chore;
@@ -59,7 +62,14 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const [xpSize, setXpSize] = useState<XPSize>((chore?.xpSize as XPSize | undefined) ?? 'S');
   const [frequency, setFrequency] = useState<RecurrenceFrequency>(chore?.recurrence.frequency ?? 'daily');
   const [interval, setInterval] = useState<string>(String(chore?.recurrence.interval ?? 1));
-  const [startDate, setStartDate] = useState(chore?.recurrence.startDate ?? todayString());
+  const initialFirstDueDate = chore
+    ? toFirstDueDate(chore.recurrence)
+    : (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })();
+  const [firstDueDate, setFirstDueDate] = useState(initialFirstDueDate);
   const [windowStartTime, setWindowStartTime] = useState(chore?.recurrence.windowStartTime ?? '00:00');
   const [repeatable, setRepeatable] = useState(chore?.repeatable ?? false);
   const [duePeriodValue, setDuePeriodValue] = useState<string>(
@@ -93,8 +103,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
     if (!title.trim()) errs.title = 'Title is required.';
     const intervalNum = Number(interval);
     if (!Number.isInteger(intervalNum) || intervalNum < 1) errs.interval = 'Interval must be a whole number of 1 or more.';
-    if (!startDate) { errs.startDate = 'Start date is required.'; }
-    else if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) { errs.startDate = 'Start date must be in YYYY-MM-DD format.'; }
+    if (!firstDueDate) { errs.startDate = 'First due date is required.'; }
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate)) { errs.startDate = 'First due date must be in YYYY-MM-DD format.'; }
     return errs;
   }
 
@@ -110,6 +120,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
       const duePeriod = duePeriodValue.trim() && Number(duePeriodValue) > 0
         ? { value: Number(duePeriodValue), unit: duePeriodUnit }
         : undefined;
+
+      const startDate = firstDueDateToStartDate(firstDueDate, frequency, Number(interval), windowStartTime);
 
       if (isEdit && chore) {
         const packChanged = selectedPackId !== chore.packId;
@@ -198,9 +210,18 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="chore-start-date">Start Date <span className="text-destructive">*</span></Label>
-              <Input id="chore-start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={errors.startDate ? 'border-destructive' : ''} />
+              <Label htmlFor="chore-start-date">First Due Date <span className="text-destructive">*</span></Label>
+              <Input
+                id="chore-start-date"
+                type="date"
+                value={firstDueDate}
+                onChange={(e) => setFirstDueDate(e.target.value)}
+                className={errors.startDate ? 'border-destructive' : ''}
+              />
               {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
+              <p className="text-xs text-muted-foreground">
+                When is this chore first due? The first window opens one {frequency} before this date.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -242,6 +263,23 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
                 Chore becomes due this long before the window ends. Leave blank to show as due from window open.
               </p>
             </div>
+
+            {firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) && Number(interval) >= 1 && (() => {
+              const sd = firstDueDateToStartDate(firstDueDate, frequency, Number(interval), windowStartTime);
+              const recurrence = { frequency, interval: Number(interval), startDate: sd, windowStartTime };
+              const windowOpen = getWindowStart(recurrence, 0);
+              const firstDue = getWindowStart(recurrence, 1);
+              const duePeriodMsVal = duePeriodValue.trim() && Number(duePeriodValue) > 0
+                ? duePeriodToMs({ value: Number(duePeriodValue), unit: duePeriodUnit })
+                : 0;
+              return (
+                <WindowBar
+                  windowOpenDate={windowOpen}
+                  firstDueDate={firstDue}
+                  duePeriodMs={duePeriodMsVal}
+                />
+              );
+            })()}
 
             <div>
               <div className="mb-2 flex items-center gap-2">
