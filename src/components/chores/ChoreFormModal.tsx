@@ -28,15 +28,10 @@ interface Props {
 const XP_SIZES: XPSize[] = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const FREQUENCIES: RecurrenceFrequency[] = ['daily', 'weekly', 'monthly'];
 
-function todayString(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
-
 interface FormErrors {
   title?: string;
   interval?: string;
-  startDate?: string;
+  firstDueDate?: string;
   questions?: string;
   pack?: string;
 }
@@ -62,14 +57,12 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const [xpSize, setXpSize] = useState<XPSize>((chore?.xpSize as XPSize | undefined) ?? 'S');
   const [frequency, setFrequency] = useState<RecurrenceFrequency>(chore?.recurrence.frequency ?? 'daily');
   const [interval, setInterval] = useState<string>(String(chore?.recurrence.interval ?? 1));
-  const initialFirstDueDate = chore
-    ? toFirstDueDate(chore.recurrence)
-    : (() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 1);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      })();
-  const [firstDueDate, setFirstDueDate] = useState(initialFirstDueDate);
+  const [firstDueDate, setFirstDueDate] = useState(() => {
+    if (chore) return toFirstDueDate(chore.recurrence);
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [windowStartTime, setWindowStartTime] = useState(chore?.recurrence.windowStartTime ?? '00:00');
   const [repeatable, setRepeatable] = useState(chore?.repeatable ?? false);
   const [duePeriodValue, setDuePeriodValue] = useState<string>(
@@ -103,8 +96,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
     if (!title.trim()) errs.title = 'Title is required.';
     const intervalNum = Number(interval);
     if (!Number.isInteger(intervalNum) || intervalNum < 1) errs.interval = 'Interval must be a whole number of 1 or more.';
-    if (!firstDueDate) { errs.startDate = 'First due date is required.'; }
-    else if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate)) { errs.startDate = 'First due date must be in YYYY-MM-DD format.'; }
+    if (!firstDueDate) { errs.firstDueDate = 'First due date is required.'; }
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate)) { errs.firstDueDate = 'First due date must be in YYYY-MM-DD format.'; }
     return errs;
   }
 
@@ -216,9 +209,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
                 type="date"
                 value={firstDueDate}
                 onChange={(e) => setFirstDueDate(e.target.value)}
-                className={errors.startDate ? 'border-destructive' : ''}
+                className={errors.firstDueDate ? 'border-destructive' : ''}
               />
-              {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
+              {errors.firstDueDate && <p className="text-xs text-destructive">{errors.firstDueDate}</p>}
               <p className="text-xs text-muted-foreground">
                 When is this chore first due? The first window opens one {frequency} before this date.
               </p>
