@@ -6,6 +6,14 @@ interface MultiplierConfig {
   xpPerUnit: number;
 }
 
+export function showsRounding(
+  multiplier: MultiplierConfig | undefined,
+  streakEnabled: boolean,
+  decayEnabled: boolean,
+): boolean {
+  return !!multiplier || streakEnabled || decayEnabled;
+}
+
 interface XPFormulaProps {
   xpSize: XPSize | number;
   settings: XPSettings;
@@ -37,11 +45,13 @@ export default function XPFormula({
   const base = getXPBase(xpSize);
   const streakRange = `1×–${settings.maxStreakMultiplier}×`;
   const decayRange = `${settings.decayFloor}×–1×`;
+  const withRounding = showsRounding(multiplier, streakEnabled, decayEnabled);
 
   return (
     <div className="flex flex-wrap items-end gap-1.5 rounded-md bg-muted/40 px-3 py-2">
       <Factor value="XP" label="" />
       <Op>=</Op>
+      {withRounding && <Op>round(</Op>}
       <Factor value={String(base)} label="base" />
       {multiplier && (
         <>
@@ -53,6 +63,7 @@ export default function XPFormula({
       )}
       {streakEnabled && <Factor value={`× ${streakRange}`} label="streak" />}
       {decayEnabled && <Factor value={`× ${decayRange}`} label="decay" />}
+      {withRounding && <Op>)</Op>}
     </div>
   );
 }
