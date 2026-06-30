@@ -12,6 +12,23 @@ import { XP_BASE } from '@/xp/calculator';
 
 const XP_SIZES: XPSize[] = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
+/** Resolve the defaultXPSize value for updatePackManifest from the UI dropdown state.
+ * The sentinel 'NONE' represents "no selection" (Radix UI does not allow empty string).
+ */
+export function resolveDefaultXPSize(
+  defaultXPSize: XPSize | 'CUSTOM' | 'NONE',
+  customDefaultXP: string,
+): XPSize | number | undefined {
+  const isCustom = defaultXPSize === 'CUSTOM';
+  if (isCustom && customDefaultXP.trim()) {
+    return Math.max(1, Math.floor(Number(customDefaultXP) || 1));
+  } else if (!isCustom && defaultXPSize !== 'NONE') {
+    return defaultXPSize as XPSize;
+  }
+  // 'NONE' sentinel → undefined (no default)
+  return undefined;
+}
+
 interface Props {
   pack: Pack;
   onClose: () => void;
@@ -54,13 +71,7 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
     const xpTargetVal = xpTarget.trim() ? Number(xpTarget) : undefined;
     const targetDateVal = targetDate.trim() || undefined;
 
-    let defaultXPSizeVal: XPSize | number | undefined;
-    if (isCustomDefaultXP && customDefaultXP.trim()) {
-      defaultXPSizeVal = Math.max(1, Math.floor(Number(customDefaultXP) || 1));
-    } else if (!isCustomDefaultXP && defaultXPSize !== 'NONE') {
-      defaultXPSizeVal = defaultXPSize as XPSize;
-    }
-    // if defaultXPSize is 'NONE', defaultXPSizeVal remains undefined
+    const defaultXPSizeVal = resolveDefaultXPSize(defaultXPSize, customDefaultXP);
 
     await updatePackManifest(pack.id, {
       title: title.trim(),

@@ -1,22 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import type { XPSize } from '@/types';
-
-// Pure logic extracted from PackOptionsModal: resolve the defaultXPSize value
-// for updatePackManifest from the UI dropdown state.
-// The sentinel 'NONE' represents "no selection" (Radix UI does not allow empty string).
-function resolveDefaultXPSize(
-  defaultXPSize: XPSize | 'CUSTOM' | 'NONE',
-  customDefaultXP: string,
-): XPSize | number | undefined {
-  const isCustom = defaultXPSize === 'CUSTOM';
-  if (isCustom && customDefaultXP.trim()) {
-    return Math.max(1, Math.floor(Number(customDefaultXP) || 1));
-  } else if (!isCustom && defaultXPSize !== 'NONE') {
-    return defaultXPSize as XPSize;
-  }
-  // 'NONE' sentinel → undefined (no default)
-  return undefined;
-}
+import { resolveDefaultXPSize } from './PackOptionsModal';
 
 describe('resolveDefaultXPSize — NONE sentinel maps to undefined', () => {
   it('returns undefined when defaultXPSize is NONE (no selection)', () => {
