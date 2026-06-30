@@ -19,4 +19,8 @@ describe('resolveDefaultXPSize — NONE sentinel maps to undefined', () => {
   it('returns undefined when CUSTOM is selected but customDefaultXP is empty', () => {
     expect(resolveDefaultXPSize('CUSTOM', '')).toBeUndefined();
   });
+
+  it('returns undefined when CUSTOM is selected but customDefaultXP is whitespace only', () => {
+    expect(resolveDefaultXPSize('CUSTOM', '   ')).toBeUndefined();
+  });
 });
