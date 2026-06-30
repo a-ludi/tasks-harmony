@@ -1,4 +1,4 @@
-import { formatDurationMs, formatShortDate } from '@/chores/dueDateConversion';
+import { formatDurationMs, formatDateAnchor } from '@/chores/dueDateConversion';
 
 interface WindowBarProps {
   windowOpenDate: Date;
@@ -64,16 +64,16 @@ export default function WindowBar({ windowOpenDate, firstDueDate, duePeriodMs }:
 
       {/* Date anchors */}
       <div className="relative flex text-xs text-muted-foreground w-full">
-        <span className="absolute left-0">{formatShortDate(windowOpenDate)}</span>
+        <span className="absolute left-0">{formatDateAnchor(windowOpenDate)}</span>
         {dueStartDate && (
           <span
             className="absolute"
             style={{ left: `${upcomingPct}%`, transform: 'translateX(-50%)' }}
           >
-            {formatShortDate(dueStartDate)}
+            {formatDateAnchor(dueStartDate)}
           </span>
         )}
-        <span className="absolute right-0">{formatShortDate(firstDueDate)}</span>
+        <span className="absolute right-0">{formatDateAnchor(firstDueDate)}</span>
       </div>
       {/* Spacer so date row has height */}
       <div className="h-4" />

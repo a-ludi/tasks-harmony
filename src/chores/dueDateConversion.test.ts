@@ -3,6 +3,8 @@ import {
   toFirstDueDate,
   firstDueDateToStartDate,
   formatDurationMs,
+  formatShortDate,
+  formatDateAnchor,
 } from './dueDateConversion';
 import type { Recurrence } from '@/types';
 
@@ -58,5 +60,27 @@ describe('formatDurationMs', () => {
   it('rounds to minutes when < 1 hour', () => {
     expect(formatDurationMs(30 * 60_000)).toBe('30 minutes');
     expect(formatDurationMs(60_000)).toBe('1 minute');
+  });
+});
+
+describe('formatDateAnchor', () => {
+  it('returns date without time when date is at midnight', () => {
+    const midnight = new Date(2026, 5, 30, 0, 0, 0); // Jun 30 00:00
+    const result = formatDateAnchor(midnight);
+    expect(result).toBe(formatShortDate(midnight));
+  });
+
+  it('returns date with time when date has non-zero hours', () => {
+    const morning = new Date(2026, 5, 30, 8, 0, 0); // Jun 30 08:00
+    const result = formatDateAnchor(morning);
+    expect(result).not.toBe(formatShortDate(morning));
+    expect(result.length).toBeGreaterThan(formatShortDate(morning).length);
+  });
+
+  it('returns date with time when date has non-zero minutes', () => {
+    const withMinutes = new Date(2026, 5, 30, 0, 30, 0); // Jun 30 00:30
+    const result = formatDateAnchor(withMinutes);
+    expect(result).not.toBe(formatShortDate(withMinutes));
+    expect(result.length).toBeGreaterThan(formatShortDate(withMinutes).length);
   });
 });
