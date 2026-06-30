@@ -48,3 +48,11 @@ export function formatDurationMs(ms: number): string {
 export function formatShortDate(date: Date): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+
+export function formatDateAnchor(date: Date): string {
+  if (date.getHours() === 0 && date.getMinutes() === 0) {
+    return formatShortDate(date);
+  }
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    + ' ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
