@@ -27,14 +27,6 @@ function Op({ children }: { children: string }) {
   return <span className="font-mono text-sm pb-4">{children}</span>;
 }
 
-export function streakFactorValue(streakRange: string): string {
-  return `× ${streakRange}`;
-}
-
-export function decayFactorValue(decayRange: string): string {
-  return `× ${decayRange}`;
-}
-
 export default function XPFormula({
   xpSize,
   settings,
@@ -59,8 +51,8 @@ export default function XPFormula({
           <Factor value={String(toRepetitionFactor(multiplier.xpPerUnit))} label="rep. factor" />
         </>
       )}
-      {streakEnabled && <Factor value={streakFactorValue(streakRange)} label="streak" />}
-      {decayEnabled && <Factor value={decayFactorValue(decayRange)} label="decay" />}
+      {streakEnabled && <Factor value={`× ${streakRange}`} label="streak" />}
+      {decayEnabled && <Factor value={`× ${decayRange}`} label="decay" />}
     </div>
   );
 }
