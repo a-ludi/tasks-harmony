@@ -34,9 +34,9 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
 
   // Default XP size — same CUSTOM pattern as ChoreFormModal
   const initialDefaultXP = pack.manifest.defaultXPSize;
-  const [defaultXPSize, setDefaultXPSize] = useState<XPSize | 'CUSTOM' | ''>(
+  const [defaultXPSize, setDefaultXPSize] = useState<XPSize | 'CUSTOM' | 'NONE'>(
     typeof initialDefaultXP === 'number' ? 'CUSTOM'
-      : (initialDefaultXP ?? '')
+      : (initialDefaultXP ?? 'NONE')
   );
   const [customDefaultXP, setCustomDefaultXP] = useState(
     typeof initialDefaultXP === 'number' ? String(initialDefaultXP) : ''
@@ -57,10 +57,10 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
     let defaultXPSizeVal: XPSize | number | undefined;
     if (isCustomDefaultXP && customDefaultXP.trim()) {
       defaultXPSizeVal = Math.max(1, Math.floor(Number(customDefaultXP) || 1));
-    } else if (!isCustomDefaultXP && defaultXPSize) {
+    } else if (!isCustomDefaultXP && defaultXPSize !== 'NONE') {
       defaultXPSizeVal = defaultXPSize as XPSize;
     }
-    // if defaultXPSize is '' (none), defaultXPSizeVal remains undefined
+    // if defaultXPSize is 'NONE', defaultXPSizeVal remains undefined
 
     await updatePackManifest(pack.id, {
       title: title.trim(),
@@ -156,14 +156,14 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
                   value={defaultXPSize}
                   onValueChange={(v) => {
                     if (v === 'CUSTOM') { setDefaultXPSize('CUSTOM'); }
-                    else { setDefaultXPSize(v as XPSize | ''); }
+                    else { setDefaultXPSize(v as XPSize | 'NONE'); }
                   }}
                 >
                   <SelectTrigger id="pack-default-xp">
                     <SelectValue placeholder="None (use app default)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (use app default)</SelectItem>
+                    <SelectItem value="NONE">None (use app default)</SelectItem>
                     {XP_SIZES.map((size) => (
                       <SelectItem key={size} value={size}>
                         {size} ({XP_BASE[size]} XP)
