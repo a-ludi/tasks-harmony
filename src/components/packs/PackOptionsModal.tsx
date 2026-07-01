@@ -210,6 +210,11 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
                 onChange={(e) => setTargetDate(e.target.value)}
               />
             </div>
+          </section>
+
+          {/* Import section */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Import</h3>
 
             {/* Allow shift on import toggle */}
             <div className="flex items-center justify-between gap-3">
