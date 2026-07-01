@@ -59,21 +59,27 @@ The `MULTIPLIER` question type is removed from the type selector in `QuestionFor
 
 ### 2b. Formula display
 
-A read-only formula block appears below the score multiplier section. Each factor is rendered as a small vertical block — value/range on top, shorthand label below — separated by operators.
+A read-only formula block appears below the score multiplier section. Each factor is rendered as a small vertical block — value/range on top, shorthand label below — separated by operators. The `×` operator is integrated into each optional factor's value (e.g. `× 1–3` with label "streak"). When any multiplier is active (streak, decay, or question multiplier), the formula wraps in `round(...)`.
 
-**Without multiplier:**
+**Without multipliers active:**
 ```
-XP  =   8    ×  1×–2×  ×  1×–0.5×
-       base    streak     decay
-```
-
-**With multiplier enabled:**
-```
-XP  =   8    ×   ans   ÷    2    ×  1×–2×  ×  1×–0.5×
-       base    answer   rep.fac.   streak     decay
+XP  =   8
+       base
 ```
 
-- Ranges for streak (`1× → maxStreakMultiplier`) and decay (`1× → decayFloor`) come from the active `XPSettings`
+**With only decay/streak active (round wraps):**
+```
+XP  =  round(   8    × 1–3    × 50%–100% )
+              base    streak    decay
+```
+
+**With multiplier question enabled:**
+```
+XP  =  round(   8    ×   ans   ÷    2     × 1–3    × 50%–100% )
+              base    answer   rep.fac.   streak    decay
+```
+
+- Ranges come from active `XPSettings`: streak shows as `"1–N"` (N = `maxStreakMultiplier`), decay shows as `"F%–100%"` (F = `decayFloor × 100`, rounded)
 - `ans` is a placeholder — the actual answer is only known at completion time
 - **Streak factor is hidden** when the pack has `streak: false`
 - **Decay factor is hidden** when the pack has `decay: false`
