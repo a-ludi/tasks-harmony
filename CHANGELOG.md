@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-07-01
+
+### Added
+
+- **XP formula display** — a read-only formula block below the score multiplier section shows the full XP calculation: base × streak × decay × multiplier, wrapped in `round()` when any multiplier is active; ranges are shown as `1–N` for streak and `F%–100%` for decay based on active XP settings
+- **Score multiplier as dedicated chore field** — the MULTIPLIER question type is removed from the question type selector; a collapsible 'Score Multiplier' section in the chore form replaces it with an enable toggle, prompt, answer type (integer/float), and repetition factor
+- **Pack options modal** — a new 'Options…' menu item opens a single modal with Details (title, description), Scoring (streaks, decay, default XP size, XP target, target date), and Import (allow shift on import) sections; the kebab menu is reduced to Options, Download as CDP, and Delete Pack
+- **Custom XP size** — the XP size selector gains a 'Custom…' option that replaces the dropdown with a number input for a precise positive-integer XP amount; supported both on chores and as a pack default
+- **Default XP size per pack** — set a default XP size in the pack options modal; new chores created within that pack pre-fill with the pack's default instead of the app-wide default
+- **Decay toggle per pack** — disable XP decay for individual packs via the pack options modal; the decay factor is hidden from the XP formula and treated as 1 in the calculation
+- **First Due Date scheduling** — the 'Start Date' field in the chore form is relabelled 'First Due Date'; the displayed value is shifted by one interval so users enter the date the chore is first due rather than the internal window-open date
+- **Window bar** — a proportional bar below the Due Period field visualises one complete window split into Upcoming (gray) and Due (yellow) segments with duration labels above and date anchors below
+
+### Fixed
+
+- **Pack options modal crash on open** — Radix UI `<SelectItem>` does not allow an empty string value; replaced the empty-string sentinel with `'NONE'` for the 'no default XP size' option
+- **Stale pack settings after save** — `updatePackManifest` was not calling `markDirty()`, so pack changes were not synced; now marks dirty after every manifest update
+
 ## [0.10.7] — 2026-06-26
 
 ### Fixed
@@ -179,6 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.11.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.11.0
 [0.10.7]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.7
 [0.10.6]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.6
 [0.10.5]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.5
