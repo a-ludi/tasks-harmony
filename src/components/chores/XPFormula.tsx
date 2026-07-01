@@ -43,8 +43,8 @@ export default function XPFormula({
   decayEnabled,
 }: XPFormulaProps) {
   const base = getXPBase(xpSize);
-  const streakRange = `1×–${settings.maxStreakMultiplier}×`;
-  const decayRange = `${settings.decayFloor}×–1×`;
+  const streakRange = `1–${settings.maxStreakMultiplier}`;
+  const decayRange = `${Math.round(settings.decayFloor * 100)}%–100%`;
   const withRounding = showsRounding(multiplier, streakEnabled, decayEnabled);
 
   return (
