@@ -220,7 +220,7 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <Label htmlFor="pack-allow-shift" className="font-normal cursor-pointer">Allow shift on import</Label>
-                <p className="text-xs text-muted-foreground">Shifts chore due dates to align with today when importing</p>
+                <p className="text-xs text-muted-foreground">Shifts chore due dates and the pack target date to align with today when importing</p>
               </div>
               <Switch
                 id="pack-allow-shift"
