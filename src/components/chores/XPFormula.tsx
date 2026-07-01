@@ -26,13 +26,13 @@ function Factor({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
       <span className="font-mono text-sm">{value}</span>
-      <span className="text-xs text-muted-foreground leading-none">{label}</span>
+      <span className="text-xs text-muted-foreground leading-none min-h-3">{label}</span>
     </div>
   );
 }
 
 function Op({ children }: { children: string }) {
-  return <span className="font-mono text-sm pb-4">{children}</span>;
+  return <span className="font-mono text-sm pb-3.5">{children}</span>;
 }
 
 export default function XPFormula({
