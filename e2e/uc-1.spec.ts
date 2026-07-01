@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { today, daysFromNow, waitForApp } from './helpers/idb';
+import { daysFromNow, waitForApp } from './helpers/idb';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -26,9 +26,9 @@ test('create a valid chore', async ({ page }) => {
   await expect(card.getByText('Due')).toBeVisible();
 });
 
-test('start date defaults to today', async ({ page }) => {
+test('first due date defaults to tomorrow', async ({ page }) => {
   await page.getByRole('button', { name: '+ New Chore' }).click();
-  await expect(page.getByLabel('Start Date')).toHaveValue(today());
+  await expect(page.getByLabel('First Due Date')).toHaveValue(daysFromNow(1));
 });
 
 test('name is required', async ({ page }) => {
@@ -49,7 +49,7 @@ test('interval must be a positive integer', async ({ page }) => {
 test('upcoming chore shows "Upcoming" badge', async ({ page }) => {
   await page.getByRole('button', { name: '+ New Chore' }).click();
   await page.getByLabel('Title').fill('Future Task');
-  await page.getByLabel('Start Date').fill(daysFromNow(5));
+  await page.getByLabel('First Due Date').fill(daysFromNow(5));
   await page.getByRole('button', { name: 'Create Chore' }).click();
 
   const card = page.getByTestId('chore-card').filter({ hasText: 'Future Task' });
