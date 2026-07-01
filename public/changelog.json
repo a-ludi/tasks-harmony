@@ -1,5 +1,31 @@
 [
   {
+    "version": "0.11.0",
+    "date": "2026-07-01",
+    "highlights": [
+      "XP formula display — a live formula block in the chore form shows exactly how XP is calculated, including streak, decay, and score multiplier factors",
+      "Score multiplier as dedicated chore field — configure multiplier prompts, answer type, and repetition factor directly in the chore form with a toggle; no longer buried in question types",
+      "Pack options modal — all pack settings consolidated into one modal: title, description, streaks, decay, default XP size, XP target, target date, and import options",
+      "First Due Date scheduling with window bar — the chore form now shows 'First Due Date' with a proportional bar visualising the upcoming and due periods within the window"
+    ],
+    "sections": {
+      "Added": [
+        "**XP formula display** — a read-only formula block below the score multiplier section shows the full XP calculation: base × streak × decay × multiplier, wrapped in `round()` when any multiplier is active; ranges are shown as `1–N` for streak and `F%–100%` for decay based on active XP settings",
+        "**Score multiplier as dedicated chore field** — the MULTIPLIER question type is removed from the question type selector; a collapsible 'Score Multiplier' section in the chore form replaces it with an enable toggle, prompt, answer type (integer/float), and repetition factor",
+        "**Pack options modal** — a new 'Options…' menu item opens a single modal with Details (title, description), Scoring (streaks, decay, default XP size, XP target, target date), and Import (allow shift on import) sections; the kebab menu is reduced to Options, Download as CDP, and Delete Pack",
+        "**Custom XP size** — the XP size selector gains a 'Custom…' option that replaces the dropdown with a number input for a precise positive-integer XP amount; supported both on chores and as a pack default",
+        "**Default XP size per pack** — set a default XP size in the pack options modal; new chores created within that pack pre-fill with the pack's default instead of the app-wide default",
+        "**Decay toggle per pack** — disable XP decay for individual packs via the pack options modal; the decay factor is hidden from the XP formula and treated as 1 in the calculation",
+        "**First Due Date scheduling** — the 'Start Date' field in the chore form is relabelled 'First Due Date'; the displayed value is shifted by one interval so users enter the date the chore is first due rather than the internal window-open date",
+        "**Window bar** — a proportional bar below the Due Period field visualises one complete window split into Upcoming (gray) and Due (yellow) segments with duration labels above and date anchors below"
+      ],
+      "Fixed": [
+        "**Pack options modal crash on open** — Radix UI `<SelectItem>` does not allow an empty string value; replaced the empty-string sentinel with `'NONE'` for the 'no default XP size' option",
+        "**Stale pack settings after save** — `updatePackManifest` was not calling `markDirty()`, so pack changes were not synced; now marks dirty after every manifest update"
+      ]
+    }
+  },
+  {
     "version": "0.10.7",
     "date": "2026-06-26",
     "highlights": [
