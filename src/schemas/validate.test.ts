@@ -124,6 +124,48 @@ describe('validatePackManifest — sprint fields', () => {
   });
 });
 
+describe('validatePackManifest — chore filename security', () => {
+  it('rejects pack manifest with path-traversal chore filename (../)', () => {
+    const result = validatePackManifest({
+      title: 'Test Pack',
+      chores: ['../evil.yaml'],
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects pack manifest with deep path-traversal chore filename', () => {
+    const result = validatePackManifest({
+      title: 'Test Pack',
+      chores: ['../../other-user/other-repo/refs/heads/main/inject/malicious.yaml'],
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects pack manifest with subdirectory chore filename', () => {
+    const result = validatePackManifest({
+      title: 'Test Pack',
+      chores: ['subdir/chore.yaml'],
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('accepts pack manifest with simple safe chore filenames', () => {
+    const result = validatePackManifest({
+      title: 'Test Pack',
+      chores: ['morning-routine.yaml', 'chore_01.yaml', 'CleanUp.yaml'],
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts pack manifest with dotted chore filename', () => {
+    const result = validatePackManifest({
+      title: 'Test Pack',
+      chores: ['clean.up.yaml'],
+    });
+    expect(result.valid).toBe(true);
+  });
+});
+
 describe('validateChoreDefinition — duePeriod', () => {
   it('accepts valid duePeriod', () => {
     const result = validateChoreDefinition({

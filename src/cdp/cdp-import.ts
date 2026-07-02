@@ -63,8 +63,13 @@ export async function fetchCDP(
 
   const allQuestions: Question[] = [];
 
+  const SAFE_FILENAME_RE = /^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*\.yaml$/;
+
   const chores: Chore[] = await Promise.all(
     manifestRaw.chores.map(async (filename: string) => {
+      if (!SAFE_FILENAME_RE.test(filename)) {
+        throw new Error(`Unsafe chore filename rejected: ${filename}`);
+      }
       const choreUrl = `${baseUrl}/${filename}`;
       const choreRes = await fetch(choreUrl);
       if (!choreRes.ok)
