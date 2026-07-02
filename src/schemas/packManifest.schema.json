@@ -10,7 +10,7 @@
     "revision": { "type": "string" },
     "revisionHistory": { "type": "string" },
     "cdpCreatedAt": { "type": "string" },
-    "chores": { "type": "array", "items": { "type": "string" } },
+    "chores": { "type": "array", "items": { "type": "string", "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*\\.yaml$" } },
     "createdAt": { "type": "string" },
     "streak": { "type": "boolean" },
     "xpTarget": { "type": "number", "minimum": 0 },
