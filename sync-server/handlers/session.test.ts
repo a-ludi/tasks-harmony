@@ -65,4 +65,23 @@ describe('handleSession', () => {
     const res = await handleSession(req);
     expect(res.status).toBe(400);
   });
+
+  it('returns 400 when nonce is not a 64-char hex string', async () => {
+    const res = await handleSession(makeReq({
+      nonce: 'not-a-hex-nonce',
+      hmac: makeHmac('not-a-hex-nonce'),
+      syncToken: SYNC_TOKEN,
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when nonce is too long (> 64 chars)', async () => {
+    const longNonce = 'a'.repeat(65);
+    const res = await handleSession(makeReq({
+      nonce: longNonce,
+      hmac: makeHmac(longNonce),
+      syncToken: SYNC_TOKEN,
+    }));
+    expect(res.status).toBe(400);
+  });
 });

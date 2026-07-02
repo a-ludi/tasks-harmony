@@ -28,6 +28,9 @@ export async function handleSession(req: Request): Promise<Response> {
   if (typeof nonce !== 'string' || typeof hmac !== 'string' || typeof syncToken !== 'string') {
     return new Response('Bad Request', { status: 400 });
   }
+  if (!/^[a-f0-9]{64}$/.test(nonce)) {
+    return new Response('Bad Request', { status: 400 });
+  }
   if (!/^[a-f0-9]{64}$/.test(syncToken)) {
     return new Response('Bad Request', { status: 400 });
   }
