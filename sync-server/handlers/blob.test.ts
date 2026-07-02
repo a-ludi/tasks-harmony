@@ -5,7 +5,7 @@ const TEST_BLOB_DIR = '/tmp/test-sync-blobs-' + Date.now();
 process.env.SYNC_BLOB_DIR = TEST_BLOB_DIR;
 
 const SYNC_TOKEN = 'a'.repeat(64);
-const SESSION_TOKEN = 'sess01';
+const SESSION_TOKEN = 'b'.repeat(64);
 
 const mockGet = mock(async (key: string) =>
   key === `session:${SESSION_TOKEN}` ? SYNC_TOKEN : null
@@ -75,5 +75,28 @@ describe('handleBlob', () => {
     const data = new Uint8Array([9, 8, 7]);
     const res = await handleBlob(makeReq('PUT', SYNC_TOKEN, data), SYNC_TOKEN);
     expect(res.status).toBe(204);
+  });
+
+  it('GET returns 401 when session token is too short (not 64 hex chars)', async () => {
+    const callsBefore = mockGet.mock.calls.length;
+    const res = await handleBlob(makeReq('GET', SYNC_TOKEN, undefined, 'short'), SYNC_TOKEN);
+    expect(res.status).toBe(401);
+    expect(mockGet.mock.calls.length).toBe(callsBefore); // Redis must NOT be queried
+  });
+
+  it('GET returns 401 when session token is too long (> 64 chars)', async () => {
+    const callsBefore = mockGet.mock.calls.length;
+    const longToken = 'a'.repeat(65);
+    const res = await handleBlob(makeReq('GET', SYNC_TOKEN, undefined, longToken), SYNC_TOKEN);
+    expect(res.status).toBe(401);
+    expect(mockGet.mock.calls.length).toBe(callsBefore);
+  });
+
+  it('GET returns 401 when session token contains non-hex chars', async () => {
+    const callsBefore = mockGet.mock.calls.length;
+    const nonHexToken = 'z'.repeat(64);
+    const res = await handleBlob(makeReq('GET', SYNC_TOKEN, undefined, nonHexToken), SYNC_TOKEN);
+    expect(res.status).toBe(401);
+    expect(mockGet.mock.calls.length).toBe(callsBefore);
   });
 });

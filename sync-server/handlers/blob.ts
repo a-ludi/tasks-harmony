@@ -4,11 +4,13 @@ import { redis } from '../redis';
 
 const BLOB_DIR = process.env.SYNC_BLOB_DIR ?? '/data';
 const MAX_BYTES = 1024 * 1024;
+const SESSION_TOKEN_RE = /^[a-f0-9]{64}$/;
 
 async function authenticate(req: Request): Promise<string | null> {
   const auth = req.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) return null;
   const sessionToken = auth.slice(7);
+  if (!SESSION_TOKEN_RE.test(sessionToken)) return null;
   return redis.get(`session:${sessionToken}`);
 }
 
