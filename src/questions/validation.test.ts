@@ -138,6 +138,44 @@ describe('isSafeRegex', () => {
     expect(result.error).toMatch(/catastrophic backtracking/i);
   });
 
+  it('rejects ambiguous alternation ^(\\w|\\w)+$', () => {
+    const result = isSafeRegex('^(\\w|\\w)+$');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('rejects ambiguous alternation ^([A-Z]|[A-Z])+$', () => {
+    const result = isSafeRegex('^([A-Z]|[A-Z])+$');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('rejects ambiguous alternation ^(a|a)+$', () => {
+    const result = isSafeRegex('^(a|a)+$');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('rejects ambiguous alternation under * quantifier ^(\\d|\\d)*$', () => {
+    const result = isSafeRegex('^(\\d|\\d)*$');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('accepts non-ambiguous alternation ^(foo|bar)+$', () => {
+    expect(isSafeRegex('^(foo|bar)+$').valid).toBe(true);
+  });
+
+  it('accepts non-ambiguous alternation ^(cat|dog|bird)*$', () => {
+    expect(isSafeRegex('^(cat|dog|bird)*$').valid).toBe(true);
+  });
+
+  it('accepts non-quantified duplicate alternation ^(yes|yes)$', () => {
+    // Duplicate branches without an unbounded outer quantifier are not
+    // exponentially ambiguous — the pre-check must ignore them.
+    expect(isSafeRegex('^(yes|yes)$').valid).toBe(true);
+  });
+
   it('still rejects (a+)+', () => {
     expect(isSafeRegex('^(a+)+$').valid).toBe(false);
   });
