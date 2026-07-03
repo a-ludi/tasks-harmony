@@ -99,4 +99,17 @@ describe('handleBlob', () => {
     expect(res.status).toBe(401);
     expect(mockGet.mock.calls.length).toBe(callsBefore);
   });
+
+  it('returns 500 with no internal details when redis throws', async () => {
+    mockGet.mockImplementationOnce(() => {
+      throw new Error('connect ECONNREFUSED redis://secret:password@redis-host:6379');
+    });
+    const res = await handleBlob(makeReq('GET', SYNC_TOKEN), SYNC_TOKEN);
+    expect(res.status).toBe(500);
+    const body = await res.text();
+    expect(body).not.toContain('ECONNREFUSED');
+    expect(body).not.toContain('redis://');
+    expect(body).not.toContain('password');
+    expect(body).not.toContain(' at ');       // no stack trace frames
+  });
 });
