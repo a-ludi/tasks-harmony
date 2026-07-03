@@ -1,4 +1,5 @@
 import type { Answer, Question } from '@/types';
+import safeRegex from 'safe-regex';
 
 export interface RegexCheckResult {
   valid: boolean;
@@ -13,9 +14,7 @@ export function isSafeRegex(pattern: string): RegexCheckResult {
     return { valid: false, error: `Invalid regex: ${message}` };
   }
 
-  // Detect nested quantifiers like (a+)+, (a*)*, (a|a)+
-  const backtrackingHeuristic = /\([^)]*(?:[+*?]|[^)]*\|[^)]*)[^)]*\)[+*?]/;
-  if (backtrackingHeuristic.test(pattern)) {
+  if (!safeRegex(pattern)) {
     return {
       valid: false,
       error: 'Pattern may cause catastrophic backtracking',
@@ -38,6 +37,10 @@ export function validateAnswer(answer: Answer, question: Question): string | nul
   if (isEmpty) return null;
 
   if (question.type === 'TEXT' && question.regexPattern && typeof value === 'string') {
+    const safetyCheck = isSafeRegex(question.regexPattern);
+    if (!safetyCheck.valid) {
+      return safetyCheck.error ?? 'Invalid regex pattern';
+    }
     const re = new RegExp(question.regexPattern);
     if (!re.test(value)) {
       return `Value does not match the required pattern: ${question.regexPattern}`;
