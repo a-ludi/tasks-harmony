@@ -81,8 +81,8 @@ jobs:
           SSH_HOST: ${{ vars.SSH_HOST }}
         run: |
           # Write server env file
-          printf 'SYNC_APP_SECRET=%s\nSOCKET_DIR=%s\n' \
-            "${{ secrets.SYNC_APP_SECRET }}" "$SOCKET_DIR" \
+          printf 'SOCKET_DIR=%s\n' \
+            "$SOCKET_DIR" \
             | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "cat > $SERVER_DIR/.env"
 
           # Sync compose config and server source
