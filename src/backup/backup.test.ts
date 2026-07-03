@@ -64,3 +64,37 @@ describe('isAppStatePristine', () => {
     expect(isAppStatePristine([], [COMPLETION])).toBe(false);
   });
 });
+
+describe('unwrapStateFromZip (zip bomb guard)', () => {
+  it('throws on ZIP with oversized declared originalSize (zip bomb guard)', () => {
+    // Build a valid ZIP with an artificially large originalSize in its central directory.
+    // fflate's zipSync produces correct headers; we patch the originalSize field
+    // in the central directory to 0xFFFFFFFF (max uint32 ≈ 4 GB).
+    const tinyPayload = { 'state.json': strToU8('{}') };
+    const realZip = zipSync(tinyPayload);
+
+    // Patch the 'uncompressed size' field (4 bytes, little-endian) in the central directory.
+    // Central directory starts at the offset stored at byte [EOCD - 6] (4 bytes, LE).
+    // For a single-file ZIP from fflate the layout is predictable enough to patch.
+    const patched = new Uint8Array(realZip);
+    // Find the central directory file header signature 0x02014B50.
+    let cdOffset = -1;
+    for (let i = 0; i < patched.length - 4; i++) {
+      if (patched[i] === 0x50 && patched[i+1] === 0x4b &&
+          patched[i+2] === 0x01 && patched[i+3] === 0x02) {
+        cdOffset = i;
+        break;
+      }
+    }
+    expect(cdOffset).toBeGreaterThan(-1);
+    // Bytes [cdOffset+24..cdOffset+27] = uncompressed size (LE).
+    patched[cdOffset + 24] = 0xff;
+    patched[cdOffset + 25] = 0xff;
+    patched[cdOffset + 26] = 0xff;
+    patched[cdOffset + 27] = 0xff;
+
+    // Before fix: throws with an OOM / range error (or crashes the process).
+    // After fix: throws a controlled 'Backup file too large' error before allocating.
+    expect(() => unwrapStateFromZip(patched)).toThrow(/too large/i);
+  });
+});
