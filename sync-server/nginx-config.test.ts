@@ -29,4 +29,22 @@ describe('nginx sync-location.conf.template security', () => {
   it('documents the sync_session rate limit zone', () => {
     expect(config).toContain('sync_session');
   });
+
+  it('DEPLOYMENT.md documents all rate-limit zones used in the template', () => {
+    const deploymentMd = readFileSync(
+      join(import.meta.dir, '../docs/DEPLOYMENT.md'),
+      'utf-8'
+    );
+    const zoneRefs = [...config.matchAll(/limit_req zone=(\S+)/g)].map(m => m[1]);
+    expect(zoneRefs.length).toBeGreaterThan(0);
+    for (const zone of zoneRefs) {
+      expect(deploymentMd).toContain(`zone=${zone}`);
+    }
+  });
+
+  it('catch-all /sync/ location block includes a rate limit', () => {
+    const catchallMatch = config.match(/location \/sync\/ \{[^}]+\}/s);
+    expect(catchallMatch).not.toBeNull();
+    expect(catchallMatch![0]).toContain('limit_req');
+  });
 });
