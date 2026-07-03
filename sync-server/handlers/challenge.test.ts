@@ -5,19 +5,48 @@ mock.module('../redis', () => ({ redis: { set: mockSet } }));
 
 const { handleChallenge } = await import('./challenge');
 
+const SYNC_TOKEN = 'a'.repeat(64);
+
+function makeReq(body: unknown): Request {
+  return new Request('http://localhost/sync/challenge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('handleChallenge', () => {
   beforeEach(() => mockSet.mockClear());
 
   it('returns a 64-char hex nonce', async () => {
-    const res = await handleChallenge(new Request('http://localhost/sync/challenge'));
+    const res = await handleChallenge(makeReq({ syncToken: SYNC_TOKEN }));
     expect(res.status).toBe(200);
     const body = await res.json() as { nonce: string };
     expect(body.nonce).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it('stores the nonce in Redis with 60s TTL', async () => {
-    const res = await handleChallenge(new Request('http://localhost/sync/challenge'));
+  it('stores the syncToken in Redis with 60s TTL', async () => {
+    const res = await handleChallenge(makeReq({ syncToken: SYNC_TOKEN }));
     const { nonce } = await res.json() as { nonce: string };
-    expect(mockSet).toHaveBeenCalledWith(`nonce:${nonce}`, '1', 'EX', 60, 'NX');
+    expect(mockSet).toHaveBeenCalledWith(`nonce:${nonce}`, SYNC_TOKEN, 'EX', 60, 'NX');
+  });
+
+  it('returns 400 when syncToken is missing', async () => {
+    const res = await handleChallenge(makeReq({}));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when syncToken is not a 64-char hex string', async () => {
+    const res = await handleChallenge(makeReq({ syncToken: 'short' }));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 on malformed JSON', async () => {
+    const req = new Request('http://localhost/sync/challenge', {
+      method: 'POST',
+      body: 'not json',
+    });
+    const res = await handleChallenge(req);
+    expect(res.status).toBe(400);
   });
 });

@@ -3,13 +3,6 @@ import { describe, it, expect, mock, beforeEach } from 'bun:test';
 // Must be set before server.ts is imported (module-level SYNC_URL constant)
 process.env.VITE_SYNC_URL = 'http://test.local';
 
-// Secret parts: partA ^ partB ^ partC must decode to ≥32 bytes for the HMAC key.
-// All-zero buffers XOR to zero, which is a valid HMAC-SHA256 key.
-const ZERO_B64 = btoa(String.fromCharCode(...new Array(32).fill(0)));
-mock.module('@/sync/secret-a', () => ({ partA: ZERO_B64 }));
-mock.module('@/sync/secret-b', () => ({ partB: ZERO_B64 }));
-mock.module('@/sync/secret-c', () => ({ partC: ZERO_B64 }));
-
 const SYNC_TOKEN = 'a'.repeat(64);
 const mockKey = await crypto.subtle.generateKey(
   { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'],

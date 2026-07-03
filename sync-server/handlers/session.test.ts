@@ -1,21 +1,13 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
-import { createHmac, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 
-const APP_SECRET = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='; // 32 null bytes base64
-process.env.SYNC_APP_SECRET = APP_SECRET;
-
-const mockDel = mock(async (_key: string) => 1);
+const mockGetDel = mock(async (_key: string) => 'a'.repeat(64));
 const mockSet = mock(async () => 'OK' as const);
-mock.module('../redis', () => ({ redis: { del: mockDel, set: mockSet } }));
+mock.module('../redis', () => ({ redis: { getDel: mockGetDel, set: mockSet } }));
 
 const { handleSession } = await import('./session');
 
 const SYNC_TOKEN = 'a'.repeat(64);
-
-function makeHmac(nonce: string): string {
-  const secretBytes = Buffer.from(APP_SECRET, 'base64');
-  return createHmac('sha256', secretBytes).update(nonce).digest('hex');
-}
 
 function makeReq(body: unknown): Request {
   return new Request('http://localhost/sync/session', {
@@ -26,34 +18,11 @@ function makeReq(body: unknown): Request {
 }
 
 describe('handleSession', () => {
-  beforeEach(() => { mockDel.mockClear(); mockSet.mockClear(); });
-
-  it('returns sessionToken when HMAC is valid', async () => {
-    const nonce = randomBytes(32).toString('hex');
-    const res = await handleSession(makeReq({ nonce, hmac: makeHmac(nonce), syncToken: SYNC_TOKEN }));
-    expect(res.status).toBe(200);
-    const body = await res.json() as { sessionToken: string };
-    expect(body.sessionToken).toMatch(/^[a-f0-9]{64}$/);
-    expect(mockDel).toHaveBeenCalledWith(`nonce:${nonce}`);
-    expect(mockSet).toHaveBeenCalledWith(`session:${body.sessionToken}`, SYNC_TOKEN, 'EX', 86400);
-  });
-
-  it('returns 401 when HMAC is wrong', async () => {
-    const nonce = randomBytes(32).toString('hex');
-    const res = await handleSession(makeReq({ nonce, hmac: 'deadbeef'.repeat(8), syncToken: SYNC_TOKEN }));
-    expect(res.status).toBe(401);
-  });
-
-  it('returns 401 when nonce was already used (del returns 0)', async () => {
-    mockDel.mockImplementationOnce(async () => 0);
-    const nonce = randomBytes(32).toString('hex');
-    const res = await handleSession(makeReq({ nonce, hmac: makeHmac(nonce), syncToken: SYNC_TOKEN }));
-    expect(res.status).toBe(401);
-  });
+  beforeEach(() => { mockGetDel.mockClear(); mockSet.mockClear(); });
 
   it('returns 400 when syncToken is not 64 hex chars', async () => {
     const nonce = randomBytes(32).toString('hex');
-    const res = await handleSession(makeReq({ nonce, hmac: makeHmac(nonce), syncToken: 'short' }));
+    const res = await handleSession(makeReq({ nonce, syncToken: 'short' }));
     expect(res.status).toBe(400);
   });
 
@@ -69,7 +38,6 @@ describe('handleSession', () => {
   it('returns 400 when nonce is not a 64-char hex string', async () => {
     const res = await handleSession(makeReq({
       nonce: 'not-a-hex-nonce',
-      hmac: makeHmac('not-a-hex-nonce'),
       syncToken: SYNC_TOKEN,
     }));
     expect(res.status).toBe(400);
@@ -79,9 +47,33 @@ describe('handleSession', () => {
     const longNonce = 'a'.repeat(65);
     const res = await handleSession(makeReq({
       nonce: longNonce,
-      hmac: makeHmac(longNonce),
       syncToken: SYNC_TOKEN,
     }));
     expect(res.status).toBe(400);
+  });
+
+  it('returns 200 with sessionToken using only nonce and syncToken (no hmac required)', async () => {
+    const nonce = randomBytes(32).toString('hex');
+    const res = await handleSession(makeReq({ nonce, syncToken: SYNC_TOKEN }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as { sessionToken: string };
+    expect(body.sessionToken).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it('returns 401 when nonce was not issued by server (getDel returns null)', async () => {
+    mockGetDel.mockImplementationOnce(async () => null);
+    const nonce = randomBytes(32).toString('hex');
+    const res = await handleSession(makeReq({ nonce, syncToken: SYNC_TOKEN }));
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 401 when submitted syncToken does not match the syncToken bound to the nonce', async () => {
+    const legitimateToken = 'a'.repeat(64);
+    const attackerToken = 'f'.repeat(64);
+    mockGetDel.mockImplementationOnce(async () => legitimateToken);
+
+    const nonce = randomBytes(32).toString('hex');
+    const res = await handleSession(makeReq({ nonce, syncToken: attackerToken }));
+    expect(res.status).toBe(401);
   });
 });
