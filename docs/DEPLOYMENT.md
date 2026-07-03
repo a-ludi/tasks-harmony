@@ -57,11 +57,13 @@ sudo mkdir -p "$NGINX_INCLUDE_DIR"
 
 ### nginx — rate limiting zones
 
-Add these two lines to the `http {}` block in your main nginx config (e.g. `/etc/nginx/nginx.conf`). They must live in the `http` block, not inside a `server` block.
+Add these three lines to the `http {}` block in your main nginx config (e.g. `/etc/nginx/nginx.conf`). They must live in the `http` block, not inside a `server` block.
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=sync_challenge:10m rate=5r/m;
+limit_req_zone $binary_remote_addr zone=sync_session:10m rate=10r/m;
 limit_req_zone $binary_remote_addr zone=sync_write:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=sync_catchall:10m rate=20r/m;
 ```
 
 Then add an `include` directive inside your `server {}` block so nginx picks up the rendered location config written by CD:
