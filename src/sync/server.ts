@@ -6,41 +6,23 @@ import { validateAppState } from '@/schemas/validate';
 import { encryptState, decryptState } from '@/sync/encrypt';
 import { getOrCreateSyncKey, deriveSyncToken } from '@/sync/credentials';
 import { markDirty, clearDirty } from '@/sync/dirty';
-import { partA } from '@/sync/secret-a';
-import { partB } from '@/sync/secret-b';
-import { partC } from '@/sync/secret-c';
 import { putSyncState, getSyncState } from '@/db';
 
 const SYNC_URL = import.meta.env.VITE_SYNC_URL;
 const SESSION_KEY = 'sync-session-token';
 
-function getAppSecretBytes(): Uint8Array {
-  const a = Uint8Array.from(atob(partA), (c) => c.charCodeAt(0));
-  const b = Uint8Array.from(atob(partB), (c) => c.charCodeAt(0));
-  const c = Uint8Array.from(atob(partC), (c) => c.charCodeAt(0));
-  return a.map((byte, i) => byte ^ b[i]! ^ c[i]!);
-}
-
-async function computeHmac(nonce: string): Promise<string> {
-  const secretBytes = getAppSecretBytes();
-  const hmacKey = await crypto.subtle.importKey(
-    'raw', new Uint8Array(secretBytes.buffer as ArrayBuffer, secretBytes.byteOffset, secretBytes.byteLength),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
-  );
-  const encoded = new TextEncoder().encode(nonce);
-  const sig = await crypto.subtle.sign('HMAC', hmacKey, new Uint8Array(encoded.buffer as ArrayBuffer, encoded.byteOffset, encoded.byteLength));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 async function fetchNewSessionToken(syncToken: string): Promise<string> {
-  const chalRes = await fetch(`${SYNC_URL}/sync/challenge`);
+  const chalRes = await fetch(`${SYNC_URL}/sync/challenge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ syncToken }),
+  });
   if (!chalRes.ok) throw new Error(`Challenge failed: ${chalRes.status}`);
   const { nonce } = await chalRes.json() as { nonce: string };
-  const hmac = await computeHmac(nonce);
   const sessRes = await fetch(`${SYNC_URL}/sync/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nonce, hmac, syncToken }),
+    body: JSON.stringify({ nonce, syncToken }),
   });
   if (!sessRes.ok) throw new Error(`Session failed: ${sessRes.status}`);
   const { sessionToken } = await sessRes.json() as { sessionToken: string };
