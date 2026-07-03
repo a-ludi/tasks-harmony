@@ -19,6 +19,8 @@ async function compress(data: Uint8Array): Promise<Uint8Array> {
   return out;
 }
 
+const MAX_DECOMPRESSED_BYTES = 10 * 1024 * 1024; // 10 MB
+
 async function decompress(data: Uint8Array): Promise<Uint8Array> {
   const stream = new DecompressionStream('gzip');
   const writer = stream.writable.getWriter();
@@ -26,9 +28,16 @@ async function decompress(data: Uint8Array): Promise<Uint8Array> {
   writer.close();
   const chunks: Uint8Array[] = [];
   const reader = stream.readable.getReader();
+  let totalBytes = 0;
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_DECOMPRESSED_BYTES) {
+      throw new Error(
+        `Decompressed size exceeds limit of ${MAX_DECOMPRESSED_BYTES} bytes`
+      );
+    }
     chunks.push(value);
   }
   const total = chunks.reduce((n, c) => n + c.length, 0);
