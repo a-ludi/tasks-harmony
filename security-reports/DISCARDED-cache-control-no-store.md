@@ -1,0 +1,103 @@
+# Encrypted blob GET response cacheable — no Cache-Control: no-store header
+
+**Status:** DISCARDED
+**Bug ID:** N/A
+**Severity:** N/A
+
+## Location
+`sync-server/handlers/blob.ts`, line 27 (the `GET` branch `return new Response(data, ...)`)
+
+## Description
+When a client performs `GET /sync/<syncToken>` to pull its encrypted state blob, the Bun server
+returns:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+<binary AES-GCM ciphertext>
+```
+
+No `Cache-Control` header is set. RFC 7234 permits shared caches (CDNs, reverse proxies) to cache
+responses that bear no explicit caching directive, subject to their own heuristics. A caching proxy
+inserted between nginx and clients — or a CDN added later — could store this response keyed on the
+URL (`/sync/<syncToken>`) and serve the stale blob to subsequent GET requests.
+
+**Concrete impact:**
+
+1. **Stale-data sync:** A second device that pulls shortly after a write may receive a cached (old)
+   blob, silently reverting recent changes. Because the blob is AES-GCM encrypted and valid, the
+   client decrypts it successfully and imports the old state without any error signal.
+
+2. **Cross-session data leak via shared cache:** If a CDN normalises the URL by stripping the
+   `Authorization` header before cache-keying (or is misconfigured to do so), it could serve one
+   authenticated user's cached blob to another request for the same URL. The `syncToken` in the URL
+   is a 64-char hex string derived from the SHA-256 of the user's AES-GCM key, so two different
+   users holding the same key would have the same URL — not possible in practice. However, a
+   misconfigured CDN ignoring the `Authorization` header for caching would let an unauthenticated
+   request receive a previously cached response without a valid session.
+
+3. **The current deployment (direct nginx → Unix socket proxy) is not affected** because nginx
+   does not cache proxy responses by default. The risk materialises the moment any caching layer
+   is added in front of nginx.
+
+The fix is a single-line addition: include `Cache-Control: no-store` in the blob GET response
+headers. `no-store` is the appropriate directive because the blob contains the user's encrypted
+personal data and must never be stored by intermediaries.
+
+The same header should be added to all sync endpoints returning sensitive data: `POST
+/sync/session` (returns a session token), so that the token can never be served from cache.
+
+## Validation
+
+**DISCARDED — not a genuine, exploitable security issue in the current deployment.**
+
+### Findings
+
+**Q1 — Missing header confirmed:** `blob.ts` line 28 does return a GET response with no `Cache-Control` header. `session.ts` uses `Response.json()` which also sets no `Cache-Control`. The header gap is real.
+
+**Q2 — nginx does not add cache headers:** The nginx template (`nginx/sync-location.conf.template`) uses bare `proxy_pass` to a Unix socket. There are no `proxy_cache`, `proxy_cache_path`, `add_header Cache-Control`, or `proxy_hide_header` directives. nginx passes upstream response headers through unchanged and does **not** cache proxy responses by default. No caching is introduced by nginx.
+
+**Q3 — No caching layer in the actual deployment:** `docker-compose.yml` contains only two services: `sync` (Bun) and `redis`. There is no CDN, Varnish, or caching reverse proxy anywhere in the deployment. The risk is purely speculative future infrastructure.
+
+**Q4 — Encrypted blob caching impact is correctness, not security:** The blob is AES-256-GCM encrypted. A cached blob is unreadable ciphertext; caching it does not expose plaintext user data. The realistic worst case is a stale-data sync correctness problem (device B receives an old blob), not a confidentiality breach. The cross-session cache confusion scenario in the draft requires a *separately* misconfigured CDN that strips `Authorization` from cache keys — that misconfiguration is its own independent issue.
+
+**Q5 — POST responses are not cached by default:** RFC 7234 §2 prohibits caching POST responses unless the response includes an explicit `Expires`, `Cache-Control: max-age/s-maxage`, or a matching `Content-Location`. `Response.json({ sessionToken })` includes none of these. No compliant proxy caches the session token response.
+
+### Conclusion
+
+The missing `Cache-Control: no-store` header is a **best-practice / defence-in-depth gap**, not an exploitable security vulnerability in the current deployment. Adding the header would be a reasonable hardening measure for future-proofing, but it does not qualify as a security finding under the current threat model: no caching layer is present, POST is not cached by default, and the blob contents are encrypted. This is a correctness/hygiene issue, not a security issue. Discarded.
+
+## Fix Plan
+(filled by Planner)
+
+### Test Plan
+**File:** `sync-server/handlers/blob.test.ts`
+
+**Test name:** `'GET response includes Cache-Control: no-store'`
+
+```ts
+it('GET response includes Cache-Control: no-store', async () => {
+  mockRedisGet.mockImplementationOnce(async () => SYNC_TOKEN);
+  mockReadFile.mockImplementationOnce(async () => Buffer.from('blob-data'));
+  const req = new Request(`http://localhost/sync/${SYNC_TOKEN}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${SESSION_TOKEN}` },
+  });
+  const res = await handleBlob(req, SYNC_TOKEN);
+  expect(res.status).toBe(200);
+  expect(res.headers.get('Cache-Control')).toBe('no-store');
+});
+```
+
+**Why this test fails before the fix:** `handleBlob` constructs the 200 response as
+`new Response(data, { headers: { 'Content-Type': 'application/octet-stream' } })`, so
+`res.headers.get('Cache-Control')` returns `null`, not `'no-store'`. The assertion fails.
+
+**Why it passes after the fix:** Adding `'Cache-Control': 'no-store'` to the headers object in the
+200 response makes the header present, satisfying the assertion.
+
+## Implementation Notes
+(filled by Implementer — include RED phase failure output, then GREEN phase pass output)
+
+## Reviewer Notes
+(filled by Reviewer — sign-off or change requests with specific feedback)
