@@ -23,6 +23,7 @@ location = /sync/session {
 }
 
 location /sync/ {
+    limit_req zone=sync_catchall burst=5 nodelay;
     proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
     proxy_http_version 1.1;
 }
