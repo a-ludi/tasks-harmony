@@ -98,10 +98,60 @@ describe('isSafeRegex', () => {
     expect(result.error).toMatch(/catastrophic backtracking/i);
   });
 
-  it('returns valid=false with backtracking message for (a|a)+ pattern', () => {
-    const result = isSafeRegex('(a|a)+');
+  it('rejects nested bounded quantifier (a{1,10})+', () => {
+    const result = isSafeRegex('^(a{1,10})+$');
     expect(result.valid).toBe(false);
     expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('rejects nested bounded quantifier ([0-9]{1,5})+', () => {
+    const result = isSafeRegex('^([0-9]{1,5})+$');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('rejects nested bounded quantifier ([a-z]{1,8})*', () => {
+    const result = isSafeRegex('^([a-z]{1,8})*$');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('allows simple bounded quantifier ^[a-z]{1,10}$', () => {
+    const result = isSafeRegex('^[a-z]{1,10}$');
+    expect(result.valid).toBe(true);
+  });
+
+  it('allows bounded outer quantifier ^(abc){2,5}$', () => {
+    const result = isSafeRegex('^(abc){2,5}$');
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects nested group quantifier ((a)+)+', () => {
+    const result = isSafeRegex('^((a)+)+$');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('rejects nested group with alternation (a|(b+))+', () => {
+    const result = isSafeRegex('^(a|(b+))+$');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/catastrophic backtracking/i);
+  });
+
+  it('still rejects (a+)+', () => {
+    expect(isSafeRegex('^(a+)+$').valid).toBe(false);
+  });
+
+  it('still rejects (a{1,10})+', () => {
+    expect(isSafeRegex('^(a{1,10})+$').valid).toBe(false);
+  });
+
+  it('still accepts simple literal ^hello$', () => {
+    expect(isSafeRegex('^hello$').valid).toBe(true);
+  });
+
+  it('still accepts ^[a-z]+$', () => {
+    expect(isSafeRegex('^[a-z]+$').valid).toBe(true);
   });
 });
 
@@ -148,6 +198,16 @@ describe('validateAnswer', () => {
     const q = makeTextQuestion({ required: false, regexPattern: '^\\d{4}$' });
     const a = makeAnswer(q.id, '');
     expect(validateAnswer(a, q)).toBeNull();
+  });
+
+  it('validateAnswer returns an error and does not hang on catastrophic regex patterns', () => {
+    const q = makeTextQuestion({ required: false, regexPattern: '^(a+)+$' });
+    const a = makeAnswer(q.id, 'aaaaaaaaaaaaaaaaaaaab');
+
+    // Must not hang; must return a validation error rejecting the unsafe pattern
+    const result = validateAnswer(a, q);
+    expect(result).not.toBeNull();
+    expect(result).toMatch(/catastrophic backtracking/i);
   });
 
   it('returns null when INTEGER answer is within range', () => {
