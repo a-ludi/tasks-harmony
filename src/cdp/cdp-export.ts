@@ -22,18 +22,18 @@ export function buildCDPZip(
   return zipSync(files);
 }
 
-function buildAuthor(profile: UserProfile): string | undefined {
+function buildAuthor(pack: Pack, profile: UserProfile): string | undefined {
+  // Prefer pack.manifest.author if explicitly set (round-trip imports faithfully)
+  if (pack.manifest.author) return pack.manifest.author;
+  // Otherwise use profile display name only (never email)
   const name = profile.displayName.trim();
-  const email = profile.email.trim();
-  if (name && email) return `${name} <${email}>`;
   if (name) return name;
-  if (email) return `<${email}>`;
   return undefined;
 }
 
 function buildPackYaml(pack: Pack, choreFilenames: string[], profile: UserProfile): string {
   const data: Record<string, unknown> = { title: pack.manifest.title };
-  const author = buildAuthor(profile);
+  const author = buildAuthor(pack, profile);
   if (author) data.author = author;
   if (pack.manifest.license) data.license = pack.manifest.license;
   if (pack.manifest.description) data.description = pack.manifest.description;
