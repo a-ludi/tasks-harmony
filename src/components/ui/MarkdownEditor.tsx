@@ -10,6 +10,17 @@ import { emoji } from '@milkdown/plugin-emoji';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import '@milkdown/theme-nord/style.css';
 import { MarkdownToolbar } from './MarkdownToolbar';
+import { sanitizeMarkdownLinks } from './MarkdownDisplay';
+
+/**
+ * Pure transform applied to the incoming markdown value before it is handed to
+ * Milkdown's defaultValueCtx. Exported for unit-testing (SEC-000021).
+ * The editor is a live ProseMirror instance and renders live <a> DOM nodes,
+ * so any unsafe href must be rewritten here for the same reasons as SEC-000019.
+ */
+export function sanitizeEditorValue(value: string): string {
+  return sanitizeMarkdownLinks(value);
+}
 
 interface Props {
   value: string;
@@ -22,7 +33,7 @@ function InnerEditor({ value, onChange }: Props) {
       .config(nord)
       .config((ctx) => {
         ctx.set(rootCtx, root);
-        ctx.set(defaultValueCtx, value);
+        ctx.set(defaultValueCtx, sanitizeEditorValue(value));
         ctx.get(listenerCtx).markdownUpdated((_, markdown) => {
           onChange(markdown);
         });
