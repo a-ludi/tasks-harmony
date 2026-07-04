@@ -47,4 +47,16 @@ describe('nginx sync-location.conf.template security', () => {
     expect(catchallMatch).not.toBeNull();
     expect(catchallMatch![0]).toContain('limit_req');
   });
+
+  it('suppresses access logging inside the syncToken-carrying location block to prevent token leakage into nginx access logs', () => {
+    // The block matched by 'location ~ "^/sync/[a-f0-9]{64}$"' carries the syncToken
+    // verbatim in the URL path. Without 'access_log off;' inside this block, nginx's
+    // default combined log format writes the full URL (including the token) to
+    // /var/log/nginx/access.log on every GET/PUT. See SEC-000028.
+    const tokenBlockMatch = config.match(
+      /location ~ "\^\/sync\/\[a-f0-9\]\{64\}\$" \{[^}]+\}/s,
+    );
+    expect(tokenBlockMatch).not.toBeNull();
+    expect(tokenBlockMatch![0]).toContain('access_log off;');
+  });
 });
