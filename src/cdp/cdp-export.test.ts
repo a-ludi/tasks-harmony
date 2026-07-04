@@ -99,11 +99,35 @@ describe('buildCDPZip', () => {
   });
 });
 
+describe('buildCDPZip privacy', () => {
+  it('does not embed the profile email into the exported pack manifest', () => {
+    const profile: UserProfile = {
+      id: 'me',
+      displayName: 'Alice Example',
+      email: 'alice@example.com',
+      activeXPSettingsId: 'default',
+    };
+    const pack: Pack = {
+      id: 'my-pack',
+      manifest: { title: 'My Pack' },
+      isPersonal: true,
+      importedAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    };
+
+    const zipBytes = buildCDPZip(pack, [], [], profile);
+    const files = unzipSync(zipBytes);
+    const manifestYaml = strFromU8(files['my-pack/__pack__.yaml']);
+
+    expect(manifestYaml).not.toContain('alice@example.com');
+  });
+});
+
 describe('buildCDPZip — metadata', () => {
-  test('includes author as "Name <email>" when both are set', () => {
+  test('uses display name only as author when profile has both name and email', () => {
     const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], [], PROFILE));
     const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
-    expect(manifest.author).toBe('Alice <alice@example.com>');
+    expect(manifest.author).toBe('Alice');
   });
 
   test('includes only name when email is empty', () => {
@@ -113,11 +137,11 @@ describe('buildCDPZip — metadata', () => {
     expect(manifest.author).toBe('Alice');
   });
 
-  test('includes only email in angle brackets when name is empty', () => {
+  test('omits author when only email is present (no bare email leak)', () => {
     const noName = { ...PROFILE, displayName: '' };
     const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], [], noName));
     const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
-    expect(manifest.author).toBe('<alice@example.com>');
+    expect(manifest.author).toBeUndefined();
   });
 
   test('omits author when both name and email are empty', () => {
@@ -125,6 +149,16 @@ describe('buildCDPZip — metadata', () => {
     const files = unzipSync(buildCDPZip(PACK, [ACTIVE_CHORE], [], noIdentity));
     const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
     expect(manifest.author).toBeUndefined();
+  });
+
+  test('prefers pack.manifest.author over profile display name', () => {
+    const packWithAuthor: Pack = {
+      ...PACK,
+      manifest: { ...PACK.manifest, author: 'Custom Author <me@example.com>' },
+    };
+    const files = unzipSync(buildCDPZip(packWithAuthor, [ACTIVE_CHORE], [], PROFILE));
+    const manifest = jsYaml.load(strFromU8(files['morning-routines/__pack__.yaml'])) as Record<string, unknown>;
+    expect(manifest.author).toBe('Custom Author <me@example.com>');
   });
 
   test('includes createdAt as an ISO string', () => {
