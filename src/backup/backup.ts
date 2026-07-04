@@ -14,9 +14,11 @@ export function wrapStateInZip(state: AppState): Uint8Array {
 }
 
 export function unwrapStateFromZip(zipBytes: Uint8Array): AppState {
+  let totalDeclared = 0;
   const files = unzipSync(zipBytes, {
     filter(file) {
-      if (file.originalSize > MAX_UNCOMPRESSED_BYTES)
+      totalDeclared += file.originalSize;
+      if (file.originalSize >= MAX_UNCOMPRESSED_BYTES || totalDeclared >= MAX_UNCOMPRESSED_BYTES)
         throw new Error(`Backup entry "${file.name}" is too large to decompress safely`);
       return true;
     },

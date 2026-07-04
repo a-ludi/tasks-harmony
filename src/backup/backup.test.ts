@@ -97,4 +97,40 @@ describe('unwrapStateFromZip (zip bomb guard)', () => {
     // After fix: throws a controlled 'Backup file too large' error before allocating.
     expect(() => unwrapStateFromZip(patched)).toThrow(/too large/i);
   });
+
+  it('throws when the sum of declared originalSize across entries exceeds the cap', () => {
+    // Build a two-entry ZIP with tiny payloads.
+    const twoEntryZip = zipSync({
+      'state.json': strToU8('{}'),
+      'pad.bin':    strToU8('x'),
+    });
+    const patched = new Uint8Array(twoEntryZip);
+
+    // Find every central-directory file-header signature (0x02014B50, LE: 50 4B 01 02).
+    const cdOffsets: number[] = [];
+    for (let i = 0; i < patched.length - 4; i++) {
+      if (patched[i] === 0x50 && patched[i+1] === 0x4b &&
+          patched[i+2] === 0x01 && patched[i+3] === 0x02) {
+        cdOffsets.push(i);
+      }
+    }
+    expect(cdOffsets.length).toBe(2);
+
+    // Patch each entry's uncompressed-size field to MAX_UNCOMPRESSED_BYTES - 1
+    // (10 485 759 = 0x009FFFFF, LE bytes FF FF 9F 00).
+    // Each entry individually is strictly under the per-entry cap, so only the
+    // cumulative guard can reject the ZIP.
+    for (const cd of cdOffsets) {
+      patched[cd + 24] = 0xff;
+      patched[cd + 25] = 0xff;
+      patched[cd + 26] = 0x9f;
+      patched[cd + 27] = 0x00;
+    }
+
+    // Before fix: per-entry check passes for each (10 MB - 1 is not > 10 MB), no
+    // cumulative accumulator exists, so unzipSync proceeds to allocate ~20 MB. No throw.
+    // After fix: cumulative accumulator reaches ~20 MB on the second entry, trips the
+    // >= MAX_UNCOMPRESSED_BYTES check, throws.
+    expect(() => unwrapStateFromZip(patched)).toThrow(/too large/i);
+  });
 });
