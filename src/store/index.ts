@@ -243,8 +243,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   importCDP: async (baseUrl, startDateOffsetDays = 0) => {
-    const { db } = get();
+    const { db, packs } = get();
     if (!db) throw new Error('Database not initialised');
+
+    // SEC-000029: Derive packId from URL and check for collision with existing packs before fetch
+    const urlPath = baseUrl.replace(/\/$/, '');
+    const derivedPackId = urlPath.substring(urlPath.lastIndexOf('/') + 1);
+    if (packs.some((p) => p.id === derivedPackId)) {
+      throw new Error(`Cannot import: a pack with id '${derivedPackId}' already exists. Use the Update button on the installed pack instead.`);
+    }
+
     const { pack, chores, questions } = await fetchCDP(baseUrl, startDateOffsetDays);
     await putPack(db, pack);
     for (const chore of chores) await putChore(db, chore);

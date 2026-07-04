@@ -164,3 +164,81 @@ describe('updatePackManifest', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('importCDP — collision protection', () => {
+  beforeAll(async () => {
+    await useAppStore.getState().init();
+  });
+
+  it("refuses to overwrite the seeded personal pack when a CDP URL basename is 'personal'", async () => {
+    const PACK_YAML = `title: "Attacker Pack"\nauthor: "Evil"\nlicense: "MIT"\nchores:\n  - make-bed.yaml`;
+    const CHORE_YAML = `title: "Make Bed"\nxpSize: XS\nfrequency: daily\ninterval: 1`;
+
+    const mockFetch = await import('bun:test').then((m) => m.mock);
+    const originalFetch = global.fetch;
+
+    let fetchCount = 0;
+    global.fetch = mockFetch(async (url: string) => {
+      if (url === 'https://attacker.example/routines/personal/__pack__.yaml') {
+        return new Response(PACK_YAML, { status: 200 });
+      }
+      if (url === 'https://attacker.example/routines/personal/make-bed.yaml') {
+        return new Response(CHORE_YAML, { status: 200 });
+      }
+      return new Response('Not found', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    const personalPackBefore = useAppStore.getState().packs.find((p) => p.id === 'personal');
+    expect(personalPackBefore?.manifest.title).toBe('My Chores');
+    expect(personalPackBefore?.isPersonal).toBe(true);
+    expect(personalPackBefore?.sourceUrl).toBeUndefined();
+
+    // Attempt to import a pack with a URL basename matching 'personal'
+    await expect(
+      useAppStore.getState().importCDP('https://attacker.example/routines/personal')
+    ).rejects.toThrow(/already exists/i);
+
+    // Verify the personal pack remains unchanged
+    const personalPackAfter = useAppStore.getState().packs.find((p) => p.id === 'personal');
+    expect(personalPackAfter?.manifest.title).toBe('My Chores');
+    expect(personalPackAfter?.isPersonal).toBe(true);
+    expect(personalPackAfter?.sourceUrl).toBeUndefined();
+
+    global.fetch = originalFetch;
+  });
+
+  it('refuses to overwrite an already-imported CDP pack on repeat import (use Update instead)', async () => {
+    const existingPackId = await useAppStore.getState().addPack('Existing Routines');
+
+    const PACK_YAML = `title: "Attacker Pack"\nauthor: "Evil"\nlicense: "MIT"\nchores:\n  - chore.yaml`;
+    const CHORE_YAML = `title: "Attacker Chore"\nxpSize: XS\nfrequency: daily\ninterval: 1`;
+
+    const mockFetch = await import('bun:test').then((m) => m.mock);
+    const originalFetch = global.fetch;
+
+    global.fetch = mockFetch(async (url: string) => {
+      if (url === 'https://attacker.example/anything/existing-routines/__pack__.yaml') {
+        return new Response(PACK_YAML, { status: 200 });
+      }
+      if (url === 'https://attacker.example/anything/existing-routines/chore.yaml') {
+        return new Response(CHORE_YAML, { status: 200 });
+      }
+      return new Response('Not found', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    const existingPackBefore = useAppStore.getState().packs.find((p) => p.id === existingPackId);
+    expect(existingPackBefore?.manifest.title).toBe('Existing Routines');
+
+    // Attempt to import a pack with URL basename matching an existing pack ID
+    await expect(
+      useAppStore.getState().importCDP('https://attacker.example/anything/existing-routines')
+    ).rejects.toThrow(/already exists/i);
+
+    // Verify the existing pack remains unchanged
+    const existingPackAfter = useAppStore.getState().packs.find((p) => p.id === existingPackId);
+    expect(existingPackAfter?.manifest.title).toBe('Existing Routines');
+    expect(existingPackAfter?.sourceUrl).toBeUndefined();
+
+    global.fetch = originalFetch;
+  });
+});
