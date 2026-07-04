@@ -54,8 +54,8 @@ export function useSync(): SyncStatus {
   // Startup pull
   useEffect(() => {
     if (!db) return;
-    pull(db).then(async (imported) => {
-      if (imported) await reload();
+    pull(db).then(async (result) => {
+      if (result.imported) await reload();
     });
   }, [db]); // eslint-disable-line react-hooks/exhaustive-deps
 

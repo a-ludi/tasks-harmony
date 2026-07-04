@@ -62,6 +62,10 @@ export interface PushResult {
   status?: number;
 }
 
+export type PullResult =
+  | { imported: true }
+  | { imported: false; skipped?: 'server-newer' };
+
 export async function push(db: IDBPDatabase<TasksHarmonyDB>): Promise<PushResult> {
   if (!SYNC_URL) return { success: false };
   const key = await getOrCreateSyncKey(db);
@@ -92,35 +96,40 @@ export async function push(db: IDBPDatabase<TasksHarmonyDB>): Promise<PushResult
   }
 }
 
-export async function pull(db: IDBPDatabase<TasksHarmonyDB>): Promise<boolean> {
-  if (!SYNC_URL) return false;
+export async function pull(
+  db: IDBPDatabase<TasksHarmonyDB>,
+  options: { overwriteLocal?: boolean } = {},
+): Promise<PullResult> {
+  const { overwriteLocal = true } = options;
+  if (!SYNC_URL) return { imported: false };
   const key = await getOrCreateSyncKey(db);
   const syncToken = await deriveSyncToken(key);
 
   try {
     const res = await authorizedFetch('GET', syncToken);
-    if (res.status === 404) { markDirty(); return false; }
-    if (!res.ok) return false;
+    if (res.status === 404) { markDirty(); return { imported: false }; }
+    if (!res.ok) return { imported: false };
 
     const blob = new Uint8Array(await res.arrayBuffer());
     const serverState = await decryptState(key, blob);
     const validation = validateAppState(serverState);
-    if (!validation.valid) return false;
+    if (!validation.valid) return { imported: false };
 
     const localSyncState = await getSyncState(db);
     const localTs = localSyncState?.lastSyncedAt ?? '';
     const serverTs = serverState.syncState.lastSyncedAt ?? '';
 
     if (serverTs > localTs) {
+      if (!overwriteLocal) return { imported: false, skipped: 'server-newer' };
       await importAppState(db, serverState);
-      return true;
+      return { imported: true };
     }
 
     if (localTs > serverTs) {
       markDirty();
     }
-    return false;
+    return { imported: false };
   } catch {
-    return false;
+    return { imported: false };
   }
 }

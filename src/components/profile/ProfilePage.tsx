@@ -146,19 +146,48 @@ export function ProfilePage() {
     if (!file || !db) return;
     setKeyImportError(null);
     setKeyImportSuccess(false);
-    const ok = window.confirm(
-      'Importing a new key will make your existing server data inaccessible. Your local data is unaffected. Continue?'
+
+    // First confirm — only about the credential swap. This is truthful because the
+    // pull call below runs with overwriteLocal:false and cannot touch local data.
+    const okSwap = window.confirm(
+      'Importing a new key will change which server account this device syncs with. '
+      + 'Your existing server data (encrypted with the old key) will no longer be '
+      + 'accessible from this device. Continue?'
     );
-    if (!ok) {
+    if (!okSwap) {
       if (keyFileInputRef.current) keyFileInputRef.current.value = '';
       return;
     }
+
     try {
       const text = await file.text();
       const key = await importKeyFile(text);
       await putCredentials(db, { id: 'main', cryptoKey: key });
-      const imported = await pull(db);
-      if (imported) await reload();
+
+      // Non-destructive pull: never overwrites local data.
+      const result = await pull(db, { overwriteLocal: false });
+
+      if (result.imported === false && result.skipped === 'server-newer') {
+        // Second, explicitly destructive confirm — accurate about what will happen.
+        const okReplace = window.confirm(
+          'The imported key has a synced backup on the server that is newer than '
+          + 'your local data. Replacing your local data with the server backup will '
+          + 'DESTROY all local chores, packs, completions, XP history, and settings '
+          + 'on this device. This cannot be undone.\n\n'
+          + 'Replace local data with the server backup?'
+        );
+        if (okReplace) {
+          const replace = await pull(db, { overwriteLocal: true });
+          if (replace.imported) await reload();
+        }
+        // If declined: leave local data intact. Credential is already swapped so the
+        // next push will overwrite the server blob with local state (existing dirty
+        // marker / SyncPanel path handles this).
+      } else if (result.imported) {
+        // Should be unreachable with overwriteLocal:false, but reload to be safe.
+        await reload();
+      }
+
       setKeyImportSuccess(true);
     } catch {
       setKeyImportError('Invalid key file.');
