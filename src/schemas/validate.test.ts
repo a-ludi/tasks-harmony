@@ -215,3 +215,55 @@ describe('validateChoreDefinition — duePeriod', () => {
     expect(result.valid).toBe(false);
   });
 });
+
+describe('validateAppState — malicious pack sourceUrl (SEC-000023)', () => {
+  test('rejects a pack entry that is not a valid Pack shape', () => {
+    const state = {
+      schemaVersion: 1, exportedAt: '2026-01-01T00:00:00.000Z',
+      packs: [{
+        id: 'morning-routines',
+        manifest: { title: 'Morning Routines' },
+        isPersonal: false,
+        importedAt: '2026-07-04T00:00:00Z',
+        updatedAt:  '2026-07-04T00:00:00Z',
+        sourceUrl:  'https://evil.example/packs/morning-routines',
+        __attacker_extra: true,
+      }],
+      chores: [], questions: [], completions: [], xpSettings: [], quickAnswerSets: [],
+      profile: { id: 'me', displayName: '', email: '', activeXPSettingsId: 'standard' },
+      syncState: { id: 'main', pendingSync: false },
+    };
+    expect(validateAppState(state).valid).toBe(false);
+  });
+
+  test('accepts a well-formed backup with a legitimate pack, chore, completion, and quickAnswerSet', () => {
+    const state = {
+      schemaVersion: 1, exportedAt: '2026-01-01T00:00:00.000Z',
+      packs: [{
+        id: 'personal', manifest: { title: 'Personal' }, isPersonal: true,
+        importedAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+      }],
+      chores: [{
+        key: 'personal/floss', choreId: 'floss', packId: 'personal',
+        title: 'Floss', xpSize: 'XS',
+        recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+        repeatable: false, active: true, createdAt: '2026-01-01T00:00:00Z',
+      }],
+      questions: [],
+      completions: [{
+        id: 'c1', choreKey: 'personal/floss', completedAt: '2026-01-01T00:00:00Z',
+        xpEarned: 10, streak: 1, answers: [],
+      }],
+      xpSettings: [{
+        id: 'standard', name: 'Standard',
+        maxStreakMultiplier: 2, decayFloor: 0.5, streakHalfLife: 7, decayHalfLife: 14,
+      }],
+      quickAnswerSets: [{
+        id: 'qa1', choreKey: 'personal/floss', label: 'Ok', answers: [],
+      }],
+      profile: { id: 'me', displayName: '', email: '', activeXPSettingsId: 'standard' },
+      syncState: { id: 'main', pendingSync: false },
+    };
+    expect(validateAppState(state).valid).toBe(true);
+  });
+});

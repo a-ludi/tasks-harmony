@@ -5,8 +5,63 @@
   "properties": {
     "schemaVersion": { "type": "integer", "const": 1 },
     "exportedAt": { "type": "string" },
-    "packs": { "type": "array" },
-    "chores": { "type": "array" },
+    "packs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "manifest", "isPersonal", "importedAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "manifest": { "type": "object" },
+          "isPersonal": { "type": "boolean" },
+          "importedAt": { "type": "string" },
+          "updatedAt": { "type": "string" },
+          "sourceUrl": { "type": "string" },
+          "aliasFor": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "chores": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "choreId", "packId", "title", "xpSize", "recurrence", "repeatable", "active", "createdAt"],
+        "properties": {
+          "key": { "type": "string" },
+          "choreId": { "type": "string" },
+          "packId": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "xpSize": { "oneOf": [{ "type": "string", "enum": ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"] }, { "type": "number" }] },
+          "recurrence": {
+            "type": "object",
+            "required": ["frequency", "interval", "startDate", "windowStartTime"],
+            "properties": {
+              "frequency": { "type": "string", "enum": ["daily", "weekly", "monthly"] },
+              "interval": { "type": "integer", "minimum": 1 },
+              "startDate": { "type": "string" },
+              "windowStartTime": { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" }
+            },
+            "additionalProperties": false
+          },
+          "repeatable": { "type": "boolean" },
+          "active": { "type": "boolean" },
+          "duePeriod": {
+            "type": "object",
+            "required": ["value", "unit"],
+            "properties": {
+              "value": { "type": "number", "minimum": 0 },
+              "unit": { "type": "string", "enum": ["minutes", "hours", "days", "weeks", "months"] }
+            },
+            "additionalProperties": false
+          },
+          "createdAt": { "type": "string" },
+          "syncStatus": { "type": "string", "enum": ["in-sync", "out-of-sync"] }
+        },
+        "additionalProperties": false
+      }
+    },
     "questions": {
       "type": "array",
       "items": {
@@ -30,11 +85,95 @@
         "additionalProperties": false
       }
     },
-    "completions": { "type": "array" },
-    "xpSettings": { "type": "array" },
-    "profile": { "type": "object", "required": ["id", "displayName", "email", "activeXPSettingsId"] },
-    "syncState": { "type": "object", "required": ["id", "pendingSync"] },
-    "quickAnswerSets": { "type": "array" }
+    "completions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "choreKey", "completedAt", "xpEarned", "streak", "answers"],
+        "properties": {
+          "id": { "type": "string" },
+          "choreKey": { "type": "string" },
+          "completedAt": { "type": "string" },
+          "xpEarned": { "type": "number" },
+          "streak": { "type": "number" },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["questionId", "value"],
+              "properties": {
+                "questionId": { "type": "string" },
+                "value": { "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "type": "null" }] }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "xpSettings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "maxStreakMultiplier", "decayFloor", "streakHalfLife", "decayHalfLife"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "maxStreakMultiplier": { "type": "number" },
+          "decayFloor": { "type": "number" },
+          "streakHalfLife": { "type": "number" },
+          "decayHalfLife": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "profile": {
+      "type": "object",
+      "required": ["id", "displayName", "email", "activeXPSettingsId"],
+      "properties": {
+        "id": { "type": "string", "const": "me" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "activeXPSettingsId": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "syncState": {
+      "type": "object",
+      "required": ["id", "pendingSync"],
+      "properties": {
+        "id": { "type": "string", "const": "main" },
+        "pendingSync": { "type": "boolean" },
+        "lastSyncedAt": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "quickAnswerSets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "choreKey", "label", "answers"],
+        "properties": {
+          "id": { "type": "string" },
+          "choreKey": { "type": "string" },
+          "label": { "type": "string" },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["questionId", "value"],
+              "properties": {
+                "questionId": { "type": "string" },
+                "value": { "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "type": "null" }] }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
   },
   "additionalProperties": false
 }
