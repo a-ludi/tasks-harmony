@@ -114,7 +114,7 @@ describe('pull — session retry on auth errors', () => {
 
     globalThis.fetch = originalFetch;
 
-    expect(result).toBe(false); // 404 on retry → no server blob yet
+    expect(result.imported).toBe(false); // 404 on retry → no server blob yet
     expect(localStore[SESSION_KEY]).toBe('fresh-session'); // stale session replaced
   });
 
@@ -122,10 +122,11 @@ describe('pull — session retry on auth errors', () => {
     localStore[SESSION_KEY] = 'stale-session';
     globalThis.fetch = mockFetch([401, 404]);
 
-    await pull({} as never);
+    const result = await pull({} as never);
 
     globalThis.fetch = originalFetch;
 
+    expect(result.imported).toBe(false);
     expect(localStore[SESSION_KEY]).toBe('fresh-session');
   });
 
@@ -147,6 +148,73 @@ describe('pull — session retry on auth errors', () => {
     globalThis.fetch = originalFetch;
 
     expect(blobCallCount).toBe(2); // original attempt + one retry only
-    expect(result).toBe(false);
+    expect(result.imported).toBe(false);
+  });
+});
+
+describe('pull — overwriteLocal option (SEC-000018)', () => {
+  let originalFetch: typeof fetch;
+
+  beforeEach(() => {
+    Object.keys(localStore).forEach((k) => delete localStore[k]);
+    originalFetch = globalThis.fetch;
+  });
+
+  it('does not call importAppState when overwriteLocal is false and server blob is newer than local', async () => {
+    // The existing top-of-file mock for @/sync/import exposes importAppState as a spy.
+    const importMod = await import('@/sync/import');
+    const spy = importMod.importAppState as ReturnType<typeof mock>;
+    const callsBefore = spy.mock.calls.length;
+
+    // The existing decryptState mock returns a server blob with
+    // syncState.lastSyncedAt = '2026-01-02T00:00:00.000Z'.
+    // The @/db mock has getSyncState returning null → localTs = '' → serverTs > localTs.
+    // Fetch returns 200 for the blob GET so pull reaches the timestamp branch.
+    globalThis.fetch = mockFetch([200]);
+
+    const result = await pull({} as never, { overwriteLocal: false });
+
+    globalThis.fetch = originalFetch;
+
+    // Assertion that FAILS before fix (importAppState is called unconditionally) and
+    // PASSES after fix (guard short-circuits before importAppState).
+    expect(spy.mock.calls.length).toBe(callsBefore);
+    expect(result).toEqual({ imported: false, skipped: 'server-newer' });
+  });
+
+  it('still calls importAppState when overwriteLocal is true and server blob is newer', async () => {
+    // The existing top-of-file mock for @/sync/import exposes importAppState as a spy.
+    const importMod = await import('@/sync/import');
+    const spy = importMod.importAppState as ReturnType<typeof mock>;
+    const callsBefore = spy.mock.calls.length;
+
+    // The existing decryptState mock returns a server blob with
+    // syncState.lastSyncedAt = '2026-01-02T00:00:00.000Z'.
+    // The @/db mock has getSyncState returning null → localTs = '' → serverTs > localTs.
+    // Fetch returns 200 for the blob GET so pull reaches the timestamp branch.
+    globalThis.fetch = mockFetch([200]);
+
+    const result = await pull({} as never, { overwriteLocal: true });
+
+    globalThis.fetch = originalFetch;
+
+    // Should call importAppState and return imported: true
+    expect(spy.mock.calls.length).toBe(callsBefore + 1);
+    expect(result).toEqual({ imported: true });
+  });
+
+  it('returns { imported: true } when overwriteLocal is true with default parameter', async () => {
+    const importMod = await import('@/sync/import');
+    const spy = importMod.importAppState as ReturnType<typeof mock>;
+    const callsBefore = spy.mock.calls.length;
+
+    globalThis.fetch = mockFetch([200]);
+
+    const result = await pull({} as never);
+
+    globalThis.fetch = originalFetch;
+
+    expect(spy.mock.calls.length).toBe(callsBefore + 1);
+    expect(result).toEqual({ imported: true });
   });
 });
