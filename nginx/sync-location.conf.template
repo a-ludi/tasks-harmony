@@ -10,6 +10,7 @@ location /sync/challenge {
 }
 
 location ~ "^/sync/[a-f0-9]{64}$" {
+    access_log off;
     limit_req zone=sync_write burst=5 nodelay;
     client_max_body_size 1m;
     proxy_pass http://unix:__SOCKET_DIR__/sync.sock;

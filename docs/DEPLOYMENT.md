@@ -80,6 +80,14 @@ sudo nginx -s reload
 
 The CD pipeline renders `nginx/sync-location.conf.template` (substituting `__SOCKET_DIR__`) and writes the result to `$NGINX_INCLUDE_DIR/sync-location.conf` on each deploy.
 
+### Log hygiene
+
+The `location ~ "^/sync/[a-f0-9]{64}$"` block in the rendered config includes `access_log off;` to prevent nginx from logging the syncToken (a long-term bearer credential) in access logs. **This directive MUST NOT be removed.**
+
+If the sync server is fronted by an upstream proxy (CDN, cloud load balancer, or ISP proxy), ensure that proxy does not log request lines for `/sync/*` paths, or accept that the syncToken may be logged there (this is an operator-level log hygiene responsibility and falls outside the scope of this application).
+
+Do not enable request-body logging (via any body-logging middleware or module) on the sync locations, as POST bodies to `/sync/challenge` and `/sync/session` contain the syncToken.
+
 ### Sudoers
 
 Grant the `deploy` user the narrow privileges the CD pipeline needs:
