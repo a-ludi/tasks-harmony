@@ -267,3 +267,82 @@ describe('validateAppState — malicious pack sourceUrl (SEC-000023)', () => {
     expect(validateAppState(state).valid).toBe(true);
   });
 });
+
+describe('validateAppState — malicious pack manifest (SEC-000030)', () => {
+  test('rejects a pack whose manifest carries an unknown property', () => {
+    const state = {
+      schemaVersion: 1, exportedAt: '2026-01-01T00:00:00.000Z',
+      packs: [{
+        id: 'evil-pack',
+        manifest: { title: 'Evil', __attacker_extra: 'payload' },
+        isPersonal: false,
+        importedAt: '2026-07-04T00:00:00Z',
+        updatedAt:  '2026-07-04T00:00:00Z',
+      }],
+      chores: [], questions: [], completions: [], xpSettings: [], quickAnswerSets: [],
+      profile: { id: 'me', displayName: '', email: '', activeXPSettingsId: 'standard' },
+      syncState: { id: 'main', pendingSync: false },
+    };
+    expect(validateAppState(state).valid).toBe(false);
+  });
+
+  test('rejects a pack whose manifest.description is not a string', () => {
+    const state = {
+      schemaVersion: 1, exportedAt: '2026-01-01T00:00:00.000Z',
+      packs: [{
+        id: 'evil-pack',
+        manifest: { title: 'Evil', description: { evil: 'obj' } },
+        isPersonal: false,
+        importedAt: '2026-07-04T00:00:00Z',
+        updatedAt:  '2026-07-04T00:00:00Z',
+      }],
+      chores: [], questions: [], completions: [], xpSettings: [], quickAnswerSets: [],
+      profile: { id: 'me', displayName: '', email: '', activeXPSettingsId: 'standard' },
+      syncState: { id: 'main', pendingSync: false },
+    };
+    expect(validateAppState(state).valid).toBe(false);
+  });
+
+  test('rejects a pack whose manifest.xpTarget is a string', () => {
+    const state = {
+      schemaVersion: 1, exportedAt: '2026-01-01T00:00:00.000Z',
+      packs: [{
+        id: 'evil-pack',
+        manifest: { title: 'Evil', xpTarget: '9e99' },
+        isPersonal: false,
+        importedAt: '2026-07-04T00:00:00Z',
+        updatedAt:  '2026-07-04T00:00:00Z',
+      }],
+      chores: [], questions: [], completions: [], xpSettings: [], quickAnswerSets: [],
+      profile: { id: 'me', displayName: '', email: '', activeXPSettingsId: 'standard' },
+      syncState: { id: 'main', pendingSync: false },
+    };
+    expect(validateAppState(state).valid).toBe(false);
+  });
+
+  test('accepts a legitimate backup carrying user-only manifest fields (decay, defaultXPSize)', () => {
+    const state = {
+      schemaVersion: 1, exportedAt: '2026-01-01T00:00:00.000Z',
+      packs: [{
+        id: 'personal',
+        manifest: {
+          title: 'Personal',
+          description: 'My chores',
+          streak: true,
+          decay: false,
+          defaultXPSize: 'M',
+          xpTarget: 1200,
+          targetDate: '2026-12-31',
+          allowShiftOnImport: true,
+        },
+        isPersonal: true,
+        importedAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      }],
+      chores: [], questions: [], completions: [], xpSettings: [], quickAnswerSets: [],
+      profile: { id: 'me', displayName: '', email: '', activeXPSettingsId: 'standard' },
+      syncState: { id: 'main', pendingSync: false },
+    };
+    expect(validateAppState(state).valid).toBe(true);
+  });
+});
