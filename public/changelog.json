@@ -22,6 +22,9 @@
       "Fixed": [
         "**Pack options modal crash on open** — Radix UI `<SelectItem>` does not allow an empty string value; replaced the empty-string sentinel with `'NONE'` for the 'no default XP size' option",
         "**Stale pack settings after save** — `updatePackManifest` was not calling `markDirty()`, so pack changes were not synced; now marks dirty after every manifest update"
+      ],
+      "Security": [
+        "**Sync server blob-store resource exhaustion DoS (SEC-000026)** — enforced a disk quota with LRU eviction on the blob store to prevent unbounded storage growth; new `SYNC_BLOB_QUOTA_BYTES` (default 10 GB) and `SYNC_BLOB_MAX_COUNT` (default 10,000) environment variables control the limits; oldest blobs (by modification time) are evicted first when a cap is reached, never evicting the caller's own blob; new writes are rejected with HTTP 507 if eviction cannot free enough space"
       ]
     }
   },

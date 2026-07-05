@@ -24,6 +24,29 @@ The sync container and nginx share the Unix socket via a bind mount. The socket 
 
 Sync authentication is a nonce-issued 24-hour bearer token derived from the client's AES-256 key. The protocol uses per-IP nginx rate limits (`sync_challenge`, `sync_write`) and does not employ a shared app secret. The challenge/response is rate-limited to prevent Redis exhaustion; residual DoS risk is bounded by disk quota and LRU eviction on the blob store (see SEC-000026).
 
+### Blob store capacity
+
+The sync server enforces a disk quota and LRU (least-recently-used) eviction policy on the blob store to prevent unbounded disk growth and resource-exhaustion DoS attacks.
+
+**Configuration:**
+
+Two environment variables control the blob store limits:
+
+- `SYNC_BLOB_QUOTA_BYTES` (default: `10737418240`, i.e. 10 GB) — total byte limit for all blobs combined
+- `SYNC_BLOB_MAX_COUNT` (default: `10000`) — maximum number of blob files allowed
+
+Both may be set to `0` to effectively disable a specific cap; the defaults provide always-on protection for operators who set nothing.
+
+**Eviction policy:**
+
+When a new blob write would cause either limit to be exceeded, the server evicts the oldest blob files (by modification time) first, **without ever evicting the caller's own blob**. This ensures that a user can always overwrite or refresh their own stored state.
+
+If eviction cannot free enough space (i.e., only the caller's own blob exists and the new write still exceeds a cap), the write is rejected with HTTP 507 Insufficient Storage.
+
+**Operator contract:**
+
+Users whose sync blobs have gone longest without an update will be evicted first once either cap is hit. Set generous caps if you expect long-idle users; tune via `SYNC_BLOB_QUOTA_BYTES` and `SYNC_BLOB_MAX_COUNT` based on your deployment's available storage and expected user base.
+
 ---
 
 ## Prerequisites
