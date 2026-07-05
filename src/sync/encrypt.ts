@@ -49,6 +49,9 @@ async function decompress(data: Uint8Array): Promise<Uint8Array> {
   return out;
 }
 
+/**
+ * @deprecated Use encryptStatePQ instead. Only called from migrate.ts.
+ */
 export async function encryptState(key: CryptoKey, state: AppState): Promise<Uint8Array> {
   const plaintext = new TextEncoder().encode(JSON.stringify(state));
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -59,6 +62,9 @@ export async function encryptState(key: CryptoKey, state: AppState): Promise<Uin
   return result;
 }
 
+/**
+ * @deprecated Use decryptStatePQ instead. Only called from migrate.ts.
+ */
 export async function decryptState(key: CryptoKey, blob: Uint8Array): Promise<AppState> {
   const iv = blob.slice(0, 12);
   const ciphertext = blob.slice(12);

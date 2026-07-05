@@ -5,6 +5,9 @@ import { ml_kem1024 } from '@noble/post-quantum/ml-kem.js';
 import { ml_dsa87 } from '@noble/post-quantum/ml-dsa.js';
 import type { PQSyncCredentials } from '@/db/schema';
 
+/**
+ * @deprecated Use generatePQCredentials instead. Only called from migrate.ts.
+ */
 export async function getOrCreateSyncKey(db: IDBPDatabase<TasksHarmonyDB>): Promise<CryptoKey> {
   const stored = await getCredentials(db);
   if (stored && isLegacyCredentials(stored)) return stored.cryptoKey;
@@ -17,6 +20,9 @@ export async function getOrCreateSyncKey(db: IDBPDatabase<TasksHarmonyDB>): Prom
   return key;
 }
 
+/**
+ * @deprecated Use deriveSyncId instead. Only called from migrate.ts.
+ */
 export async function deriveSyncToken(key: CryptoKey): Promise<string> {
   const raw = await crypto.subtle.exportKey('raw', key);
   const hash = await crypto.subtle.digest('SHA-256', raw);
