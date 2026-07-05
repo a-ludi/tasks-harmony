@@ -1,6 +1,9 @@
 import type { IDBPDatabase } from 'idb';
 import type { TasksHarmonyDB, SyncCredentials, LegacySyncCredentials } from '@/db/schema';
 import { getCredentials, putCredentials } from '@/db';
+import { ml_kem1024 } from '@noble/post-quantum/ml-kem.js';
+import { ml_dsa87 } from '@noble/post-quantum/ml-dsa.js';
+import type { PQSyncCredentials } from '@/db/schema';
 
 export async function getOrCreateSyncKey(db: IDBPDatabase<TasksHarmonyDB>): Promise<CryptoKey> {
   const stored = await getCredentials(db);
@@ -39,4 +42,25 @@ export async function importKeyFile(jsonStr: string): Promise<CryptoKey> {
 
 export function isLegacyCredentials(c: SyncCredentials): c is LegacySyncCredentials {
   return 'cryptoKey' in c;
+}
+
+export async function generatePQCredentials(): Promise<PQSyncCredentials> {
+  const kem = ml_kem1024.keygen();
+  const dsa = ml_dsa87.keygen();
+  return {
+    id: 'main',
+    version: 2,
+    mlkemPublicKey: kem.publicKey,
+    mlkemPrivateKey: kem.secretKey,
+    mldsaPublicKey: dsa.publicKey,
+    mldsaPrivateKey: dsa.secretKey,
+  };
+}
+
+export async function deriveSyncId(creds: PQSyncCredentials): Promise<string> {
+  const combined = new Uint8Array(creds.mlkemPublicKey.length + creds.mldsaPublicKey.length);
+  combined.set(creds.mlkemPublicKey, 0);
+  combined.set(creds.mldsaPublicKey, creds.mlkemPublicKey.length);
+  const hash = await crypto.subtle.digest('SHA-256', combined);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
