@@ -49,9 +49,8 @@ async function decompress(data: Uint8Array): Promise<Uint8Array> {
 
 export async function encryptState(key: CryptoKey, state: AppState): Promise<Uint8Array> {
   const plaintext = new TextEncoder().encode(JSON.stringify(state));
-  const compressed = await compress(plaintext);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new Uint8Array(compressed.buffer as ArrayBuffer, compressed.byteOffset, compressed.byteLength));
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new Uint8Array(plaintext.buffer as ArrayBuffer, plaintext.byteOffset, plaintext.byteLength));
   const result = new Uint8Array(12 + ciphertext.byteLength);
   result.set(iv, 0);
   result.set(new Uint8Array(ciphertext), 12);
@@ -61,7 +60,17 @@ export async function encryptState(key: CryptoKey, state: AppState): Promise<Uin
 export async function decryptState(key: CryptoKey, blob: Uint8Array): Promise<AppState> {
   const iv = blob.slice(0, 12);
   const ciphertext = blob.slice(12);
-  const compressed = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-  const plaintext = await decompress(new Uint8Array(compressed));
+  const payload = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext));
+
+  // Check for gzip magic bytes (0x1f 0x8b) for backward compatibility with legacy compressed blobs
+  let plaintext: Uint8Array;
+  if (payload.length >= 2 && payload[0] === 0x1f && payload[1] === 0x8b) {
+    // Legacy compressed blob: decompress first
+    plaintext = await decompress(payload);
+  } else {
+    // New uncompressed blob: use directly
+    plaintext = payload;
+  }
+
   return JSON.parse(new TextDecoder().decode(plaintext)) as AppState;
 }
