@@ -242,3 +242,68 @@ describe('importCDP — collision protection', () => {
     global.fetch = originalFetch;
   });
 });
+
+describe('updateCDP — id consistency', () => {
+  beforeAll(async () => {
+    await useAppStore.getState().init();
+  });
+
+  it('refuses to overwrite the seeded personal pack when a stored sourceUrl basename mismatches the pack id', async () => {
+    const PACK_YAML = `title: "Attacker Pack"\nauthor: "Evil"\nlicense: "MIT"\nchores:\n  - make-bed.yaml`;
+    const CHORE_YAML = `title: "Make Bed"\nxpSize: XS\nfrequency: daily\ninterval: 1`;
+
+    const mockFetch = await import('bun:test').then((m) => m.mock);
+    const originalFetch = global.fetch;
+
+    // Mock fetch to return attacker content when fetching from the attacker URL
+    global.fetch = mockFetch(async (url: string) => {
+      if (url === 'https://attacker.example/routines/personal/__pack__.yaml') {
+        return new Response(PACK_YAML, { status: 200 });
+      }
+      if (url === 'https://attacker.example/routines/personal/make-bed.yaml') {
+        return new Response(CHORE_YAML, { status: 200 });
+      }
+      return new Response('Not found', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    // Get the database from the store
+    const { db } = useAppStore.getState();
+    if (!db) throw new Error('Database not initialised');
+
+    // Plant a pack with mismatched id and sourceUrl (mimicking a crafted backup)
+    const plantedPack = {
+      id: 'evening-routines',
+      manifest: { title: 'Evening Routines' },
+      isPersonal: false,
+      sourceUrl: 'https://attacker.example/routines/personal',
+      importedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await db.put('packs', plantedPack);
+
+    // Reload the store to pick up the planted pack
+    const { getPacks } = await import('@/db/index');
+    const updatedPacks = await getPacks(db);
+    useAppStore.setState({ packs: updatedPacks });
+
+    // Verify the personal pack is still intact before the update attempt
+    const personalPackBefore = useAppStore.getState().packs.find((p) => p.id === 'personal');
+    expect(personalPackBefore?.manifest.title).toBe('My Chores');
+    expect(personalPackBefore?.isPersonal).toBe(true);
+    expect(personalPackBefore?.sourceUrl).toBeUndefined();
+
+    // Attempt to update the planted pack; this should fail because the sourceUrl
+    // basename 'personal' does not match the pack id 'evening-routines'
+    await expect(
+      useAppStore.getState().updateCDP('evening-routines')
+    ).rejects.toThrow(/does not match/i);
+
+    // Verify the personal pack remains unchanged
+    const personalPackAfter = useAppStore.getState().packs.find((p) => p.id === 'personal');
+    expect(personalPackAfter?.manifest.title).toBe('My Chores');
+    expect(personalPackAfter?.isPersonal).toBe(true);
+    expect(personalPackAfter?.sourceUrl).toBeUndefined();
+
+    global.fetch = originalFetch;
+  });
+});
