@@ -57,8 +57,7 @@ export async function exportKeyFile(creds: SyncCredentials): Promise<string> {
   }
   // v1 legacy path
   const raw = await crypto.subtle.exportKey('raw', creds.cryptoKey);
-  const b64url = btoa(String.fromCharCode(...new Uint8Array(raw)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const b64url = bytesToBase64url(new Uint8Array(raw));
   return JSON.stringify({ version: 1, key: b64url });
 }
 
