@@ -7,7 +7,6 @@ services:
       - ${SOCKET_DIR}:/run/sync
       - sync-data:/data
     environment:
-      - SYNC_APP_SECRET=${SYNC_APP_SECRET}
       - REDIS_URL=redis://redis:6379
       - SYNC_SOCKET=/run/sync/sync.sock
       - SYNC_BLOB_DIR=/data
