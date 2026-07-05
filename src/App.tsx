@@ -14,6 +14,9 @@ import { getDisplayName } from '@/components/layout/displayName';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useUpdateNotification } from '@/hooks/useUpdateNotification';
 import { UpdateModal } from '@/components/update/UpdateModal';
+import { MigrationModal } from '@/components/sync/MigrationModal';
+import { isLegacyCredentials } from '@/sync/credentials';
+import { getCredentials } from '@/db';
 
 function RedirectToChore() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
@@ -31,6 +34,8 @@ export default function App() {
   const profile = useAppStore((s) => s.profile);
   const displayName = getDisplayName(profile?.displayName ?? '');
 
+  const db = useAppStore((s) => s.db);
+
   const update = useUpdateNotification();
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
@@ -38,6 +43,15 @@ export default function App() {
   useEffect(() => {
     if (update.available) setShowUpdateModal(true);
   }, [update.available]);
+
+  const [needsMigration, setNeedsMigration] = useState(false);
+
+  useEffect(() => {
+    if (!db) return;
+    getCredentials(db).then((creds) => {
+      if (creds && isLegacyCredentials(creds)) setNeedsMigration(true);
+    });
+  }, [db]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewPackDialog, setShowNewPackDialog] = useState(false);
@@ -154,6 +168,11 @@ export default function App() {
             onIgnore={() => { update.ignoreUpdate(); setShowUpdateModal(false); }}
           />
         )}
+
+        <MigrationModal
+          open={needsMigration}
+          onComplete={() => setNeedsMigration(false)}
+        />
     </div>
   );
 }
