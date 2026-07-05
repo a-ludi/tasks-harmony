@@ -254,4 +254,29 @@ describe('handleBlob', () => {
     const xContent = await readFile(pathX);
     expect(xContent.length).toBe(600);
   });
+
+  it('DELETE removes the blob and returns 204; subsequent GET returns 404', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5]);
+    const putRes = await handleBlob(makeReq('PUT', SYNC_TOKEN, data), SYNC_TOKEN);
+    expect(putRes.status).toBe(204);
+
+    const delRes = await handleBlob(makeReq('DELETE', SYNC_TOKEN), SYNC_TOKEN);
+    expect(delRes.status).toBe(204);
+
+    expect(existsSync(join(TEST_BLOB_DIR, `${SYNC_TOKEN}.enc`))).toBe(false);
+
+    const getRes = await handleBlob(makeReq('GET', SYNC_TOKEN), SYNC_TOKEN);
+    expect(getRes.status).toBe(404);
+  });
+
+  it('DELETE returns 204 when the blob does not exist (idempotent)', async () => {
+    const res = await handleBlob(makeReq('DELETE', SYNC_TOKEN), SYNC_TOKEN);
+    expect(res.status).toBe(204);
+  });
+
+  it('DELETE returns 403 when session belongs to a different sync token', async () => {
+    const other = 'b'.repeat(64);
+    const res = await handleBlob(makeReq('DELETE', other), other);
+    expect(res.status).toBe(403);
+  });
 });

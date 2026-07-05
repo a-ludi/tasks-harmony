@@ -18,7 +18,7 @@ async function handler(req: Request): Promise<Response> {
   if (pathname === '/sync/challenge' && req.method === 'POST') return handleChallenge(req);
   if (pathname === '/sync/session' && req.method === 'POST') return handleSession(req);
   const m = TOKEN_RE.exec(pathname);
-  if (m && (req.method === 'GET' || req.method === 'PUT')) return handleBlob(req, m[1]!);
+  if (m && (req.method === 'GET' || req.method === 'PUT' || req.method === 'DELETE')) return handleBlob(req, m[1]!);
   return new Response('Not Found', { status: 404 });
 }
 
