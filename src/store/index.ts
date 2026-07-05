@@ -272,6 +272,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!pack) throw new Error(`Pack '${packId}' not found in store`);
     if (!pack.sourceUrl) throw new Error(`Pack '${packId}' has no sourceUrl — cannot update`);
     const { pack: updatedPack, chores: updatedChores, questions: updatedQuestions } = await fetchCDP(pack.sourceUrl);
+    if (updatedPack.id !== packId) {
+      throw new Error(`updateCDP: fetched pack id '${updatedPack.id}' does not match expected '${packId}'`);
+    }
     for (const chore of updatedChores) await putChore(db, chore);
     for (const question of updatedQuestions) await putQuestion(db, question);
     const refreshedPack: Pack = { ...updatedPack, importedAt: pack.importedAt, updatedAt: new Date().toISOString() };

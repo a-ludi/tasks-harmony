@@ -37,7 +37,7 @@
           "isPersonal": { "type": "boolean" },
           "importedAt": { "type": "string" },
           "updatedAt": { "type": "string" },
-          "sourceUrl": { "type": "string" },
+          "sourceUrl": { "type": "string", "pattern": "^https://" },
           "aliasFor": { "type": "string" }
         },
         "additionalProperties": false
