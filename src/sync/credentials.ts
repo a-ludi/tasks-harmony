@@ -80,12 +80,16 @@ export async function importKeyFile(jsonStr: string): Promise<SyncCredentials> {
     return { id: 'main', version: 2, mlkemPublicKey, mlkemPrivateKey, mldsaPublicKey, mldsaPrivateKey };
   }
   // v1 legacy path — produces LegacySyncCredentials (triggers migration on next sync)
-  const { key: b64url } = parsed as { key: string };
-  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = b64.padEnd(b64.length + (4 - b64.length % 4) % 4, '=');
-  const raw = Uint8Array.from(atob(padded), c => c.charCodeAt(0));
-  const cryptoKey = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-  return { id: 'main', cryptoKey };
+  try {
+    const { key: b64url } = parsed as { key: string };
+    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64.padEnd(b64.length + (4 - b64.length % 4) % 4, '=');
+    const raw = Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+    const cryptoKey = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    return { id: 'main', cryptoKey };
+  } catch {
+    throw new Error('Invalid key file format: missing or malformed key field');
+  }
 }
 
 export function isLegacyCredentials(c: SyncCredentials): c is LegacySyncCredentials {

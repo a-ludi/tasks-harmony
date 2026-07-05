@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useTheme } from '@/hooks/useTheme';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getOrCreateSyncKey, exportKeyFile, importKeyFile, isLegacyCredentials } from '@/sync/credentials';
+import { exportKeyFile, importKeyFile, isLegacyCredentials } from '@/sync/credentials';
 import { putCredentials, getCredentials } from '@/db';
 import { pull, deleteRemote } from '@/sync/server';
 import { SyncPanel } from '@/components/sync/SyncPanel';
@@ -127,7 +127,6 @@ export function ProfilePage() {
     if (!db) return;
     setKeyExportError(null);
     try {
-      await getOrCreateSyncKey(db);
       const creds = (await getCredentials(db))!;
       const json = await exportKeyFile(creds);
       const blob = new Blob([json], { type: 'application/json' });
