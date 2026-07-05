@@ -218,3 +218,56 @@ describe('pull — overwriteLocal option (SEC-000018)', () => {
     expect(result).toEqual({ imported: true });
   });
 });
+
+describe('deleteRemote — DELETE endpoint', () => {
+  let originalFetch: typeof fetch;
+  const capturedRequests: { url: string; method: string; headers: Record<string, string> }[] = [];
+
+  beforeEach(() => {
+    Object.keys(localStore).forEach((k) => delete localStore[k]);
+    originalFetch = globalThis.fetch;
+    capturedRequests.length = 0;
+  });
+
+  it('deleteRemote issues DELETE /sync/{token} with a valid session and returns { deleted: true } on 204', async () => {
+    globalThis.fetch = mock(async (url: string | URL | Request, init?: RequestInit) => {
+      let s: string;
+      let method: string;
+      let headers: Record<string, string> = {};
+
+      if (url instanceof Request) {
+        s = url.url;
+        method = url.method;
+        headers = Object.fromEntries(url.headers.entries());
+      } else {
+        s = url.toString();
+        method = (init?.method ?? 'GET').toUpperCase();
+        if (init?.headers) {
+          const h = init.headers as Record<string, string>;
+          headers = h;
+        }
+      }
+
+      capturedRequests.push({ url: s, method, headers });
+
+      if (s.includes('/sync/challenge'))
+        return new Response(JSON.stringify({ nonce: 'n' }), { headers: { 'Content-Type': 'application/json' } });
+      if (s.includes('/sync/session'))
+        return new Response(JSON.stringify({ sessionToken: 'fresh-session' }), { headers: { 'Content-Type': 'application/json' } });
+      if (s.includes(`/sync/${SYNC_TOKEN}`) && method === 'DELETE')
+        return new Response('', { status: 204 });
+      return new Response('Not Found', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    const { deleteRemote } = await import('@/sync/server');
+    const result = await deleteRemote({} as never, mockKey);
+
+    globalThis.fetch = originalFetch;
+
+    expect(result.deleted).toBe(true);
+    const deleteReq = capturedRequests.find(r => r.method === 'DELETE');
+    expect(deleteReq).toBeDefined();
+    expect(deleteReq?.url).toContain(`/sync/${SYNC_TOKEN}`);
+    expect(deleteReq?.headers['Authorization'] || deleteReq?.headers['authorization']).toBe('Bearer fresh-session');
+  });
+});

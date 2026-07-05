@@ -109,6 +109,13 @@ export async function handleBlob(req: Request, token: string): Promise<Response>
       return new Response(null, { status: 204 });
     }
 
+    if (req.method === 'DELETE') {
+      await unlink(blobPath).catch((err) => {
+        if (err.code !== 'ENOENT') throw err;
+      });
+      return new Response(null, { status: 204 });
+    }
+
     return new Response('Method Not Allowed', { status: 405 });
   } catch {
     return new Response('Internal Server Error', { status: 500 });

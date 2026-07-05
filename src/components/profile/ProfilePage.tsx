@@ -11,8 +11,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getOrCreateSyncKey, exportKeyFile, importKeyFile } from '@/sync/credentials';
-import { putCredentials } from '@/db';
-import { pull } from '@/sync/server';
+import { putCredentials, getCredentials } from '@/db';
+import { pull, deleteRemote } from '@/sync/server';
 import { SyncPanel } from '@/components/sync/SyncPanel';
 
 function isValidEmail(value: string): boolean {
@@ -147,12 +147,12 @@ export function ProfilePage() {
     setKeyImportError(null);
     setKeyImportSuccess(false);
 
-    // First confirm — only about the credential swap. This is truthful because the
-    // pull call below runs with overwriteLocal:false and cannot touch local data.
+    // First confirm — reflect that we will attempt a server-side scrub.
     const okSwap = window.confirm(
       'Importing a new key will change which server account this device syncs with. '
-      + 'Your existing server data (encrypted with the old key) will no longer be '
-      + 'accessible from this device. Continue?'
+      + 'This device will attempt to remove the encrypted backup stored under your old key '
+      + 'from the server; if that fails (e.g., you\'re offline), the old backup may remain on '
+      + 'the server until it is evicted. Continue?'
     );
     if (!okSwap) {
       if (keyFileInputRef.current) keyFileInputRef.current.value = '';
@@ -162,6 +162,16 @@ export function ProfilePage() {
     try {
       const text = await file.text();
       const key = await importKeyFile(text);
+
+      // Attempt to delete the old blob before swapping credentials.
+      // This requires the old key to derive the old syncToken for auth.
+      // Only do this if there was actually a prior key (gate via getCredentials).
+      const oldCreds = await getCredentials(db);
+      if (oldCreds?.cryptoKey) {
+        await deleteRemote(db, oldCreds.cryptoKey);
+      }
+
+      // Now swap to the new key (cannot derive old syncToken after this).
       await putCredentials(db, { id: 'main', cryptoKey: key });
 
       // Non-destructive pull: never overwrites local data.

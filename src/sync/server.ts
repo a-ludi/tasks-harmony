@@ -35,7 +35,7 @@ async function getSessionToken(syncToken: string): Promise<string> {
 }
 
 async function authorizedFetch(
-  method: 'GET' | 'PUT',
+  method: 'GET' | 'PUT' | 'DELETE',
   syncToken: string,
   body?: Uint8Array,
   retried = false,
@@ -93,6 +93,30 @@ export async function push(db: IDBPDatabase<TasksHarmonyDB>): Promise<PushResult
   } catch {
     markDirty();
     return { success: false };
+  }
+}
+
+export interface DeleteResult {
+  deleted: boolean;
+}
+
+export async function deleteRemote(
+  db: IDBPDatabase<TasksHarmonyDB>,
+  key: CryptoKey,
+): Promise<DeleteResult> {
+  if (!SYNC_URL) return { deleted: false };
+  try {
+    const syncToken = await deriveSyncToken(key);
+    const res = await authorizedFetch('DELETE', syncToken);
+    // 204 (deleted) or 404 (already gone) are both success
+    if (res.status === 204 || res.status === 404) {
+      return { deleted: true };
+    }
+    // Best-effort: silently ignore other statuses
+    return { deleted: false };
+  } catch {
+    // Best-effort: network errors are silently ignored
+    return { deleted: false };
   }
 }
 
