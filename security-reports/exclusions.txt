@@ -1,0 +1,2 @@
+Documented HMAC challenge-response is unimplemented; sync auth is effectively a bearer token
+Sync AES-256 master key stored in IndexedDB is exportable, enabling XSS to exfiltrate it and permanently decrypt all backups
