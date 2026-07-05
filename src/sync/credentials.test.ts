@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { isLegacyCredentials } from './credentials';
+import { isLegacyCredentials, generatePQCredentials, deriveSyncId } from './credentials';
 import type { LegacySyncCredentials, PQSyncCredentials } from '@/db/schema';
 
 describe('isLegacyCredentials', () => {
@@ -21,5 +21,42 @@ describe('isLegacyCredentials', () => {
       mldsaPrivateKey: new Uint8Array(4896),
     };
     expect(isLegacyCredentials(pq)).toBe(false);
+  });
+});
+
+describe('generatePQCredentials', () => {
+  it('produces keys of the correct byte lengths', async () => {
+    const creds = await generatePQCredentials();
+    expect(creds.version).toBe(2);
+    expect(creds.mlkemPublicKey.byteLength).toBe(1568);
+    expect(creds.mlkemPrivateKey.byteLength).toBe(3168);
+    expect(creds.mldsaPublicKey.byteLength).toBe(2592);
+    expect(creds.mldsaPrivateKey.byteLength).toBe(4896);
+  });
+
+  it('generates different keys on each call', async () => {
+    const a = await generatePQCredentials();
+    const b = await generatePQCredentials();
+    expect(a.mlkemPublicKey).not.toEqual(b.mlkemPublicKey);
+    expect(a.mldsaPublicKey).not.toEqual(b.mldsaPublicKey);
+  });
+});
+
+describe('deriveSyncId', () => {
+  it('returns a 64-char hex string', async () => {
+    const creds = await generatePQCredentials();
+    const id = await deriveSyncId(creds);
+    expect(id).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it('is deterministic for the same credentials', async () => {
+    const creds = await generatePQCredentials();
+    expect(await deriveSyncId(creds)).toBe(await deriveSyncId(creds));
+  });
+
+  it('differs when either key changes', async () => {
+    const a = await generatePQCredentials();
+    const b = await generatePQCredentials();
+    expect(await deriveSyncId(a)).not.toBe(await deriveSyncId(b));
   });
 });
