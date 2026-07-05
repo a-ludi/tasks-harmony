@@ -127,8 +127,9 @@ export function ProfilePage() {
     if (!db) return;
     setKeyExportError(null);
     try {
-      const key = await getOrCreateSyncKey(db);
-      const json = await exportKeyFile(key);
+      await getOrCreateSyncKey(db);
+      const creds = (await getCredentials(db))!;
+      const json = await exportKeyFile(creds);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -161,7 +162,7 @@ export function ProfilePage() {
 
     try {
       const text = await file.text();
-      const key = await importKeyFile(text);
+      const newCreds = await importKeyFile(text);
 
       // Attempt to delete the old blob before swapping credentials.
       // This requires the old key to derive the old syncToken for auth.
@@ -171,8 +172,8 @@ export function ProfilePage() {
         await deleteRemote(db, oldCreds.cryptoKey);
       }
 
-      // Now swap to the new key (cannot derive old syncToken after this).
-      await putCredentials(db, { id: 'main', cryptoKey: key });
+      // Now swap to the new credentials (cannot derive old syncToken after this).
+      await putCredentials(db, newCreds);
 
       // Non-destructive pull: never overwrites local data.
       const result = await pull(db, { overwriteLocal: false });

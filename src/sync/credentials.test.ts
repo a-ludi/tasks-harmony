@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { isLegacyCredentials, generatePQCredentials, deriveSyncId } from './credentials';
+import { isLegacyCredentials, generatePQCredentials, deriveSyncId, exportKeyFile, importKeyFile } from './credentials';
 import type { LegacySyncCredentials, PQSyncCredentials } from '@/db/schema';
 
 describe('isLegacyCredentials', () => {
@@ -58,5 +58,35 @@ describe('deriveSyncId', () => {
     const a = await generatePQCredentials();
     const b = await generatePQCredentials();
     expect(await deriveSyncId(a)).not.toBe(await deriveSyncId(b));
+  });
+});
+
+describe('exportKeyFile / importKeyFile', () => {
+  it('round-trips PQSyncCredentials through v2 JSON', async () => {
+    const creds = await generatePQCredentials();
+    const json = await exportKeyFile(creds);
+    const parsed = JSON.parse(json) as { version: number };
+    expect(parsed.version).toBe(2);
+
+    const recovered = await importKeyFile(json);
+    expect(isLegacyCredentials(recovered)).toBe(false);
+    const pq = recovered as PQSyncCredentials;
+    expect(pq.mlkemPublicKey).toEqual(creds.mlkemPublicKey);
+    expect(pq.mlkemPrivateKey).toEqual(creds.mlkemPrivateKey);
+    expect(pq.mldsaPublicKey).toEqual(creds.mldsaPublicKey);
+    expect(pq.mldsaPrivateKey).toEqual(creds.mldsaPrivateKey);
+  });
+
+  it('importKeyFile on a v1 file returns LegacySyncCredentials', async () => {
+    const key = await crypto.subtle.generateKey(
+      { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'],
+    );
+    const raw = await crypto.subtle.exportKey('raw', key);
+    const b64url = btoa(String.fromCharCode(...new Uint8Array(raw)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const v1Json = JSON.stringify({ version: 1, key: b64url });
+
+    const recovered = await importKeyFile(v1Json);
+    expect(isLegacyCredentials(recovered)).toBe(true);
   });
 });
