@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useTheme } from '@/hooks/useTheme';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getOrCreateSyncKey, exportKeyFile, importKeyFile } from '@/sync/credentials';
+import { getOrCreateSyncKey, exportKeyFile, importKeyFile, isLegacyCredentials } from '@/sync/credentials';
 import { putCredentials, getCredentials } from '@/db';
 import { pull, deleteRemote } from '@/sync/server';
 import { SyncPanel } from '@/components/sync/SyncPanel';
@@ -167,7 +167,7 @@ export function ProfilePage() {
       // This requires the old key to derive the old syncToken for auth.
       // Only do this if there was actually a prior key (gate via getCredentials).
       const oldCreds = await getCredentials(db);
-      if (oldCreds?.cryptoKey) {
+      if (oldCreds && isLegacyCredentials(oldCreds)) {
         await deleteRemote(db, oldCreds.cryptoKey);
       }
 

@@ -5,10 +5,21 @@ import type {
   XPSettings, UserProfile, SyncState, QuickAnswerSet,
 } from '@/types';
 
-export interface SyncCredentials {
+export interface LegacySyncCredentials {
   id: 'main';
   cryptoKey: CryptoKey;
 }
+
+export interface PQSyncCredentials {
+  id: 'main';
+  version: 2;
+  mlkemPublicKey: Uint8Array;
+  mlkemPrivateKey: Uint8Array;
+  mldsaPublicKey: Uint8Array;
+  mldsaPrivateKey: Uint8Array;
+}
+
+export type SyncCredentials = LegacySyncCredentials | PQSyncCredentials;
 
 export interface TasksHarmonyDB extends DBSchema {
   packs:           { key: string; value: Pack };

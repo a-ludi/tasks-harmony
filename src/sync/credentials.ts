@@ -1,10 +1,10 @@
 import type { IDBPDatabase } from 'idb';
-import type { TasksHarmonyDB } from '@/db/schema';
+import type { TasksHarmonyDB, SyncCredentials, LegacySyncCredentials } from '@/db/schema';
 import { getCredentials, putCredentials } from '@/db';
 
 export async function getOrCreateSyncKey(db: IDBPDatabase<TasksHarmonyDB>): Promise<CryptoKey> {
   const stored = await getCredentials(db);
-  if (stored) return stored.cryptoKey;
+  if (stored && isLegacyCredentials(stored)) return stored.cryptoKey;
   const key = await crypto.subtle.generateKey(
     { name: 'AES-GCM', length: 256 },
     true,
@@ -35,4 +35,8 @@ export async function importKeyFile(jsonStr: string): Promise<CryptoKey> {
   const padded = b64.padEnd(b64.length + (4 - (b64.length % 4)) % 4, '=');
   const raw = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+}
+
+export function isLegacyCredentials(c: SyncCredentials): c is LegacySyncCredentials {
+  return 'cryptoKey' in c;
 }
