@@ -22,6 +22,18 @@ The current sync system uses a single AES-256 symmetric key for both blob encryp
 - Server-side blob-to-user registry or account management
 - Automated cross-device key propagation
 
+## Related Security Issues
+
+**SEC-000025** — *Sync AES-256 master key stored in IndexedDB is exportable, enabling XSS to exfiltrate it and permanently decrypt all backups* (status: REVIEW)
+
+This design partially changes the SEC-000025 landscape:
+
+- **`deriveSyncToken` blocker removed.** SEC-000025's Fix Plan identified `deriveSyncToken` as a blocker for making the key non-extractable, because it calls `crypto.subtle.exportKey('raw', key)` on every push/pull. In the PQ design, `syncId` is derived from the *public* ML-KEM key — no private key export needed at runtime. This blocker no longer applies.
+
+- **`exportKeyFile` semantics change.** SEC-000025 Option B ("rotate on export") closely resembles the migration flow in this design: generate a new key bundle, re-encrypt current state, push to the new blob path, abandon the old blob. The PQ migration is the de-facto implementation of that rotation model.
+
+- **XSS exfiltration concern is NOT closed.** ML-KEM and ML-DSA private keys are stored as raw `Uint8Array` in IndexedDB. An XSS payload can read them just as directly as the old `CryptoKey` — the mechanism shifts from `crypto.subtle.exportKey('raw', key)` to a plain IndexedDB read, but the exposure is equivalent. SEC-000025 remains open and must be addressed independently (e.g., wrapping private key bytes with a user-derived secret at rest).
+
 ## Library
 
 `@noble/post-quantum` (pure TypeScript, no WASM, browser and Bun compatible).
