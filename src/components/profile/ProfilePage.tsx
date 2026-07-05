@@ -167,8 +167,8 @@ export function ProfilePage() {
       // This requires the old key to derive the old syncToken for auth.
       // Only do this if there was actually a prior key (gate via getCredentials).
       const oldCreds = await getCredentials(db);
-      if (oldCreds && isLegacyCredentials(oldCreds)) {
-        await deleteRemote(db, oldCreds.cryptoKey);
+      if (oldCreds && !isLegacyCredentials(oldCreds)) {
+        await deleteRemote(db);
       }
 
       // Now swap to the new credentials (cannot derive old syncToken after this).
