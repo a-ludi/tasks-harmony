@@ -10,7 +10,7 @@ nginx (existing, any user)
   location /sync/*  →  unix:$SOCKET_DIR/sync.sock
 
 Docker Compose  (isolated bridge network)
-  sync   — Bun HTTP server  (reads SYNC_APP_SECRET, SYNC_BLOB_DIR from env)
+  sync   — Bun HTTP server  (reads SYNC_BLOB_DIR from env)
   redis  — no exposed ports, AOF persistence
 
 Volumes
@@ -19,6 +19,10 @@ Volumes
 ```
 
 The sync container and nginx share the Unix socket via a bind mount. The socket is created by the Bun server on startup with mode `0666` so nginx can write to it without a shared group.
+
+### Sync auth model
+
+Sync authentication is a nonce-issued 24-hour bearer token derived from the client's AES-256 key. The protocol uses per-IP nginx rate limits (`sync_challenge`, `sync_write`) and does not employ a shared app secret. The challenge/response is rate-limited to prevent Redis exhaustion; residual DoS risk is bounded by disk quota and LRU eviction on the blob store (see SEC-000026).
 
 ---
 
@@ -121,7 +125,7 @@ Go to **Settings → Secrets and variables → Actions → Variables tab → New
 | `SSH_HOST` | `tasks-harmony.example.com` | Server hostname for SSH/rsync |
 | `SSH_USER` | `deploy` | SSH user on the server |
 
-> **`SERVER_DIR` must not be inside `SSH_PATH`.** CD writes `.env` (containing `SYNC_APP_SECRET`) to `$SERVER_DIR/.env`. If `SERVER_DIR` were inside the web root, that file would be publicly accessible.
+> **`SERVER_DIR` must not be inside `SSH_PATH`.** Configuration files written by CD are kept outside the web root to prevent accidental public exposure.
 
 ### Secrets — repository level
 
@@ -130,7 +134,6 @@ Go to **Settings → Secrets and variables → Actions → Secrets tab → New r
 | Secret | How to generate | Purpose |
 |---|---|---|
 | `SSH_KEY` | Private key for the `deploy` user | Used by rsync and SSH steps to connect to the server |
-| `SYNC_APP_SECRET` | `openssl rand -base64 32` | Pre-shared secret for HMAC challenge-response; written to server `.env` and baked into the client bundle |
 
 ---
 
@@ -140,7 +143,6 @@ After the one-time setup above, each push to `main` triggers the CD pipeline, wh
 
 1. Writes `.env` to `$SERVER_DIR` on the server:
    ```
-   SYNC_APP_SECRET=<secret>
    SOCKET_DIR=<socket-dir>
    ```
 2. Rsyncs `docker-compose.yml` and `sync-server/` to `$SERVER_DIR`.

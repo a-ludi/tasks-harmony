@@ -37,20 +37,18 @@ The app requires a running Redis instance and a sync server process for sync fea
 `.env.local` in the repo root (read by Vite):
 
 ```dotenv
-VITE_SYNC_APP_SECRET=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 VITE_SYNC_URL=http://localhost:5173
 ```
 
 `sync-server/.env.local` (read by the Bun sync server):
 
 ```dotenv
-SYNC_APP_SECRET=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 REDIS_URL=redis://localhost:6379
 SYNC_BLOB_DIR=.dev-sync-data/
 SYNC_SOCKET=
 ```
 
-Both secrets must be identical base64-encoded values that decode to at least 32 bytes — the placeholder above (32 zero bytes) is fine for local development. To generate a random value for both files: `openssl rand -base64 32`. Leave `SYNC_SOCKET` empty so the sync server listens on TCP port 3001 instead of a Unix socket.
+Leave `SYNC_SOCKET` empty so the sync server listens on TCP port 3001 instead of a Unix socket.
 
 **2. Start Redis** (requires Docker):
 
