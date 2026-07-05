@@ -50,6 +50,7 @@
     "@milkdown/preset-gfm": "^7.21.2",
     "@milkdown/react": "^7.21.2",
     "@milkdown/theme-nord": "^7.21.2",
+    "@noble/post-quantum": "^0.6.1",
     "@tailwindcss/typography": "^0.5.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
