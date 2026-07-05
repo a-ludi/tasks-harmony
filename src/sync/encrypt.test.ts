@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { encryptState, decryptState } from './encrypt';
+import { encryptStatePQ, decryptStatePQ } from './encrypt';
+import { generatePQCredentials } from './credentials';
 import type { AppState } from '@/types';
 
 function makeKey(): Promise<CryptoKey> {
@@ -199,5 +201,45 @@ describe('encryptState / decryptState', () => {
     expect(recovered.profile.displayName).toBe('Test');
     expect(recovered.profile.email).toBe('t@example.com');
     expect(recovered.syncState.pendingSync).toBe(false);
+  });
+});
+
+describe('encryptStatePQ / decryptStatePQ', () => {
+  it('output starts with 0x02 version byte and has correct minimum length', async () => {
+    const creds = await generatePQCredentials();
+    const blob = await encryptStatePQ(creds, makeState());
+    expect(blob[0]).toBe(0x02);
+    // min: 1 (version) + 1568 (kemCiphertext) + 12 (iv) + 16 (AES-GCM auth tag) = 1597
+    expect(blob.length).toBeGreaterThanOrEqual(1597);
+  });
+
+  it('round-trips app state', async () => {
+    const creds = await generatePQCredentials();
+    const state = makeState();
+    const blob = await encryptStatePQ(creds, state);
+    const recovered = await decryptStatePQ(creds, blob);
+    expect(recovered.profile.displayName).toBe('Test');
+    expect(recovered.syncState.pendingSync).toBe(false);
+  });
+
+  it('produces different ciphertext on each call (fresh KEM encapsulation)', async () => {
+    const creds = await generatePQCredentials();
+    const blob1 = await encryptStatePQ(creds, makeState());
+    const blob2 = await encryptStatePQ(creds, makeState());
+    expect(blob1).not.toEqual(blob2);
+  });
+
+  it('throws on wrong version byte', async () => {
+    const creds = await generatePQCredentials();
+    const bad = new Uint8Array(1600);
+    bad[0] = 0x01; // wrong version
+    await expect(decryptStatePQ(creds, bad)).rejects.toThrow(/version/i);
+  });
+
+  it('throws on tampered KEM ciphertext', async () => {
+    const creds = await generatePQCredentials();
+    const blob = await encryptStatePQ(creds, makeState());
+    blob[100] ^= 0xff; // flip bits in kemCiphertext region
+    await expect(decryptStatePQ(creds, blob)).rejects.toThrow();
   });
 });
