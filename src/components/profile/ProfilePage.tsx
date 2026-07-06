@@ -38,6 +38,7 @@ export function ProfilePage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
   const [exportFormat, setExportFormat] = useState<'encrypted' | 'plain'>('encrypted');
+  const [exportError, setExportError] = useState<string | null>(null);
   const [keyExportError, setKeyExportError] = useState<string | null>(null);
   const [keyImportError, setKeyImportError] = useState<string | null>(null);
   const [keyImportSuccess, setKeyImportSuccess] = useState(false);
@@ -59,14 +60,18 @@ export function ProfilePage() {
   async function handleExport() {
     if (!db) return;
     if (exportFormat === 'encrypted') {
-      const blob = await encryptedExport(db);
-      const file = new Blob([blob.buffer as ArrayBuffer], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(file);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tasks-harmony-backup-${new Date().toISOString().substring(0, 10)}.enc`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      try {
+        const blob = await encryptedExport(db);
+        const file = new Blob([blob.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tasks-harmony-backup-${new Date().toISOString().substring(0, 10)}.enc`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      } catch {
+        setExportError('Encrypted backup is not available after upgrading to post-quantum sync. Use the plain backup instead, or export your sync key from the Sync section.');
+      }
     } else {
       const state = await exportAppState(db);
       const zipBytes = wrapStateInZip(state);
@@ -295,6 +300,9 @@ export function ProfilePage() {
         >
           Export Backup
         </button>
+        {exportError && (
+          <p className="text-sm text-destructive" role="alert">{exportError}</p>
+        )}
         <input
           ref={fileInputRef}
           type="file"
