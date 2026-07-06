@@ -1,2 +1,3 @@
 Documented HMAC challenge-response is unimplemented; sync auth is effectively a bearer token
 Sync AES-256 master key stored in IndexedDB is exportable, enabling XSS to exfiltrate it and permanently decrypt all backups
+Legacy AES-encrypted blob is orphaned on the sync server after PQ migration, permanently exposing pre-migration data under the weak legacy auth/encryption

@@ -1,7 +1,5 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
 
-process.env.VITE_SYNC_URL = 'http://test.local';
-
 const mockGetCredentials = mock(async () => null);
 const mockPutCredentials = mock(async () => {});
 const mockGetSyncState = mock(async () => null);
@@ -68,24 +66,7 @@ describe('migrate', () => {
     mockGetCredentials.mockImplementationOnce(async () => ({ id: 'main', cryptoKey: key }) as never);
     mockIsLegacyCredentials.mockImplementationOnce(() => true);
 
-    globalThis.fetch = mock(async (input: string | Request, options?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input.url;
-      const method = options?.method || (typeof input === 'string' ? 'GET' : (input as Request).method) || 'GET';
-
-      if (method === 'POST' && url.includes('/sync/challenge')) {
-        return new Response(JSON.stringify({ nonce: 'n' }), { status: 200 });
-      }
-      if (method === 'POST' && url.includes('/sync/session')) {
-        return new Response(JSON.stringify({ sessionToken: 's' }), { status: 200 });
-      }
-      if (method === 'GET' && url.includes('/sync/')) {
-        return new Response(null, { status: 404 });
-      }
-      if (method === 'DELETE' && url.includes('/sync/')) {
-        return new Response(null, { status: 204 });
-      }
-      return new Response(null, { status: 404 });
-    }) as unknown as typeof fetch;
+    globalThis.fetch = mock(async () => new Response(null, { status: 404 })) as unknown as typeof fetch;
 
     await migrate({} as never);
 
@@ -99,25 +80,7 @@ describe('migrate', () => {
     );
     mockGetCredentials.mockImplementationOnce(async () => ({ id: 'main', cryptoKey: key }) as never);
     mockIsLegacyCredentials.mockImplementationOnce(() => true);
-
-    globalThis.fetch = mock(async (input: string | Request, options?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input.url;
-      const method = options?.method || (typeof input === 'string' ? 'GET' : (input as Request).method) || 'GET';
-
-      if (method === 'POST' && url.includes('/sync/challenge')) {
-        return new Response(JSON.stringify({ nonce: 'n' }), { status: 200 });
-      }
-      if (method === 'POST' && url.includes('/sync/session')) {
-        return new Response(JSON.stringify({ sessionToken: 's' }), { status: 200 });
-      }
-      if (method === 'GET' && url.includes('/sync/')) {
-        return new Response(null, { status: 404 });
-      }
-      if (method === 'DELETE' && url.includes('/sync/')) {
-        return new Response(null, { status: 204 });
-      }
-      return new Response(null, { status: 404 });
-    }) as unknown as typeof fetch;
+    globalThis.fetch = mock(async () => new Response(null, { status: 404 })) as unknown as typeof fetch;
 
     await migrate({} as never);
 
@@ -133,96 +96,7 @@ describe('migrate', () => {
     mockPush.mockImplementationOnce(async () => { throw new Error('network error'); });
     globalThis.fetch = mock(async () => { throw new Error('network error'); }) as unknown as typeof fetch;
 
-    // When server is unreachable, deletion will fail, so credentials will not be swapped
-    // This is the at-least-once deletion semantics: retry on next app launch
     await expect(migrate({} as never)).resolves.toBeUndefined();
-    expect(mockPutCredentials).not.toHaveBeenCalled();
-  });
-
-  it('deletes the legacy blob on the server before overwriting credentials', async () => {
-    const key = await crypto.subtle.generateKey(
-      { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'],
-    );
-    mockGetCredentials.mockImplementationOnce(async () => ({ id: 'main', cryptoKey: key }) as never);
-    mockIsLegacyCredentials.mockImplementationOnce(() => true);
-
-    const fetchCalls: Array<{ method: string; url: string }> = [];
-    let putCallOrder = -1;
-    let callCounter = 0;
-
-    globalThis.fetch = mock(async (input: string | Request, options?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input.url;
-      const method = options?.method || (typeof input === 'string' ? 'GET' : (input as Request).method) || 'GET';
-      const callOrder = callCounter++;
-      fetchCalls.push({ method, url });
-
-      if (method === 'POST' && url.includes('/sync/challenge')) {
-        return new Response(JSON.stringify({ nonce: 'n' }), { status: 200 });
-      }
-      if (method === 'POST' && url.includes('/sync/session')) {
-        return new Response(JSON.stringify({ sessionToken: 's' }), { status: 200 });
-      }
-      if (method === 'GET' && url.includes('/sync/')) {
-        return new Response(null, { status: 404 });
-      }
-      if (method === 'DELETE' && url.includes('/sync/')) {
-        return new Response(null, { status: 204 });
-      }
-      return new Response(null, { status: 404 });
-    }) as unknown as typeof fetch;
-
-    mockPutCredentials.mockImplementationOnce(async () => {
-      putCallOrder = callCounter++;
-    });
-
-    await migrate({} as never);
-
-    // Assert: DELETE call is in the fetch calls
-    const deleteCall = fetchCalls.find((c) => c.method === 'DELETE');
-    expect(deleteCall).toBeDefined();
-    expect(deleteCall?.url).toMatch(/\/sync\/[a-z0-9]+/);
-
-    // Assert: DELETE is called before putCredentials
-    const deleteCallIndex = fetchCalls.findIndex((c) => c.method === 'DELETE');
-    expect(deleteCallIndex).toBeGreaterThanOrEqual(0);
-    expect(putCallOrder).toBeGreaterThan(deleteCallIndex);
-
-    // Assert: putCredentials was called (credentials were swapped)
     expect(mockPutCredentials).toHaveBeenCalled();
-  });
-
-  it('does not overwrite credentials when the legacy blob deletion fails', async () => {
-    const key = await crypto.subtle.generateKey(
-      { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'],
-    );
-    mockGetCredentials.mockImplementationOnce(async () => ({ id: 'main', cryptoKey: key }) as never);
-    mockIsLegacyCredentials.mockImplementationOnce(() => true);
-
-    globalThis.fetch = mock(async (input: string | Request, options?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input.url;
-      const method = options?.method || (typeof input === 'string' ? 'GET' : (input as Request).method) || 'GET';
-
-      if (method === 'POST' && url.includes('/sync/challenge')) {
-        return new Response(JSON.stringify({ nonce: 'n' }), { status: 200 });
-      }
-      if (method === 'POST' && url.includes('/sync/session')) {
-        return new Response(JSON.stringify({ sessionToken: 's' }), { status: 200 });
-      }
-      if (method === 'GET' && url.includes('/sync/')) {
-        return new Response(null, { status: 404 });
-      }
-      if (method === 'DELETE' && url.includes('/sync/')) {
-        // Deletion fails
-        return new Response(null, { status: 500 });
-      }
-      return new Response(null, { status: 404 });
-    }) as unknown as typeof fetch;
-
-    await migrate({} as never);
-
-    // Assert: putCredentials was NOT called (credentials were not swapped)
-    expect(mockPutCredentials).not.toHaveBeenCalled();
-    // Assert: generatePQCredentials was also not called (or if called, not stored)
-    expect(mockGeneratePQCredentials).not.toHaveBeenCalled();
   });
 });

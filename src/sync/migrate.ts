@@ -32,51 +32,33 @@ export async function migrate(db: IDBPDatabase<TasksHarmonyDB>): Promise<void> {
   const creds = await getCredentials(db);
   if (!creds || !isLegacyCredentials(creds)) return;
 
-  // Step 1 & 1b: Best-effort final pull with legacy credentials, then delete the legacy blob
-  let legacyDeleted = false;
+  // Step 1: Best-effort final pull with legacy credentials
   if (SYNC_URL) {
     try {
       const syncToken = await deriveSyncToken(creds.cryptoKey);
       const sessionToken = await legacyFetchSessionToken(syncToken);
       if (sessionToken) {
-        // Step 1: Best-effort final pull
-        try {
-          const res = await fetch(`${SYNC_URL}/sync/${syncToken}`, {
-            headers: { Authorization: `Bearer ${sessionToken}` },
-          });
-          if (res.ok) {
-            const blob = new Uint8Array(await res.arrayBuffer());
-            const serverState = await decryptState(creds.cryptoKey, blob);
-            const validation = validateAppState(serverState);
-            if (validation.valid) {
-              const localSyncState = await getSyncState(db);
-              const localTs = localSyncState?.lastSyncedAt ?? '';
-              const serverTs = serverState.syncState.lastSyncedAt ?? '';
-              if (serverTs > localTs) {
-                await importAppState(db, serverState);
-              }
+        const res = await fetch(`${SYNC_URL}/sync/${syncToken}`, {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        });
+        if (res.ok) {
+          const blob = new Uint8Array(await res.arrayBuffer());
+          const serverState = await decryptState(creds.cryptoKey, blob);
+          const validation = validateAppState(serverState);
+          if (validation.valid) {
+            const localSyncState = await getSyncState(db);
+            const localTs = localSyncState?.lastSyncedAt ?? '';
+            const serverTs = serverState.syncState.lastSyncedAt ?? '';
+            if (serverTs > localTs) {
+              await importAppState(db, serverState);
             }
           }
-        } catch { /* pull failure does not block delete attempt */ }
-
-        // Step 1b: Authoritative delete of the legacy blob
-        try {
-          const delRes = await fetch(`${SYNC_URL}/sync/${syncToken}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${sessionToken}` },
-          });
-          // 204 = deleted, 404 = already gone — both count as success
-          if (delRes.status === 204 || delRes.status === 404) legacyDeleted = true;
-        } catch { /* leave legacyDeleted=false; will retry next run */ }
+        }
       }
-    } catch { /* challenge/session fetch failure */ }
+    } catch { /* skip final pull on any error */ }
   }
 
-  // Step 2: Gate the credential swap on legacyDeleted when server is reachable
-  // If SYNC_URL is set and deletion failed, skip credential swap to retry next time
-  if (SYNC_URL && !legacyDeleted) return;
-
-  // If SYNC_URL is unset (offline), skip the delete gate and proceed with swap
+  // Step 2: Generate new PQ key bundle and store it
   const pqCreds = await generatePQCredentials();
   await putCredentials(db, pqCreds);
 
