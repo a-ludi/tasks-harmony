@@ -11,6 +11,15 @@ The user attaches structured questions to a chore so that each completion requir
 
 ---
 
+## Scenario: Add questions during creation (not only during editing)
+
+When the user opens the chore creation form
+And adds a TEXT question with prompt "Notes"
+And clicks "Save"
+Then the chore is created with the "Notes" question attached
+
+---
+
 ## Scenario: Add one question of each type
 
 When the user adds a TEXT question with prompt "Notes"
