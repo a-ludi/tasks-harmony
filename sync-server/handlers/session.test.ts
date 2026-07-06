@@ -69,6 +69,7 @@ describe('handleSession', () => {
 
   it('returns 200 with sessionToken using only nonce and syncToken (no hmac required)', async () => {
     const nonce = randomBytes(32).toString('hex');
+    mockGetDel.mockImplementationOnce(async () => 'legacy:' + SYNC_TOKEN);
     const res = await handleSession(makeReq({ nonce, syncToken: SYNC_TOKEN }));
     expect(res.status).toBe(200);
     const body = await res.json() as { sessionToken: string };
@@ -85,10 +86,30 @@ describe('handleSession', () => {
   it('returns 401 when submitted syncToken does not match the syncToken bound to the nonce', async () => {
     const legitimateToken = 'a'.repeat(64);
     const attackerToken = 'f'.repeat(64);
-    mockGetDel.mockImplementationOnce(async () => legitimateToken);
+    mockGetDel.mockImplementationOnce(async () => 'legacy:' + legitimateToken);
 
     const nonce = randomBytes(32).toString('hex');
     const res = await handleSession(makeReq({ nonce, syncToken: attackerToken }));
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('handleSession — cross-flavour attack refusal', () => {
+  beforeEach(() => { mockGetDel.mockClear(); mockSet.mockClear(); });
+
+  it('rejects legacy session request when the nonce was issued for a PQ syncId', async () => {
+    // Simulate attacker observing a PQ user's syncId (public knowledge)
+    // and replaying it through the legacy request path.
+    // The mock returns untagged syncId (what today's code writes).
+    mockGetDel.mockImplementationOnce(async () => 'b'.repeat(64));
+
+    const res = await handleSession(makeReq({
+      nonce: 'c'.repeat(64),
+      syncToken: 'b'.repeat(64), // Attacker replays the syncId as syncToken
+    }));
+
+    // Before the fix, this returns 200 (bug — strings match).
+    // After the fix, this returns 401 (protected — flavour tag mismatch).
     expect(res.status).toBe(401);
   });
 });
@@ -99,7 +120,7 @@ describe('handleSession — PQ path', () => {
   it('returns 200 with sessionToken for a valid ML-DSA signature', async () => {
     const { kem, dsa, syncId } = makePQPair();
     const nonce = 'c'.repeat(64);
-    mockGetDel.mockImplementationOnce(async () => syncId);
+    mockGetDel.mockImplementationOnce(async () => 'pq:' + syncId);
 
     const signPayload = Buffer.from(nonce + syncId);
     const signature = ml_dsa87.sign(signPayload, dsa.secretKey);
@@ -118,7 +139,7 @@ describe('handleSession — PQ path', () => {
   it('returns 400 when mldsaPublicKey decodes to wrong byte length', async () => {
     const { kem, syncId } = makePQPair();
     const nonce = 'c'.repeat(64);
-    mockGetDel.mockImplementationOnce(async () => syncId);
+    mockGetDel.mockImplementationOnce(async () => 'pq:' + syncId);
     const res = await handleSession(makeReq({
       nonce,
       mldsaPublicKey: toBase64url(new Uint8Array(10)), // wrong size
@@ -132,7 +153,7 @@ describe('handleSession — PQ path', () => {
     const { dsa, syncId } = makePQPair();
     const wrongKem = ml_kem1024.keygen(); // different KEM key
     const nonce = 'c'.repeat(64);
-    mockGetDel.mockImplementationOnce(async () => syncId);
+    mockGetDel.mockImplementationOnce(async () => 'pq:' + syncId);
 
     const signPayload = Buffer.from(nonce + syncId);
     const signature = ml_dsa87.sign(signPayload, dsa.secretKey);
@@ -149,11 +170,30 @@ describe('handleSession — PQ path', () => {
   it('returns 401 for a tampered signature', async () => {
     const { kem, dsa, syncId } = makePQPair();
     const nonce = 'c'.repeat(64);
-    mockGetDel.mockImplementationOnce(async () => syncId);
+    mockGetDel.mockImplementationOnce(async () => 'pq:' + syncId);
 
     const signPayload = Buffer.from(nonce + syncId);
     const signature = ml_dsa87.sign(signPayload, dsa.secretKey);
     signature[0] ^= 0xff; // tamper
+
+    const res = await handleSession(makeReq({
+      nonce,
+      mldsaPublicKey: toBase64url(dsa.publicKey),
+      mlkemPublicKey: toBase64url(kem.publicKey),
+      signature: toBase64url(signature),
+    }));
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects PQ session request when the nonce was issued for a legacy syncToken', async () => {
+    const { kem, dsa } = makePQPair();
+    const nonce = 'c'.repeat(64);
+    // Simulate attacker trying to use a legacy-issued nonce with PQ path
+    mockGetDel.mockImplementationOnce(async () => 'legacy:' + 'a'.repeat(64));
+
+    const syncId = 'b'.repeat(64); // Different from stored legacy token
+    const signPayload = Buffer.from(nonce + syncId);
+    const signature = ml_dsa87.sign(signPayload, dsa.secretKey);
 
     const res = await handleSession(makeReq({
       nonce,

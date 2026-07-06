@@ -28,7 +28,7 @@ describe('handleChallenge', () => {
   it('stores the syncToken in Redis with 60s TTL', async () => {
     const res = await handleChallenge(makeReq({ syncToken: SYNC_TOKEN }));
     const { nonce } = await res.json() as { nonce: string };
-    expect(mockSet).toHaveBeenCalledWith(`nonce:${nonce}`, SYNC_TOKEN, 'EX', 60, 'NX');
+    expect(mockSet).toHaveBeenCalledWith(`nonce:${nonce}`, 'legacy:' + SYNC_TOKEN, 'EX', 60, 'NX');
   });
 
   it('returns 400 when syncToken is missing', async () => {
@@ -66,7 +66,7 @@ describe('handleChallenge — PQ path (syncId)', () => {
   it('stores syncId in Redis under nonce key with 60s TTL', async () => {
     const res = await handleChallenge(makeReq({ syncId: SYNC_ID }));
     const { nonce } = await res.json() as { nonce: string };
-    expect(mockSet).toHaveBeenCalledWith(`nonce:${nonce}`, SYNC_ID, 'EX', 60, 'NX');
+    expect(mockSet).toHaveBeenCalledWith(`nonce:${nonce}`, 'pq:' + SYNC_ID, 'EX', 60, 'NX');
   });
 
   it('returns 400 when syncId is not a 64-char hex string', async () => {
