@@ -11,6 +11,7 @@ import type { PQSyncCredentials } from '@/db/schema';
 export async function getOrCreateSyncKey(db: IDBPDatabase<TasksHarmonyDB>): Promise<CryptoKey> {
   const stored = await getCredentials(db);
   if (stored && isLegacyCredentials(stored)) return stored.cryptoKey;
+  if (stored) throw new Error('Cannot use legacy sync key functions with PQ credentials');
   const key = await crypto.subtle.generateKey(
     { name: 'AES-GCM', length: 256 },
     true,
