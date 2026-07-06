@@ -115,7 +115,46 @@ describe('handleBlob', () => {
     expect(body).not.toContain(' at ');       // no stack trace frames
   });
 
-  it('PUT evicts the oldest blob when SYNC_BLOB_MAX_COUNT is reached', async () => {
+  it('PUT never evicts another user\'s blob even when SYNC_BLOB_MAX_COUNT would be exceeded', async () => {
+    process.env.SYNC_BLOB_MAX_COUNT = '2';
+    const tokenA = 'a'.repeat(64);
+    const tokenB = 'b'.repeat(64);
+    const tokenC = 'c'.repeat(64);
+    const dataA = new Uint8Array([1, 2, 3]);
+    const dataB = new Uint8Array([4, 5, 6]);
+    const dataC = new Uint8Array([7, 8, 9]);
+
+    // Pre-seed two blobs on disk: tokenA (older) and tokenB (newer)
+    const pathA = join(TEST_BLOB_DIR, `${tokenA}.enc`);
+    const pathB = join(TEST_BLOB_DIR, `${tokenB}.enc`);
+    const pathC = join(TEST_BLOB_DIR, `${tokenC}.enc`);
+
+    await writeFile(pathA, dataA);
+    const now = Date.now();
+    await utimes(pathA, now / 1000 - 2, now / 1000 - 2);  // 2 seconds ago (older)
+
+    await writeFile(pathB, dataB);
+    await utimes(pathB, now / 1000 - 1, now / 1000 - 1);  // 1 second ago (newer)
+
+    // Mock tokenC session (fresh third identity)
+    mockGet.mockImplementationOnce(async (key: string) =>
+      key === `session:${SESSION_TOKEN}` ? tokenC : null
+    );
+    // Try to write tokenC blob; count cap is 2, so this should be rejected with 507
+    const res = await handleBlob(makeReq('PUT', tokenC, dataC), tokenC);
+
+    // Assertions:
+    // 1. Write is rejected with 507 (Insufficient Storage)
+    expect(res.status).toBe(507);
+    // 2. Victim A's blob is intact
+    expect(existsSync(pathA)).toBe(true);
+    // 3. Victim B's blob is intact
+    expect(existsSync(pathB)).toBe(true);
+    // 4. Attacker's blob was not created
+    expect(existsSync(pathC)).toBe(false);
+  });
+
+  it('PUT rejects new blob with 507 when SYNC_BLOB_MAX_COUNT is reached', async () => {
     process.env.SYNC_BLOB_MAX_COUNT = '3';
     const tokenA = 'a'.repeat(64);
     const tokenB = 'b'.repeat(64);
@@ -126,133 +165,76 @@ describe('handleBlob', () => {
     const dataC = new Uint8Array([3]);
     const dataD = new Uint8Array([4]);
 
-    // Seed blobs A, B, C with staggered mtimes (A oldest)
+    // Seed blobs A, B, C
     const pathA = join(TEST_BLOB_DIR, `${tokenA}.enc`);
     const pathB = join(TEST_BLOB_DIR, `${tokenB}.enc`);
     const pathC = join(TEST_BLOB_DIR, `${tokenC}.enc`);
     const pathD = join(TEST_BLOB_DIR, `${tokenD}.enc`);
 
     await writeFile(pathA, dataA);
-    const now = Date.now();
-    await utimes(pathA, now / 1000 - 3, now / 1000 - 3);  // 3 seconds ago
-
     await writeFile(pathB, dataB);
-    await utimes(pathB, now / 1000 - 2, now / 1000 - 2);  // 2 seconds ago
-
     await writeFile(pathC, dataC);
-    await utimes(pathC, now / 1000 - 1, now / 1000 - 1);  // 1 second ago
 
-    // Mock tokenA session (needed for auth)
-    mockGet.mockImplementationOnce(async (key: string) =>
-      key === `session:${SESSION_TOKEN}` ? tokenA : null
-    );
-    const resA = await handleBlob(makeReq('GET', tokenA), tokenA);
-    expect(resA.status).toBe(200);
-
-    // Put new token D; should evict A (oldest)
+    // Try to PUT new token D; should be rejected with 507 since count cap is reached
     mockGet.mockImplementationOnce(async (key: string) =>
       key === `session:${SESSION_TOKEN}` ? tokenD : null
     );
     const resD = await handleBlob(makeReq('PUT', tokenD, dataD), tokenD);
-    expect(resD.status).toBe(204);
+    expect(resD.status).toBe(507);
 
-    // Check A is gone, B, C, D exist
-    expect(existsSync(pathA)).toBe(false);
+    // Check all original blobs still exist, D was not created
+    expect(existsSync(pathA)).toBe(true);
     expect(existsSync(pathB)).toBe(true);
     expect(existsSync(pathC)).toBe(true);
-    expect(existsSync(pathD)).toBe(true);
+    expect(existsSync(pathD)).toBe(false);
   });
 
-  it('PUT evicts the oldest blob when SYNC_BLOB_QUOTA_BYTES would be exceeded', async () => {
-    process.env.SYNC_BLOB_QUOTA_BYTES = String(1024);  // 1 KB total
+  it('PUT enforces per-user byte cap via MAX_BYTES guard (1 MB)', async () => {
+    // The per-user byte cap is enforced by the MAX_BYTES guard in the handler
+    // Each user can store up to MAX_BYTES (1 MB) in their single blob
     const tokenA = 'a'.repeat(64);
-    const tokenB = 'b'.repeat(64);
-    const tokenC = 'c'.repeat(64);
-    const dataA = new Uint8Array(512);  // 512 bytes
-    const dataB = new Uint8Array(512);  // 512 bytes
-    const dataC = new Uint8Array(512);  // 512 bytes
+    const oversizedData = new Uint8Array(1024 * 1024 + 1);  // 1 MB + 1 byte
 
-    const pathA = join(TEST_BLOB_DIR, `${tokenA}.enc`);
-    const pathB = join(TEST_BLOB_DIR, `${tokenB}.enc`);
-    const pathC = join(TEST_BLOB_DIR, `${tokenC}.enc`);
-
-    // Seed A (older) and B
-    await writeFile(pathA, dataA);
-    const now = Date.now();
-    await utimes(pathA, now / 1000 - 2, now / 1000 - 2);
-
-    await writeFile(pathB, dataB);
-    await utimes(pathB, now / 1000 - 1, now / 1000 - 1);
-
-    // Put C (512 bytes); would exceed 1 KB quota, should evict A
     mockGet.mockImplementationOnce(async (key: string) =>
-      key === `session:${SESSION_TOKEN}` ? tokenC : null
+      key === `session:${SESSION_TOKEN}` ? tokenA : null
     );
-    const resC = await handleBlob(makeReq('PUT', tokenC, dataC), tokenC);
-    expect(resC.status).toBe(204);
+    const res = await handleBlob(makeReq('PUT', tokenA, oversizedData), tokenA);
 
-    // Check A is gone, B and C exist
+    // Should be rejected with 413 (Payload Too Large)
+    expect(res.status).toBe(413);
+
+    // Verify blob was not created
+    const pathA = join(TEST_BLOB_DIR, `${tokenA}.enc`);
     expect(existsSync(pathA)).toBe(false);
-    expect(existsSync(pathB)).toBe(true);
-    expect(existsSync(pathC)).toBe(true);
   });
 
-  it('PUT returns 507 when only the caller\'s own blob remains and the write still exceeds the cap', async () => {
-    process.env.SYNC_BLOB_QUOTA_BYTES = String(100);  // 100 bytes total (way below 1 MB)
+  it('PUT allows overwrite of existing blob when within per-user cap', async () => {
+    // Test that a user can overwrite their own blob as long as it's within MAX_BYTES
     const tokenX = 'x'.repeat(64);
-    const data = new Uint8Array(200);  // 200 bytes, exceeds 100-byte quota
+    const dataX_v1 = new Uint8Array(100);  // 100 bytes initial
+    const dataX_v2 = new Uint8Array(500);  // 500 bytes overwrite (still under 1 MB)
 
-    // Try to write 200-byte blob to a 100-byte quota; nothing can be evicted
-    mockGet.mockImplementationOnce(async (key: string) =>
-      key === `session:${SESSION_TOKEN}` ? tokenX : null
-    );
-    const res = await handleBlob(makeReq('PUT', tokenX, data), tokenX);
-    expect(res.status).toBe(507);
-  });
-
-  it('PUT isOverwrite + quota-exceeded + eviction needed: evicts oldest, updates caller blob, returns 204', async () => {
-    process.env.SYNC_BLOB_QUOTA_BYTES = String(800);  // 800 bytes total
-    const tokenA = 'a'.repeat(64);
-    const tokenX = 'x'.repeat(64);
-    const dataA = new Uint8Array(300);  // 300 bytes, older
-    const dataX_v1 = new Uint8Array(300);  // 300 bytes, initial version
-    const dataX_v2 = new Uint8Array(600);  // 600 bytes, larger update (overwrite)
-
-    const pathA = join(TEST_BLOB_DIR, `${tokenA}.enc`);
     const pathX = join(TEST_BLOB_DIR, `${tokenX}.enc`);
 
-    // Seed blob A (older, 300 bytes)
-    await writeFile(pathA, dataA);
-    const now = Date.now();
-    await utimes(pathA, now / 1000 - 2, now / 1000 - 2);
-
-    // Seed blob X (300 bytes)
-    await writeFile(pathX, dataX_v1);
-    await utimes(pathX, now / 1000 - 1, now / 1000 - 1);
-
-    // Total: 600 bytes. Now PUT a larger body to X (600 bytes).
-    // Before eviction: blobs = [A(300), X(300)], total 600 bytes
-    // isOverwrite = true
-    // projectedBytes before adjust = 600
-    // projectedBytes after adjust (line 73) = 600 - 300 + 600 = 900 bytes
-    // 900 > 800 quota, so eviction is triggered
-    // Oldest non-caller is A (300 bytes), evict it
-    // After eviction: projectedBytes = 900 - 300 = 600, which fits 800 quota
-    // Expected: 204, A gone, X updated to 600 bytes
+    // Seed blob X (100 bytes)
     mockGet.mockImplementationOnce(async (key: string) =>
       key === `session:${SESSION_TOKEN}` ? tokenX : null
     );
-    const res = await handleBlob(makeReq('PUT', tokenX, dataX_v2), tokenX);
-    expect(res.status).toBe(204);
-
-    // Check A is evicted, X is updated
-    expect(existsSync(pathA)).toBe(false);
+    const res1 = await handleBlob(makeReq('PUT', tokenX, dataX_v1), tokenX);
+    expect(res1.status).toBe(204);
     expect(existsSync(pathX)).toBe(true);
 
-    // Verify X has the new content
+    // Overwrite with larger data (500 bytes)
+    mockGet.mockImplementationOnce(async (key: string) =>
+      key === `session:${SESSION_TOKEN}` ? tokenX : null
+    );
+    const res2 = await handleBlob(makeReq('PUT', tokenX, dataX_v2), tokenX);
+    expect(res2.status).toBe(204);
+
+    // Verify X was updated
     const { readFile } = await import('fs/promises');
     const xContent = await readFile(pathX);
-    expect(xContent.length).toBe(600);
+    expect(xContent.length).toBe(500);
   });
 
   it('DELETE removes the blob and returns 204; subsequent GET returns 404', async () => {
