@@ -25,11 +25,11 @@ And a "+ New Chore" button is visible
 When the user clicks "+ New Chore"
 Then a chore creation form opens
 When the user fills in:
-  | Field     | Value   |
-  | Name      | Floss   |
-  | XP size   | S       |
-  | Frequency | Daily   |
-  | Interval  | 1       |
+  | Field           | Value   |
+  | Name            | Floss   |
+  | XP size         | S       |
+  | Frequency       | Daily   |
+  | Interval        | 1       |
 And clicks "Save"
 Then the form closes
 And a card for "Floss" appears on the dashboard
@@ -37,10 +37,20 @@ And the card shows status "Due"
 
 ---
 
-## Scenario: Start date defaults to today
+## Scenario: First Due Date defaults to today
 
 When the user opens the chore creation form
-Then the start date field is pre-filled with today's date
+Then the "First Due Date" field is pre-filled with today's date
+
+---
+
+## Scenario: Questions can be added during creation
+
+When the user opens the chore creation form
+And adds a TEXT question with prompt "Notes"
+And clicks "Save"
+Then the chore is created with the "Notes" question attached
+And completing the chore opens the question modal
 
 ---
 
@@ -65,6 +75,6 @@ And no chore is created
 
 ## Scenario: Upcoming chore does not show as Due
 
-When the user creates a chore with a start date in the future
+When the user creates a chore with a first due date in the future
 Then the card appears on the dashboard with status "Upcoming"
 And no "Complete" button is shown
