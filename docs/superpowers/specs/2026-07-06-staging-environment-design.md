@@ -150,6 +150,7 @@ Non-secret server config:
 ```
 SSH_USER=
 SSH_HOST=
+STAGING_SYNC_URL=https://staging.DOMAIN/sync
 STAGING_WEB_ROOT=/var/www/tasks-harmony-staging
 STAGING_SERVER_DIR=/home/.../tasks-harmony-staging
 STAGING_SOCKET_DIR=/run/tasks-harmony-staging
@@ -190,7 +191,7 @@ No flag: deploy new code, leave existing staging data untouched.
 ### Steps
 
 1. **Load config** — source `.env.staging`; read basic auth password from Gnome Keyring via `secret-tool`
-2. **Build frontend** — `bun run build`
+2. **Build frontend** — `VITE_SYNC_URL=$STAGING_SYNC_URL bun run build`
 3. **Deploy frontend** — rsync `dist/` to `$STAGING_WEB_ROOT` via SSH
 4. **Deploy sync server** — rsync `sync-server/` and `docker-compose.yml` to `$STAGING_SERVER_DIR`
 5. **Write server `.env`** — pipe both `COMPOSE_PROJECT_NAME=tasks-harmony-staging` and `SOCKET_DIR=$STAGING_SOCKET_DIR` to `$STAGING_SERVER_DIR/.env` over SSH (overwrites the whole file; no manual pre-seeding needed)
