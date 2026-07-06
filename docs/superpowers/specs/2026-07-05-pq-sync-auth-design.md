@@ -6,7 +6,7 @@
 
 ## Background
 
-The current sync system uses a single AES-256 symmetric key for both blob encryption and authentication. The `syncToken` (SHA-256 of the raw AES key) is the long-term bearer credential used to identify and authenticate blob access. SEC-000028 addressed log exposure of this token; this design replaces the underlying architecture with a post-quantum asymmetric scheme that eliminates the bearer-credential model entirely.
+The current sync system uses a single AES-256 symmetric key for both blob encryption and authentication. The `syncToken` (SHA-256 of the raw AES key) is the long-term bearer credential used to identify and authenticate blob access. [[SEC-000028]] addressed log exposure of this token; this design replaces the underlying architecture with a post-quantum asymmetric scheme that eliminates the bearer-credential model entirely.
 
 ## Goals
 
@@ -24,15 +24,15 @@ The current sync system uses a single AES-256 symmetric key for both blob encryp
 
 ## Related Security Issues
 
-**SEC-000025** — *Sync AES-256 master key stored in IndexedDB is exportable, enabling XSS to exfiltrate it and permanently decrypt all backups* (status: REVIEW)
+**[[SEC-000025]]** — *Sync AES-256 master key stored in IndexedDB is exportable, enabling XSS to exfiltrate it and permanently decrypt all backups* (status: REVIEW)
 
-This design partially changes the SEC-000025 landscape:
+This design partially changes the [[SEC-000025-3]] landscape:
 
-- **`deriveSyncToken` blocker removed.** SEC-000025's Fix Plan identified `deriveSyncToken` as a blocker for making the key non-extractable, because it calls `crypto.subtle.exportKey('raw', key)` on every push/pull. In the PQ design, `syncId` is derived from the *public* ML-KEM key — no private key export needed at runtime. This blocker no longer applies.
+- **`deriveSyncToken` blocker removed.** [[SEC-000025-3]]'s Fix Plan identified `deriveSyncToken` as a blocker for making the key non-extractable, because it calls `crypto.subtle.exportKey('raw', key)` on every push/pull. In the PQ design, `syncId` is derived from the *public* ML-KEM key — no private key export needed at runtime. This blocker no longer applies.
 
-- **`exportKeyFile` semantics change.** SEC-000025 Option B ("rotate on export") closely resembles the migration flow in this design: generate a new key bundle, re-encrypt current state, push to the new blob path, abandon the old blob. The PQ migration is the de-facto implementation of that rotation model.
+- **`exportKeyFile` semantics change.** [[SEC-000025]] Option B ("rotate on export") closely resembles the migration flow in this design: generate a new key bundle, re-encrypt current state, push to the new blob path, abandon the old blob. The PQ migration is the de-facto implementation of that rotation model.
 
-- **XSS exfiltration concern is NOT closed.** ML-KEM and ML-DSA private keys are stored as raw `Uint8Array` in IndexedDB. An XSS payload can read them just as directly as the old `CryptoKey` — the mechanism shifts from `crypto.subtle.exportKey('raw', key)` to a plain IndexedDB read, but the exposure is equivalent. SEC-000025 remains open and must be addressed independently (e.g., wrapping private key bytes with a user-derived secret at rest).
+- **XSS exfiltration concern is NOT closed.** ML-KEM and ML-DSA private keys are stored as raw `Uint8Array` in IndexedDB. An XSS payload can read them just as directly as the old `CryptoKey` — the mechanism shifts from `crypto.subtle.exportKey('raw', key)` to a plain IndexedDB read, but the exposure is equivalent. [[SEC-000025]] remains open and must be addressed independently (e.g., wrapping private key bytes with a user-derived secret at rest).
 
 ## Library
 
