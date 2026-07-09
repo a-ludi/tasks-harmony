@@ -90,18 +90,16 @@ printf '%s' "$BASIC_AUTH_PASSWORD" \
 # --- 7. Seed data ---
 if [[ "$SEED_MODE" == "fresh" ]]; then
   echo "==> Resetting staging data (fresh)..."
-  ssh_exec "sudo systemctl stop tasks-harmony-sync-staging || true \
-    && docker volume rm tasks-harmony-staging_sync-data 2>/dev/null || true \
-    && sudo systemctl start tasks-harmony-sync-staging"
+  ssh_exec "sudo systemctl stop tasks-harmony-sync-staging || true"
+  ssh_exec "docker volume rm tasks-harmony-staging_sync-data 2>/dev/null || true"
+  ssh_exec "sudo systemctl start tasks-harmony-sync-staging"
 elif [[ "$SEED_MODE" == "from-prod" ]]; then
   echo "==> Seeding staging data from production..."
-  ssh_exec "sudo systemctl stop tasks-harmony-sync-staging || true \
-    && docker volume rm tasks-harmony-staging_sync-data 2>/dev/null || true \
-    && docker run --rm \
-         -v tasks-harmony-staging_sync-data:/data \
-         -v $PROD_BLOB_DIR:/source:ro \
-         alpine sh -c 'cp -r /source/. /data/' \
-    && sudo systemctl start tasks-harmony-sync-staging"
+  local_prod_blob_dir_q=$(printf '%q' "$PROD_BLOB_DIR")
+  ssh_exec "sudo systemctl stop tasks-harmony-sync-staging || true"
+  ssh_exec "docker volume rm tasks-harmony-staging_sync-data 2>/dev/null || true"
+  ssh_exec "docker run --rm -v tasks-harmony-staging_sync-data:/data -v ${local_prod_blob_dir_q}:/source:ro alpine sh -c 'cp -r /source/. /data/'"
+  ssh_exec "sudo systemctl start tasks-harmony-sync-staging"
 fi
 
 # --- 8. Restart service (code-only deploy) + reload nginx ---
