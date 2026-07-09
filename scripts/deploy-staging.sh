@@ -37,6 +37,10 @@ fi
 source "$ENV_FILE"
 
 # --- Read secret from keyring ---
+if ! command -v secret-tool &>/dev/null; then
+  printf 'Error: secret-tool is not installed. Install libsecret-tools (Debian/Ubuntu) or libsecret (Fedora).\n' >&2
+  exit 1
+fi
 BASIC_AUTH_PASSWORD=$(secret-tool lookup service tasks-harmony-staging key basic-auth-password 2>/dev/null || true)
 if [[ -z "$BASIC_AUTH_PASSWORD" ]]; then
   printf 'Error: basic auth password not found in keyring.\nRun: secret-tool store --label='"'"'Tasks Harmony Staging basic auth'"'"' service tasks-harmony-staging key basic-auth-password\n' >&2
