@@ -37,10 +37,8 @@ jobs:
     environment: production
     permissions: {}
     steps:
-      - name: NOTE
-        run: |
-          # NOTE: This job's deploy logic is mirrored in scripts/deploy-staging.sh.
-          # Keep both files in sync when changing deploy steps.
+      # NOTE: This job's deploy logic is mirrored in scripts/deploy-staging.sh.
+      # Keep both files in sync when changing deploy steps.
       - name: Download build artifact
         uses: actions/download-artifact@v8
         with:
@@ -67,10 +65,8 @@ jobs:
     environment: production
     permissions: {}
     steps:
-      - name: NOTE
-        run: |
-          # NOTE: This job's deploy logic is mirrored in scripts/deploy-staging.sh.
-          # Keep both files in sync when changing deploy steps.
+      # NOTE: This job's deploy logic is mirrored in scripts/deploy-staging.sh.
+      # Keep both files in sync when changing deploy steps.
       - uses: actions/checkout@v6
 
       - name: Configure SSH
