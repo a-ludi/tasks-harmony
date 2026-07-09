@@ -47,4 +47,71 @@ if [[ -z "$BASIC_AUTH_PASSWORD" ]]; then
   exit 1
 fi
 
-echo "Config loaded. (Deploy logic not yet implemented.)"
+ssh_exec() {
+  ssh "$SSH_USER@$SSH_HOST" "$@"
+}
+
+# --- 1. Build frontend ---
+echo "==> Building frontend..."
+cd "$PROJECT_ROOT"
+VITE_SYNC_URL="$STAGING_SYNC_URL" bun run build
+
+# --- 2. Deploy frontend ---
+echo "==> Deploying frontend..."
+rsync -avz --delete \
+  -e ssh \
+  dist/ \
+  "$SSH_USER@$SSH_HOST:$STAGING_WEB_ROOT/"
+
+# --- 3. Deploy sync server ---
+echo "==> Deploying sync server..."
+rsync -avz -e ssh docker-compose.yml \
+  "$SSH_USER@$SSH_HOST:$STAGING_SERVER_DIR/"
+rsync -avz -e ssh sync-server/ \
+  "$SSH_USER@$SSH_HOST:$STAGING_SERVER_DIR/sync-server/"
+
+# --- 4. Write server .env ---
+echo "==> Writing server .env..."
+printf 'COMPOSE_PROJECT_NAME=tasks-harmony-staging\nSOCKET_DIR=%s\n' \
+  "$STAGING_SOCKET_DIR" \
+  | ssh_exec "cat > $STAGING_SERVER_DIR/.env"
+
+# --- 5. Render nginx config ---
+echo "==> Rendering nginx config..."
+perl -pe "s|__SOCKET_DIR__|$STAGING_SOCKET_DIR|g" \
+  "$PROJECT_ROOT/nginx/sync-location.conf.template" \
+  | ssh_exec "cat > $STAGING_NGINX_INCLUDE_DIR/sync-location.conf"
+
+# --- 6. Update basic auth ---
+echo "==> Updating basic auth..."
+printf '%s' "$BASIC_AUTH_PASSWORD" \
+  | ssh_exec "htpasswd -ci $STAGING_BASIC_AUTH_FILE staging"
+
+# --- 7. Seed data ---
+if [[ "$SEED_MODE" == "fresh" ]]; then
+  echo "==> Resetting staging data (fresh)..."
+  ssh_exec "sudo systemctl stop tasks-harmony-sync-staging || true \
+    && docker volume rm tasks-harmony-staging_sync-data 2>/dev/null || true \
+    && sudo systemctl start tasks-harmony-sync-staging"
+elif [[ "$SEED_MODE" == "from-prod" ]]; then
+  echo "==> Seeding staging data from production..."
+  ssh_exec "sudo systemctl stop tasks-harmony-sync-staging || true \
+    && docker volume rm tasks-harmony-staging_sync-data 2>/dev/null || true \
+    && docker run --rm \
+         -v tasks-harmony-staging_sync-data:/data \
+         -v $PROD_BLOB_DIR:/source:ro \
+         alpine sh -c 'cp -r /source/. /data/' \
+    && sudo systemctl start tasks-harmony-sync-staging"
+fi
+
+# --- 8. Restart service (code-only deploy) + reload nginx ---
+if [[ -z "$SEED_MODE" ]]; then
+  echo "==> Restarting sync service..."
+  ssh_exec "sudo systemctl restart tasks-harmony-sync-staging"
+fi
+
+echo "==> Reloading nginx..."
+ssh_exec "sudo nginx -s reload"
+
+echo ""
+echo "Staging deploy complete."
