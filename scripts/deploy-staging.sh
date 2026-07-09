@@ -95,10 +95,10 @@ if [[ "$SEED_MODE" == "fresh" ]]; then
   ssh_exec "sudo systemctl start tasks-harmony-sync-staging"
 elif [[ "$SEED_MODE" == "from-prod" ]]; then
   echo "==> Seeding staging data from production..."
-  local_prod_blob_dir_q=$(printf '%q' "$PROD_BLOB_DIR")
+  prod_blob_dir_q=$(printf '%q' "$PROD_BLOB_DIR")
   ssh_exec "sudo systemctl stop tasks-harmony-sync-staging || true"
   ssh_exec "docker volume rm tasks-harmony-staging_sync-data 2>/dev/null || true"
-  ssh_exec "docker run --rm -v tasks-harmony-staging_sync-data:/data -v ${local_prod_blob_dir_q}:/source:ro alpine sh -c 'cp -r /source/. /data/'"
+  ssh_exec "docker run --rm -v tasks-harmony-staging_sync-data:/data -v ${prod_blob_dir_q}:/source:ro alpine sh -c 'cp -r /source/. /data/'"
   ssh_exec "sudo systemctl start tasks-harmony-sync-staging"
 fi
 
