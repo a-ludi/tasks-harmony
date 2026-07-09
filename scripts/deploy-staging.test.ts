@@ -6,6 +6,7 @@ import {
   rmSync,
   mkdirSync,
   chmodSync,
+  symlinkSync,
 } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -51,7 +52,7 @@ function fakeSecretTool(output: string): string {
   const binDir = join(tmpDir, "bin");
   mkdirSync(binDir);
   const tool = join(binDir, "secret-tool");
-  writeFileSync(tool, `#!/bin/bash\necho '${output}'\n`);
+  writeFileSync(tool, `#!/bin/bash\nprintf '%s\\n' ${JSON.stringify(output)}\n`);
   chmodSync(tool, 0o755);
   return binDir;
 }
@@ -82,4 +83,21 @@ test("exits 1 with helpful message on unknown argument", () => {
   });
   expect(result.status).toBe(1);
   expect(result.stderr).toContain("Unknown argument");
+});
+
+test("exits 1 with helpful message when secret-tool is not installed", () => {
+  const envFile = validEnvFile();
+  // Use a PATH that has bash and required utilities but no secret-tool
+  const binDir = join(tmpDir, "empty-bin");
+  mkdirSync(binDir);
+  // Symlink only the binaries the script needs before the secret-tool check
+  symlinkSync("/usr/bin/bash", join(binDir, "bash"));
+  symlinkSync("/usr/bin/dirname", join(binDir, "dirname"));
+
+  const result = run([], {
+    DEPLOY_STAGING_ENV_FILE: envFile,
+    PATH: binDir,
+  });
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("secret-tool is not installed");
 });
