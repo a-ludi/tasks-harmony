@@ -20,9 +20,11 @@ function bytesToBase64url(bytes: Uint8Array): string {
 }
 
 async function fetchNewSessionToken(syncId: string, creds: PQSyncCredentials): Promise<string> {
+  const basicAuth = import.meta.env.VITE_BASIC_AUTH ?? '';
+  const authHeader: Record<string, string> = basicAuth ? { Authorization: `Basic ${basicAuth}` } : {};
   const chalRes = await fetch(`${SYNC_URL}/sync/challenge`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ syncId }),
   });
   if (!chalRes.ok) throw new Error(`Challenge failed: ${chalRes.status}`);
@@ -34,7 +36,7 @@ async function fetchNewSessionToken(syncId: string, creds: PQSyncCredentials): P
 
   const sessRes = await fetch(`${SYNC_URL}/sync/session`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({
       nonce,
       mldsaPublicKey: bytesToBase64url(creds.mldsaPublicKey),
@@ -60,10 +62,14 @@ async function authorizedFetch(
   retried = false,
 ): Promise<Response> {
   const sessionToken = await getSessionToken(syncId, creds);
+  const basicAuth = import.meta.env.VITE_BASIC_AUTH ?? '';
+  const blobAuthHeaders: Record<string, string> = basicAuth
+    ? { Authorization: `Basic ${basicAuth}`, 'X-Sync-Token': `Bearer ${sessionToken}` }
+    : { Authorization: `Bearer ${sessionToken}` };
   const res = await fetch(`${SYNC_URL}/sync/${syncId}`, {
     method,
     headers: {
-      Authorization: `Bearer ${sessionToken}`,
+      ...blobAuthHeaders,
       ...(body ? { 'Content-Type': 'application/octet-stream' } : {}),
     },
     body: body ? new Uint8Array(body.buffer as ArrayBuffer, body.byteOffset, body.byteLength) : undefined,

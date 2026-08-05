@@ -48,6 +48,14 @@ describe('nginx sync-location.conf.template security', () => {
     expect(catchallMatch![0]).toContain('limit_req');
   });
 
+  it('blob location rewrites Authorization from X-Sync-Token so staging basic-auth and bearer token coexist', () => {
+    // Staging sends Authorization: Basic <creds> (for nginx) and X-Sync-Token: Bearer <token>
+    // (for the sync server). nginx rewrites Authorization to the X-Sync-Token value before
+    // proxying, so the sync server still receives the expected Authorization: Bearer header.
+    expect(config).toContain('$http_x_sync_token');
+    expect(config).toMatch(/proxy_set_header\s+Authorization\s+\$sync_auth/);
+  });
+
   it('suppresses access logging inside the syncToken-carrying location block to prevent token leakage into nginx access logs', () => {
     // The block matched by 'location ~ "^/sync/[a-f0-9]{64}$"' carries the syncToken
     // verbatim in the URL path. Without 'access_log off;' inside this block, nginx's
