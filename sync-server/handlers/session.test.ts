@@ -18,7 +18,7 @@ function toBase64url(bytes: Uint8Array): string {
 
 const mockGetDel = mock(async (_key: string) => 'a'.repeat(64));
 const mockSet = mock(async () => 'OK' as const);
-mock.module('../redis', () => ({ redis: { getDel: mockGetDel, set: mockSet } }));
+mock.module('../redis', () => ({ redis: { getdel: mockGetDel, set: mockSet } }));
 
 const { handleSession } = await import('./session');
 

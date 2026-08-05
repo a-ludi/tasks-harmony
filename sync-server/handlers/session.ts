@@ -4,7 +4,7 @@ import { redis } from '../redis';
 
 // Parse the flavour-tagged nonce value and return { flavour, identity } or null
 async function getAndDeleteNonce(nonce: string): Promise<{ flavour: 'pq' | 'legacy', identity: string } | null> {
-  const value = await redis.getDel(`nonce:${nonce}`);
+  const value = await redis.getdel(`nonce:${nonce}`);
   if (value === null) return null;
 
   const colonIdx = value.indexOf(':');
