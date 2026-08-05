@@ -10,16 +10,27 @@ import { push } from '@/sync/server';
 const SYNC_URL = import.meta.env.VITE_SYNC_URL;
 const LEGACY_SESSION_KEY = 'sync-session-token-legacy';
 
+export async function ensureCredentials(db: IDBPDatabase<TasksHarmonyDB>): Promise<void> {
+  const creds = await getCredentials(db);
+  if (creds !== null) return;
+  const pqCreds = await generatePQCredentials();
+  await putCredentials(db, pqCreds);
+}
+
 async function legacyFetchSessionToken(syncToken: string): Promise<string | null> {
+  const basicAuth = import.meta.env.VITE_BASIC_AUTH;
+  const authHeaders: Record<string, string> = basicAuth
+    ? { 'Authorization': `Basic ${basicAuth}` }
+    : {};
   try {
     const chalRes = await fetch(`${SYNC_URL}/sync/challenge`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ syncToken }),
     });
     if (!chalRes.ok) return null;
     const { nonce } = await chalRes.json() as { nonce: string };
     const sessRes = await fetch(`${SYNC_URL}/sync/session`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ nonce, syncToken }),
     });
     if (!sessRes.ok) return null;

@@ -17,6 +17,7 @@ import { UpdateModal } from '@/components/update/UpdateModal';
 import { MigrationModal } from '@/components/sync/MigrationModal';
 import { isLegacyCredentials } from '@/sync/credentials';
 import { getCredentials } from '@/db';
+import { ensureCredentials } from '@/sync/migrate';
 
 function RedirectToChore() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
@@ -48,7 +49,7 @@ export default function App() {
 
   useEffect(() => {
     if (!db) return;
-    getCredentials(db).then((creds) => {
+    ensureCredentials(db).then(() => getCredentials(db)).then((creds) => {
       if (creds && isLegacyCredentials(creds)) setNeedsMigration(true);
     });
   }, [db]);
