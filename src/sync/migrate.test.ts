@@ -35,7 +35,7 @@ mock.module('@/sync/server', () => ({ push: mockPush }));
 mock.module('@/sync/import', () => ({ importAppState: mock(async () => {}) }));
 mock.module('@/schemas/validate', () => ({ validateAppState: mock(() => ({ valid: true })) }));
 
-const { migrate } = await import('./migrate');
+const { migrate, ensureCredentials } = await import('./migrate');
 
 describe('migrate', () => {
   beforeEach(() => {
@@ -98,5 +98,43 @@ describe('migrate', () => {
 
     await expect(migrate({} as never)).resolves.toBeUndefined();
     expect(mockPutCredentials).toHaveBeenCalled();
+  });
+});
+
+describe('ensureCredentials', () => {
+  beforeEach(() => {
+    mockPutCredentials.mockClear();
+    mockGeneratePQCredentials.mockClear();
+  });
+
+  it('generates and stores PQ credentials when the database has none', async () => {
+    mockGetCredentials.mockImplementationOnce(async () => null);
+
+    await ensureCredentials({} as never);
+
+    expect(mockGeneratePQCredentials).toHaveBeenCalled();
+    expect(mockPutCredentials).toHaveBeenCalled();
+  });
+
+  it('does nothing when PQ credentials already exist', async () => {
+    const pqCreds = { id: 'main', version: 2, mlkemPublicKey: new Uint8Array(1568),
+      mlkemPrivateKey: new Uint8Array(3168), mldsaPublicKey: new Uint8Array(2592),
+      mldsaPrivateKey: new Uint8Array(4896) };
+    mockGetCredentials.mockImplementationOnce(async () => pqCreds as never);
+
+    await ensureCredentials({} as never);
+
+    expect(mockPutCredentials).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when legacy credentials exist', async () => {
+    const key = await crypto.subtle.generateKey(
+      { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'],
+    );
+    mockGetCredentials.mockImplementationOnce(async () => ({ id: 'main', cryptoKey: key }) as never);
+
+    await ensureCredentials({} as never);
+
+    expect(mockPutCredentials).not.toHaveBeenCalled();
   });
 });
