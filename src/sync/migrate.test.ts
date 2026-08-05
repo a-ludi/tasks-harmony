@@ -108,7 +108,7 @@ describe('ensureCredentials', () => {
   });
 
   it('generates and stores PQ credentials when the database has none', async () => {
-    mockGetCredentials.mockImplementationOnce(async () => null);
+    mockGetCredentials.mockImplementationOnce(async () => undefined as never);
 
     await ensureCredentials({} as never);
 

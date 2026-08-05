@@ -12,7 +12,7 @@ const LEGACY_SESSION_KEY = 'sync-session-token-legacy';
 
 export async function ensureCredentials(db: IDBPDatabase<TasksHarmonyDB>): Promise<void> {
   const creds = await getCredentials(db);
-  if (creds !== null) return;
+  if (creds) return;
   const pqCreds = await generatePQCredentials();
   await putCredentials(db, pqCreds);
 }
