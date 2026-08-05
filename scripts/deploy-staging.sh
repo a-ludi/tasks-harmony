@@ -51,10 +51,22 @@ ssh_exec() {
   ssh "$SSH_USER@$SSH_HOST" "$@"
 }
 
+# --- Detect docker compose command on server ---
+echo "==> Detecting docker compose command on server..."
+if ssh_exec "docker compose version" >/dev/null 2>&1; then
+  _docker_bin=$(ssh_exec "command -v docker")
+  REMOTE_DC_CMD="${_docker_bin} compose"
+elif ssh_exec "docker-compose --version" >/dev/null 2>&1; then
+  REMOTE_DC_CMD=$(ssh_exec "command -v docker-compose")
+else
+  printf 'Error: neither "docker compose" (plugin) nor "docker-compose" is installed on %s.\n' "$SSH_HOST" >&2
+  exit 1
+fi
+
 # --- 1. Build frontend ---
 echo "==> Building frontend..."
 cd "$PROJECT_ROOT"
-VITE_SYNC_URL="$STAGING_SYNC_URL" bun run build
+VITE_BASIC_AUTH="$(printf 'staging:%s' "$BASIC_AUTH_PASSWORD" | base64 | tr -d '\n')" VITE_SYNC_URL="https://$STAGING_DOMAIN" bun run build
 
 # --- 2. Deploy frontend ---
 echo "==> Deploying frontend..."
@@ -76,18 +88,45 @@ printf 'COMPOSE_PROJECT_NAME=tasks-harmony-staging\nSOCKET_DIR=%s\n' \
   "$STAGING_SOCKET_DIR" \
   | ssh_exec "cat > $STAGING_SERVER_DIR/.env"
 
-# --- 5. Render nginx config ---
+# --- 5. Write systemd service ---
+if false
+then
+  echo "==> Writing systemd service..."
+  ssh_exec "sudo tee /etc/systemd/system/tasks-harmony-sync-staging.service > /dev/null" << EOF
+[Unit]
+Description=Tasks Harmony Sync Server (Staging)
+After=docker.service
+Requires=docker.service
+
+[Service]
+WorkingDirectory=$STAGING_SERVER_DIR
+ExecStart=$REMOTE_DC_CMD up
+ExecStop=$REMOTE_DC_CMD down
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  ssh_exec "sudo systemctl daemon-reload"
+  ssh_exec "sudo systemctl enable tasks-harmony-sync-staging"
+fi
+
+# --- 6. Render nginx config ---
 echo "==> Rendering nginx config..."
 perl -pe "s|__SOCKET_DIR__|$STAGING_SOCKET_DIR|g" \
   "$PROJECT_ROOT/nginx/sync-location.conf.template" \
   | ssh_exec "cat > $STAGING_NGINX_INCLUDE_DIR/sync-location.conf"
 
-# --- 6. Update basic auth ---
+# --- 7. Update basic auth ---
 echo "==> Updating basic auth..."
 printf '%s' "$BASIC_AUTH_PASSWORD" \
   | ssh_exec "htpasswd -ci $STAGING_BASIC_AUTH_FILE staging"
 
-# --- 7. Seed data ---
+# --- 8. Ensure socket directory ownership ---
+echo "==> Ensuring socket directory..."
+ssh_exec "sudo mkdir -p $(printf '%q' "$STAGING_SOCKET_DIR") && sudo chown 1000:1000 $(printf '%q' "$STAGING_SOCKET_DIR")"
+
+# --- 9. Seed data ---
 if [[ "$SEED_MODE" == "fresh" ]]; then
   echo "==> Resetting staging data (fresh)..."
   ssh_exec "sudo systemctl stop tasks-harmony-sync-staging || true"
@@ -102,7 +141,9 @@ elif [[ "$SEED_MODE" == "from-prod" ]]; then
   ssh_exec "sudo systemctl start tasks-harmony-sync-staging"
 fi
 
-# --- 8. Restart service (code-only deploy) + reload nginx ---
+# --- 10. Rebuild and restart service (code-only deploy) + reload nginx ---
+echo "==> Rebuilding sync server image..."
+ssh_exec "cd $(printf '%q' "$STAGING_SERVER_DIR") && $REMOTE_DC_CMD build"
 if [[ -z "$SEED_MODE" ]]; then
   echo "==> Restarting sync service..."
   ssh_exec "sudo systemctl restart tasks-harmony-sync-staging"

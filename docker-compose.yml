@@ -4,11 +4,11 @@ services:
   sync:
     build: ./sync-server
     volumes:
-      - ${SOCKET_DIR}:/run/sync
+      - ${SOCKET_DIR}:${SOCKET_DIR}
       - sync-data:/data
     environment:
       - REDIS_URL=redis://redis:6379
-      - SYNC_SOCKET=/run/sync/sync.sock
+      - SYNC_SOCKET=${SOCKET_DIR}/sync.sock
       - SYNC_BLOB_DIR=/data
     depends_on:
       - redis

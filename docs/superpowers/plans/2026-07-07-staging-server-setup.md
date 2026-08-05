@@ -56,13 +56,22 @@ If you use a wildcard cert (`*.example.com`) this step is already done — skip 
 which htpasswd || sudo apt-get install -y apache2-utils
 ```
 
-- [ ] Verify Docker Compose plugin is available:
+- [ ] Verify Docker Compose is available (either the V2 plugin or the standalone V1 binary):
 
 ```bash
-docker compose version
+docker compose version 2>/dev/null || docker-compose --version
 ```
 
-Expected: `Docker Compose version v2.x.x`. If missing: `sudo apt-get install -y docker-compose-plugin`.
+Expected: a version string from one of the two. If neither is installed:
+
+```bash
+# V2 plugin (recommended):
+sudo apt-get install -y docker-compose-plugin
+# V1 standalone (legacy):
+sudo apt-get install -y docker-compose
+```
+
+The deploy script detects which variant is present at runtime and writes the systemd service accordingly.
 
 ---
 
@@ -122,42 +131,17 @@ ls -ld $STAGING_SOCKET_DIR
 
 ---
 
-## Step 6 — Create the systemd service
+## Step 6 — Systemd service (automated by deploy script)
 
-- [ ] Create the service file. Replace `$STAGING_SERVER_DIR` with the actual absolute path:
+**No manual action needed.** `scripts/deploy-staging.sh` writes and enables the service on every deploy, detecting whether `docker compose` (V2 plugin) or `docker-compose` (V1 standalone) is installed on the server.
 
-```bash
-sudo tee /etc/systemd/system/tasks-harmony-sync-staging.service > /dev/null <<EOF
-[Unit]
-Description=Tasks Harmony Sync Server (Staging)
-After=docker.service
-Requires=docker.service
-
-[Service]
-WorkingDirectory=$STAGING_SERVER_DIR
-ExecStart=/usr/bin/docker compose up
-ExecStop=/usr/bin/docker compose down
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-
-- [ ] Reload systemd and enable the service (do **not** start it yet — the first deploy does that):
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable tasks-harmony-sync-staging
-```
-
-- [ ] Verify it is enabled but not yet running:
+After the **first deploy** (Step 10), verify the service is enabled and running:
 
 ```bash
 sudo systemctl status tasks-harmony-sync-staging
 ```
 
-Expected: `enabled; preset: …` and `inactive (dead)`.
+Expected: `enabled` and `active (running)`.
 
 ---
 
