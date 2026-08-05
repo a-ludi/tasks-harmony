@@ -7,6 +7,7 @@ import {
   mkdirSync,
   chmodSync,
   symlinkSync,
+  readFileSync,
 } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -83,6 +84,45 @@ test("exits 1 with helpful message on unknown argument", () => {
   });
   expect(result.status).toBe(1);
   expect(result.stderr).toContain("Unknown argument");
+});
+
+test("build command includes VITE_BASIC_AUTH derived from BASIC_AUTH_PASSWORD for staging basic auth", () => {
+  const script = readFileSync(join(projectRoot, "scripts/deploy-staging.sh"), "utf-8");
+  // The staging site is behind HTTP basic auth. Sync API calls must include the
+  // credentials so nginx doesn't reject them before they reach the sync server.
+  const buildLine = script.match(/^.*bun run build.*$/m)?.[0] ?? "";
+  expect(buildLine).toContain("VITE_BASIC_AUTH");
+  expect(script).toContain("BASIC_AUTH_PASSWORD");
+});
+
+test("VITE_SYNC_URL does not end with /sync - client code appends /sync/ paths itself", () => {
+  const script = readFileSync(join(projectRoot, "scripts/deploy-staging.sh"), "utf-8");
+  // Client calls ${VITE_SYNC_URL}/sync/challenge etc.; if VITE_SYNC_URL ends with
+  // /sync the paths become /sync/sync/challenge → 404.
+  const viteUrlLine = script.match(/^VITE_SYNC_URL=.*$/m)?.[0] ?? "";
+  expect(viteUrlLine).not.toContain("STAGING_SYNC_URL");
+  expect(viteUrlLine).not.toMatch(/\/sync["'\s]/);
+});
+
+test("deploy script ensures socket directory is owned by bun user (UID 1000) before starting container", () => {
+  // Without this step Docker auto-creates the bind-mounted directory as root,
+  // and the container's bun user (UID 1000) gets EACCES when trying to
+  // create the socket file inside it.
+  const script = readFileSync(join(projectRoot, "scripts/deploy-staging.sh"), "utf-8");
+  expect(script).toMatch(/chown.*1000.*STAGING_SOCKET_DIR|chown.*bun.*STAGING_SOCKET_DIR/s);
+  expect(script).toMatch(/mkdir.*STAGING_SOCKET_DIR|install.*-d.*STAGING_SOCKET_DIR/s);
+});
+
+test("deploy script rebuilds the sync-server Docker image before restarting the service so code changes take effect", () => {
+  // The Dockerfile bakes source into the image at build time (COPY . .).
+  // Rsyncing new source to the host has no effect unless the image is rebuilt.
+  // Without a rebuild step the container keeps running the old cached image.
+  const script = readFileSync(join(projectRoot, "scripts/deploy-staging.sh"), "utf-8");
+  expect(script).toMatch(/REMOTE_DC_CMD.*build/);
+  const buildIdx = script.search(/REMOTE_DC_CMD.*build/);
+  const restartIdx = script.indexOf("systemctl restart tasks-harmony-sync-staging");
+  expect(buildIdx).toBeGreaterThan(0);
+  expect(buildIdx).toBeLessThan(restartIdx);
 });
 
 test("exits 1 with helpful message when secret-tool is not installed", () => {
