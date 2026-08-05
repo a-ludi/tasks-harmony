@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { stripCspInDev } from './src/vite-strip-csp-dev';
 
 const { version } = JSON.parse(readFileSync('package.json', 'utf-8'));
 const buildDate = new Date().toISOString().substring(0, 10);
@@ -12,6 +13,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    stripCspInDev(),
     VitePWA({
       registerType: 'prompt',
       devOptions: { enabled: true },
