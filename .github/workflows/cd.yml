@@ -100,6 +100,10 @@ jobs:
             | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
               "cat > $NGINX_INCLUDE_DIR/sync-location.conf"
 
+          # Rebuild Docker image so new sync-server source takes effect
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
+            "cd $SERVER_DIR && docker compose build"
+
           # Restart service and reload nginx
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
             "sudo systemctl restart tasks-harmony-sync && sudo nginx -s reload"
