@@ -1,7 +1,7 @@
 # Rate limiting zones belong in the nginx http block (one-time manual setup):
 #   limit_req_zone $binary_remote_addr zone=sync_challenge:10m rate=5r/m;
 #   limit_req_zone $binary_remote_addr zone=sync_session:10m rate=10r/m;
-#   limit_req_zone $binary_remote_addr zone=sync_write:10m rate=30r/m;
+#   limit_req_zone $binary_remote_addr zone=sync_write:30m rate=30r/m;
 
 location /sync/challenge {
     limit_req zone=sync_challenge burst=2 nodelay;
@@ -11,6 +11,14 @@ location /sync/challenge {
 
 location ~ "^/sync/[a-f0-9]{64}$" {
     access_log off;
+    # Staging sends Authorization: Basic <creds> (for nginx basic auth) and
+    # X-Sync-Token: Bearer <token> (for the sync server). Rewrite Authorization
+    # to the token value before proxying so the sync server sees its expected header.
+    set $sync_auth $http_authorization;
+    if ($http_x_sync_token) {
+        set $sync_auth $http_x_sync_token;
+    }
+    proxy_set_header Authorization $sync_auth;
     limit_req zone=sync_write burst=5 nodelay;
     client_max_body_size 1m;
     proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
