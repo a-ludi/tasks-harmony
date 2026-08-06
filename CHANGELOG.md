@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3] — 2026-08-06
+
+### Fixed
+
+- **CD sync-server deploy** — removed the redundant `docker-compose build` step from the workflow; the systemd service file's `ExecStartPre` already rebuilds the image before startup, and `sudo systemctl restart` correctly triggers this sequence
+
 ## [0.12.2] — 2026-08-06
 
 ### Fixed
@@ -252,6 +258,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.12.3]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.3
 [0.12.2]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.2
 [0.12.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.1
 [0.12.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.0
