@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.12.3",
+    "date": "2026-08-06",
+    "highlights": [
+      "CD deploy-sync now correctly relies on the systemd service's ExecStartPre to rebuild the Docker image, removing the redundant explicit build step that lacked sudo permission"
+    ],
+    "sections": {
+      "Fixed": [
+        "**CD sync-server deploy** — removed the redundant `docker-compose build` step from the workflow; the systemd service file's `ExecStartPre` already rebuilds the image before startup, and `sudo systemctl restart` correctly triggers this sequence"
+      ]
+    }
+  },
+  {
     "version": "0.12.2",
     "date": "2026-08-06",
     "highlights": [
