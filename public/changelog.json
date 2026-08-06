@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.12.2",
+    "date": "2026-08-06",
+    "highlights": [
+      "CD pipeline now correctly builds the sync server Docker image using sudo, fixing a Docker daemon access error on the production server"
+    ],
+    "sections": {
+      "Fixed": [
+        "**CD sync-server Docker image build** — the deploy user does not have direct Docker socket access; `docker compose build` and `docker-compose build` now run with `sudo`, consistent with how `systemctl restart` is invoked"
+      ]
+    }
+  },
+  {
     "version": "0.12.1",
     "date": "2026-08-06",
     "highlights": [
