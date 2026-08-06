@@ -1,5 +1,51 @@
 [
   {
+    "version": "0.12.0",
+    "date": "2026-08-06",
+    "highlights": [
+      "Post-quantum sync authentication — sync now uses ML-DSA-87 challenge-response signatures and ML-KEM-1024 hybrid encryption; existing users see a one-time migration dialog on upgrade",
+      "Sync overwrite confirmation — the app now asks before replacing local data with newer server state, preventing accidental data loss during conflict resolution",
+      "Comprehensive security hardening — 35 issues addressed across authentication, ReDoS protection, XSS sanitization, zip-bomb limits, rate limiting, and schema validation",
+      "Sync key rotation — a DELETE endpoint lets you cleanly remove a compromised key's encrypted blob from the server before starting with a new key"
+    ],
+    "sections": {
+      "Added": [
+        "**Post-quantum sync authentication** — sync authentication is replaced with a proper challenge-response scheme: ML-DSA-87 signatures authenticate the client; ML-KEM-1024 hybrid encryption replaces AES-GCM for blob confidentiality; the server no longer holds any secret that would allow decrypting stored blobs",
+        "**Automatic PQ migration** — on first startup after upgrading from v0.11.0 or earlier, a migration modal performs a final pull with the old credentials, generates a new post-quantum key bundle, re-encrypts local state, and pushes to the new blob path; multi-device users are prompted to export the new key before migrating other devices",
+        "**Auto-generate sync credentials on fresh install** — new installations no longer require manual key generation; a PQ key bundle is generated automatically on first launch and a non-blocking notice prompts the user to export it",
+        "**Sync key rotation via DELETE endpoint** — a new `DELETE /sync/{syncId}` endpoint removes the encrypted blob, enabling clean key rotation after a credential compromise; the client exposes this via the sync key management UI",
+        "**Sync overwrite confirmation** — when a pull finds the server state is newer than local, an explicit confirmation dialog is shown before local data is replaced (SEC-000018)",
+        "**Content-Security-Policy** — a `Content-Security-Policy` meta tag in `index.html` enforces strict source allowlists for scripts, styles, and connections (SEC-000031)"
+      ],
+      "Changed": [
+        "**Schema validation migrated from ajv to zod** — all runtime validation uses zod schemas; ajv removed from the dependency tree",
+        "**Sync server runs as non-root** — Docker container user changed from root to `bun`; Dockerfile updated accordingly (SEC-000010)",
+        "**Production error handling** — `NODE_ENV=production` set and a global error handler added to suppress stack traces in server error responses (SEC-000015)",
+        "**Docker image rebuilt on CD deploy** — the CD pipeline now rebuilds the sync-server Docker image before restarting the service so code changes reach the container"
+      ],
+      "Security": [
+        "**Legacy session code path removed (SEC-000037)** — the legacy `syncToken`-based session path that allowed an attacker who knew a user's syncId to hijack their sync blob without ML-DSA authentication is closed; all session creation now requires a valid ML-DSA-87 signature",
+        "**Shared HMAC secret removed from client bundle (SEC-000006)** — `VITE_SYNC_APP_SECRET` / `SYNC_APP_SECRET` removed entirely; the old HMAC challenge-response that baked a shared secret into every bundle is replaced by the PQ signature scheme",
+        "**Cross-tenant blob eviction fixed (SEC-000035)** — PUT quota enforcement previously could evict another user's blob to make room; eviction now only removes blobs that are not the caller's own",
+        "**BREACH/CRIME mitigated (SEC-000034)** — the compress-then-encrypt ordering in the sync blob path is fixed; payload is no longer compressed before encryption, closing the length-based plaintext recovery side channel",
+        "**CDP update pack-overwrite fixed (SEC-000033)** — `updateCDP` now verifies that the pack ID derived from the ZIP's root folder matches the stored pack ID; mismatches are rejected before any records are written",
+        "**CDP import pack ID collision rejected (SEC-000029)** — importing a CDP whose packId already exists in the app is rejected with an error instead of silently overwriting the existing pack",
+        "**ReDoS protection hardened (SEC-000005, SEC-000011, SEC-000012, SEC-000017)** — the ad-hoc ReDoS heuristic is replaced with the `safe-regex` library; `{n,m}` bounded-quantifier and ambiguous-alternation bypasses are now detected; `validateAnswer` regex patterns are checked before use",
+        "**XSS: javascript: URLs sanitized (SEC-000019, SEC-000021)** — `MarkdownDisplay` and `MarkdownEditor` both strip `javascript:` protocol links from rendered and editable content",
+        "**Zip-bomb and decompression limits (SEC-000013, SEC-000016, SEC-000020)** — `fflate` unzipSync guarded with `originalSize` cap; a cumulative uncompressed-size limit is enforced across all entries; the sync decrypt path caps decompressed output at 10 MB",
+        "**AppState schema tightened (SEC-000023, SEC-000030)** — strict `items` validation added to all AppState arrays; `pack.manifest` sub-schema is closed to reject unknown keys",
+        "**Rate limiting on sync endpoints (SEC-000003, SEC-000009)** — `/sync/session` and the catch-all `/sync/` nginx location both have rate-limit zones",
+        "**Path traversal validation for CDP filenames (SEC-000002)** — chore YAML filenames inside a CDP ZIP are validated to contain no path separators or traversal sequences",
+        "**Nonce and bearer token validation (SEC-000001, SEC-000004)** — nonce format validated in the session handler; Bearer token format validated before any Redis lookup",
+        "**Nonce bound to syncId at challenge time (SEC-000007)** — the challenge nonce is now bound to the requesting syncId, preventing nonce reuse across identities",
+        "**nginx access logging disabled for syncToken URL (SEC-000028)** — the `/sync/session` location's access log is turned off to prevent session tokens from appearing in access logs",
+        "**Profile email omitted from CDP export (SEC-000027)** — the `author` field in exported CDPs no longer includes the user's email address; only the display name is used",
+        "**.dockerignore added (SEC-000014)** — secrets and local config files are excluded from the Docker build context to prevent them from being baked into the image",
+        "**Stale SYNC_APP_SECRET references removed (SEC-000024)** — all documentation and config references to the removed `SYNC_APP_SECRET` / `VITE_SYNC_APP_SECRET` variables are cleaned up"
+      ]
+    }
+  },
+  {
     "version": "0.11.0",
     "date": "2026-07-01",
     "highlights": [
