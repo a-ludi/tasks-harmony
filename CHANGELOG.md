@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] — 2026-08-06
+
+### Fixed
+
+- **CD sync-server Docker image rebuild** — `docker compose build` (Compose v2 plugin) failed on the production server which has the standalone `docker-compose` binary; the step now tries the plugin first and falls back to the standalone command
+
 ## [0.12.0] — 2026-08-06
 
 ### Added
@@ -240,6 +246,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.12.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.1
 [0.12.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.0
 [0.11.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.11.0
 [0.10.7]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.10.7
