@@ -103,7 +103,7 @@ jobs:
           # Rebuild Docker image so new sync-server source takes effect
           # Support both Docker Compose v2 plugin ("docker compose") and standalone v1 ("docker-compose")
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
-            "cd $SERVER_DIR && (docker compose build 2>/dev/null || docker-compose build)"
+            "cd $SERVER_DIR && (sudo docker compose build 2>/dev/null || sudo docker-compose build)"
 
           # Restart service and reload nginx
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \

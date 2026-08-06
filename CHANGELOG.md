@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2] — 2026-08-06
+
+### Fixed
+
+- **CD sync-server Docker image build** — the deploy user does not have direct Docker socket access; `docker compose build` and `docker-compose build` now run with `sudo`, consistent with how `systemctl restart` is invoked
+
 ## [0.12.1] — 2026-08-06
 
 ### Fixed
@@ -246,6 +252,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.12.2]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.2
 [0.12.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.1
 [0.12.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.0
 [0.11.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.11.0
