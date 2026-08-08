@@ -160,7 +160,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteChore: async (key) => {
-    const { db, chores, completions, questions, quickAnswerSets } = get();
+    const { db, chores, completions, questions, quickAnswerSets, packs } = get();
     if (!db) throw new Error('DB not initialised');
 
     const chore = chores.find((c) => c.key === key);
@@ -170,11 +170,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     const choreQuestions = questions.filter((q) => q.choreKey === key);
     const choreSets = quickAnswerSets.filter((s) => s.choreKey === key);
 
-    const tx = db.transaction(['chores', 'questions', 'completions', 'quickAnswerSets'], 'readwrite');
+    const choreXP = choreCompletions.reduce((sum, c) => sum + c.xpEarned, 0);
+    const pack = packs.find((p) => p.id === chore.packId);
+
+    const tx = db.transaction(['chores', 'questions', 'completions', 'quickAnswerSets', 'packs'], 'readwrite');
     for (const c of choreCompletions) await tx.objectStore('completions').delete(c.id);
     for (const q of choreQuestions) await tx.objectStore('questions').delete(q.id);
     for (const s of choreSets) await tx.objectStore('quickAnswerSets').delete(s.id);
     await tx.objectStore('chores').delete(key);
+    if (pack && choreXP > 0) {
+      const updatedPack = {
+        ...pack,
+        manifest: { ...pack.manifest, deletedXP: (pack.manifest.deletedXP ?? 0) + choreXP },
+        updatedAt: new Date().toISOString(),
+      };
+      await tx.objectStore('packs').put(updatedPack);
+    }
     await tx.done;
 
     set((state) => ({
@@ -182,6 +193,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       completions: state.completions.filter((c) => c.choreKey !== key),
       questions: state.questions.filter((q) => q.choreKey !== key),
       quickAnswerSets: state.quickAnswerSets.filter((s) => s.choreKey !== key),
+      packs: pack && choreXP > 0
+        ? state.packs.map((p) =>
+            p.id === pack.id
+              ? { ...p, manifest: { ...p.manifest, deletedXP: (p.manifest.deletedXP ?? 0) + choreXP } }
+              : p,
+          )
+        : state.packs,
     }));
     markDirty();
   },

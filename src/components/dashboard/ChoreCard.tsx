@@ -49,7 +49,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
       <Card
         data-testid="chore-card"
         data-compact={compact || undefined}
-        className={`border-l-4 ${BORDER_COLOR[status]}`}
+        className={`border-l-4 ${isArchived ? 'border-l-border' : BORDER_COLOR[status]}`}
       >
         <CardHeader>
           <CardTitle className="text-sm leading-snug">
@@ -58,9 +58,11 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
               {packTitle && <span className="ml-2 text-xs font-normal text-muted-foreground">{packTitle}</span>}
             </Link>
           </CardTitle>
-          <CardDescription className="flex items-center gap-2">
-            <StatusBadge status={status} />
-          </CardDescription>
+          {!isArchived && (
+            <CardDescription className="flex items-center gap-2">
+              <StatusBadge status={status} />
+            </CardDescription>
+          )}
           <CardAction>
             <div className="flex items-center gap-1">
               <CompleteButton chore={chore} disabled={isArchived} />
