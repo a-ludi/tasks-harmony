@@ -253,6 +253,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const otherCompletions = completions.filter((c) => c.choreKey === completion.choreKey && c.id !== id);
     const effectiveTotalCompletions = packDecay ? otherCompletions.length : 0;
 
+    // Streak is preserved from the original completion — amending only adjusts XP for answer changes.
     let xpEarned = calculateXP(chore.xpSize, completion.streak, effectiveTotalCompletions, activeSettings);
     const multiplierQ = questions.find(
       (q): q is MultiplierQuestion => q.choreKey === completion.choreKey && q.type === 'MULTIPLIER',
