@@ -5,6 +5,9 @@ import { getAnswerDisplay } from '@/questions/display';
 import { Button } from '@/components/ui/button';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 import AmendCompletionModal from '@/components/completion/AmendCompletionModal';
+import CompleteButton from '@/components/chores/CompleteButton';
+import QuickCompleteButtonList from '@/components/chores/QuickCompleteButtonList';
+import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
 import type { Completion } from '@/types';
 
 export default function ChorePage() {
@@ -47,6 +50,12 @@ export default function ChorePage() {
       {chore.description && (
         <MarkdownDisplay key={chore.description} content={chore.description} className="mb-4 text-sm text-muted-foreground" />
       )}
+
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <CompleteButton chore={chore} />
+        <QuickCompleteButtonList chore={chore} />
+        <ChoreActionsDropdown chore={chore} />
+      </div>
 
       <h2 className="mb-3 text-lg font-semibold text-foreground">Completion History</h2>
 
