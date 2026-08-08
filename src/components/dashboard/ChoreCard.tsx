@@ -9,13 +9,10 @@ import { calculateXP } from '@/xp/calculator';
 import { getAnswerDisplay } from '@/questions/display';
 import StatusBadge from './StatusBadge';
 import CompleteButton from '@/components/chores/CompleteButton';
-import ChoreFormModal from '@/components/chores/ChoreFormModal';
-import DuplicateChoreDialog from '@/components/chores/DuplicateChoreDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 
 interface Props {
@@ -35,18 +32,10 @@ const BORDER_COLOR: Record<ChoreStatus, string> = {
 };
 
 export default function ChoreCard({ chore, completions, xpSettings, profile, packTitle, compact }: Props) {
-  const deactivateChore = useAppStore((s) => s.deactivateChore);
-  const deleteChore = useAppStore((s) => s.deleteChore);
-  const allChores = useAppStore((s) => s.chores);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const quickAnswerSets = useAppStore(useShallow((s) => s.quickAnswerSets.filter((set) => set.choreKey === chore.key)));
   const questions = useAppStore(useShallow((s) => s.questions.filter((q) => q.choreKey === chore.key)));
   const recordCompletion = useAppStore((s) => s.recordCompletion);
   const [quickCompleting, setQuickCompleting] = useState<string | null>(null);
-  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [editAfterDuplicateKey, setEditAfterDuplicateKey] = useState<string | null>(null);
   const chorePack = useAppStore((s) => s.packs.find((p) => p.id === chore.packId));
   const packStreak = chorePack?.manifest.streak ?? true;
 
@@ -65,24 +54,6 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
   const effectiveXP = activeSettings ? calculateXP(chore.xpSize, nextStreak, nextTotalCompletions, activeSettings) : 0;
   const sortedCompletions = [...choreCompletions].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
   const currentStreak = sortedCompletions[0]?.streak ?? 0;
-
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      await deleteChore(chore.key);
-      setShowDeleteDialog(false);
-    } catch (err) {
-      console.error('Failed to delete chore:', err);
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  async function handleDeactivate() {
-    if (window.confirm(`Archive "${chore.title}"? It will be removed from the dashboard.`)) {
-      await deactivateChore(chore.key);
-    }
-  }
 
   const isArchived = !chore.active;
 
@@ -107,24 +78,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
             <div className="flex items-center gap-1">
               {(status === 'due' || status === 'overdue') && <CompleteButton choreKey={chore.key} disabled={isArchived} />}
               {status === 'completed' && chore.repeatable && <CompleteButton choreKey={chore.key} label="Complete again" disabled={isArchived} />}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" aria-label="Chore actions">⋮</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {!isArchived && (
-                    <>
-                      <DropdownMenuItem onClick={() => setShowEditModal(true)}>Edit</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowDuplicateDialog(true)}>Duplicate</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" onClick={handleDeactivate}>Archive</DropdownMenuItem>
-                    </>
-                  )}
-                  {isArchived && (
-                    <DropdownMenuItem variant="destructive" onClick={() => setShowDeleteDialog(true)}>Delete</DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ChoreActionsDropdown chore={chore} />
             </div>
           </CardAction>
         </CardHeader>
@@ -184,37 +138,6 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
         </CardContent>
       </Card>
 
-      {showEditModal && <ChoreFormModal chore={chore} packId={chore.packId} onClose={() => setShowEditModal(false)} />}
-      {showDuplicateDialog && (
-        <DuplicateChoreDialog
-          chore={chore}
-          onClose={() => setShowDuplicateDialog(false)}
-          onDuplicateAndEdit={(newKey) => { setShowDuplicateDialog(false); setEditAfterDuplicateKey(newKey); }}
-        />
-      )}
-      {editAfterDuplicateKey && (() => {
-        const dupeChore = allChores.find((c) => c.key === editAfterDuplicateKey);
-        return dupeChore ? <ChoreFormModal chore={dupeChore} packId={dupeChore.packId} onClose={() => setEditAfterDuplicateKey(null)} /> : null;
-      })()}
-      <Dialog open={showDeleteDialog} onOpenChange={(open) => { if (!deleting) setShowDeleteDialog(open); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete chore?</DialogTitle>
-            <DialogDescription>
-              All completion history for <strong>{chore.title}</strong> will be permanently deleted.
-              Your total XP earned is preserved. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={deleting}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Deleting…' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
