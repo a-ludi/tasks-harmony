@@ -6,7 +6,6 @@ import { validateAnswer } from '@/questions/validation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AnswerField from './AnswerField';
 
 function toDatetimeLocal(date: Date): string {
@@ -31,11 +30,10 @@ export default function LogPastCompletionModal({ chore, eligibleWindows, questio
   const recordRetroactiveCompletion = useAppStore((s) => s.recordRetroactiveCompletion);
   const sortedQuestions = [...questions].sort((a, b) => a.order - b.order);
 
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const selectedWindow = eligibleWindows[selectedIndex];
+  const globalMin = toDatetimeLocal(eligibleWindows[0].start);
+  const globalMax = toDatetimeLocal(new Date(eligibleWindows[eligibleWindows.length - 1].end.getTime() - 1000));
 
-  const defaultCompletedAt = toDatetimeLocal(new Date(selectedWindow.end.getTime() - 1000));
-  const [completedAt, setCompletedAt] = useState(defaultCompletedAt);
+  const [completedAt, setCompletedAt] = useState(globalMax);
 
   const [answers, setAnswers] = useState<Record<string, string | number | boolean | null>>(
     () => Object.fromEntries(sortedQuestions.map((q) => [q.id, null])),
@@ -43,11 +41,11 @@ export default function LogPastCompletionModal({ chore, eligibleWindows, questio
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  function handleWindowChange(idx: number) {
-    setSelectedIndex(idx);
-    const w = eligibleWindows[idx];
-    setCompletedAt(toDatetimeLocal(new Date(w.end.getTime() - 1000)));
-  }
+  const selectedDate = new Date(completedAt);
+  const t = selectedDate.getTime();
+  const containingWindow: EligibleWindow | undefined = eligibleWindows.find(
+    (w) => w.start.getTime() <= t && t < w.end.getTime(),
+  );
 
   function handleAnswerChange(questionId: string, value: string | number | boolean | null) {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -56,6 +54,7 @@ export default function LogPastCompletionModal({ chore, eligibleWindows, questio
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!containingWindow) return;
     const newErrors: Record<string, string> = {};
     for (const question of sortedQuestions) {
       const answer: Answer = { questionId: question.id, value: answers[question.id] ?? null };
@@ -78,9 +77,6 @@ export default function LogPastCompletionModal({ chore, eligibleWindows, questio
     }
   }
 
-  const windowMin = toDatetimeLocal(selectedWindow.start);
-  const windowMax = toDatetimeLocal(new Date(selectedWindow.end.getTime() - 1000));
-
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
@@ -89,34 +85,22 @@ export default function LogPastCompletionModal({ chore, eligibleWindows, questio
         </DialogHeader>
         <form id="log-past-form" onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="space-y-1">
-            <Label>Window</Label>
-            <Select
-              value={String(selectedIndex)}
-              onValueChange={(v) => handleWindowChange(Number(v))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {eligibleWindows.map((w, i) => (
-                  <SelectItem key={w.index} value={String(i)}>
-                    {formatWindowLabel(w.start, w.end)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
             <Label>Completed at</Label>
             <input
               type="datetime-local"
               value={completedAt}
-              min={windowMin}
-              max={windowMax}
+              min={globalMin}
+              max={globalMax}
               disabled={submitting}
               onChange={(e) => setCompletedAt(e.target.value)}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
+            {!containingWindow && (
+              <p className="text-sm text-destructive">This date is already recorded in another completion</p>
+            )}
+            {containingWindow && (
+              <p className="text-sm text-muted-foreground">Window: {formatWindowLabel(containingWindow.start, containingWindow.end)}</p>
+            )}
           </div>
           {sortedQuestions.map((question) => (
             <AnswerField
@@ -130,7 +114,7 @@ export default function LogPastCompletionModal({ chore, eligibleWindows, questio
         </form>
         <DialogFooter>
           <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="log-past-form" disabled={submitting} className="bg-green-600 hover:bg-green-700 text-white disabled:bg-green-600 disabled:opacity-50">
+          <Button type="submit" form="log-past-form" disabled={submitting || !containingWindow} className="bg-green-600 hover:bg-green-700 text-white disabled:bg-green-600 disabled:opacity-50">
             {submitting ? 'Saving…' : 'Log completion'}
           </Button>
         </DialogFooter>

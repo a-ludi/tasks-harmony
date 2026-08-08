@@ -57,3 +57,37 @@ describe('deleteChore', () => {
     expect(useAppStore.getState().chores.find(c => c.key === choreKey)).toBeUndefined();
   });
 });
+
+describe('deleteChore — XP preservation', () => {
+  let choreKey2: string;
+  let xpEarned: number;
+  let packId: string;
+
+  beforeAll(async () => {
+    packId = await useAppStore.getState().addPack('Preservation Pack');
+    choreKey2 = await useAppStore.getState().addChore({
+      packId,
+      title: 'XP Chore',
+      xpSize: 'S',
+      recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+      repeatable: false,
+      active: true,
+    });
+    await useAppStore.getState().recordCompletion(choreKey2);
+    xpEarned = useAppStore.getState().completions
+      .filter((c) => c.choreKey === choreKey2)
+      .reduce((sum, c) => sum + c.xpEarned, 0);
+    await useAppStore.getState().deleteChore(choreKey2);
+  });
+
+  test('accumulates deleted XP into pack manifest.deletedXP', () => {
+    const pack = useAppStore.getState().packs.find((p) => p.id === packId);
+    expect(pack?.manifest.deletedXP).toBe(xpEarned);
+  });
+
+  test('persists deletedXP to IndexedDB', async () => {
+    await useAppStore.getState().reload();
+    const pack = useAppStore.getState().packs.find((p) => p.id === packId);
+    expect(pack?.manifest.deletedXP).toBe(xpEarned);
+  });
+});

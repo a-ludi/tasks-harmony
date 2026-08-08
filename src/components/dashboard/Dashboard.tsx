@@ -119,7 +119,7 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
       {archiveMode && (
         <div
           className="flex items-center justify-center rounded-md py-2 text-sm font-semibold"
-          style={{ background: 'repeating-linear-gradient(45deg, #f59e0b 0px, #f59e0b 20px, #000 20px, #000 40px)' }}
+          style={{ background: 'repeating-linear-gradient(45deg, rgba(245,158,11,0.5) 0px, rgba(245,158,11,0.5) 20px, rgba(0,0,0,0.5) 20px, rgba(0,0,0,0.5) 40px)' }}
         >
           <span className="rounded bg-black/60 px-3 py-1 text-white">
             Archived — read-only

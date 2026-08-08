@@ -46,7 +46,8 @@ export function ProfilePage() {
 
   if (!profile) return <div className="p-6 text-muted-foreground">Loading profile…</div>;
 
-  const totalXP = completions.reduce((sum, c) => sum + (c.xpEarned ?? 0), 0);
+  const totalXP = completions.reduce((sum, c) => sum + (c.xpEarned ?? 0), 0)
+    + packs.reduce((sum, p) => sum + (p.manifest.deletedXP ?? 0), 0);
   const activeSettings: XPSettings | undefined = xpSettings.find((s) => s.id === activeXPSettingsId);
 
   function handleSave() {

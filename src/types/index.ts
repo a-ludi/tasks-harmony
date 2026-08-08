@@ -80,6 +80,7 @@ export interface PackManifest {
   allowShiftOnImport?: boolean; // default false; when true, import dialog offers date shifting
   decay?: boolean;           // default true; false disables decay mechanics for all chores
   defaultXPSize?: XPSize | number; // pre-fills XP size when creating a new chore in this pack
+  deletedXP?: number;        // XP earned from deleted chores, preserved for total calculations
 }
 
 export interface Pack {

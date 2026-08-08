@@ -32,7 +32,7 @@ export default function PackDashboard() {
 
   const pack = packs.find((p) => p.id === packId);
   const packChores = chores.filter((c) => c.packId === packId);
-  const packXP = calculatePackXP(packId ?? '', chores, completions);
+  const packXP = calculatePackXP(packId ?? '', chores, completions) + (pack?.manifest.deletedXP ?? 0);
   const packChoreKeys = new Set(packChores.map((c) => c.key));
   const packQuestions = questions.filter((q) => packChoreKeys.has(q.choreKey));
 

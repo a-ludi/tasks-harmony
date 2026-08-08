@@ -27,7 +27,8 @@ export default function Sidebar({ onClose, onNewPack, updateVersion, onUpdateCli
   const isOnline = useOnlineStatus();
   const [showCDPDialog, setShowCDPDialog] = useState(false);
 
-  const totalXP = completions.reduce((sum, c) => sum + c.xpEarned, 0);
+  const totalXP = completions.reduce((sum, c) => sum + c.xpEarned, 0)
+    + packs.reduce((sum, p) => sum + (p.manifest.deletedXP ?? 0), 0);
   const sortedPacks = [...packs].sort((a, b) => a.manifest.title.localeCompare(b.manifest.title));
 
   return (

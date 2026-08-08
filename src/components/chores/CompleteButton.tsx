@@ -29,7 +29,7 @@ export default function CompleteButton({ chore, disabled }: Props) {
   const showComplete = status === 'due' || status === 'overdue';
   const showCompleteAgain = status === 'completed' && chore.repeatable;
 
-  if (!showComplete && !showCompleteAgain) return null;
+  if (!showComplete && !showCompleteAgain && !disabled) return null;
 
   const label = showCompleteAgain ? 'Complete again' : 'Complete';
 
