@@ -1,18 +1,15 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useShallow } from 'zustand/shallow';
-import type { Chore, Completion, XPSettings, UserProfile, ChoreStatus, QuickAnswerSet } from '@/types';
+import type { Chore, Completion, XPSettings, UserProfile, ChoreStatus } from '@/types';
 import { useAppStore } from '@/store';
 import { getChoreStatus, formatRecurrence } from '@/chores/recurrence';
 import { computeNewStreak } from '@/chores/streak';
 import { calculateXP } from '@/xp/calculator';
-import { getAnswerDisplay } from '@/questions/display';
 import StatusBadge from './StatusBadge';
 import CompleteButton from '@/components/chores/CompleteButton';
 import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
+import QuickCompleteButtonList from '@/components/chores/QuickCompleteButtonList';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 
 interface Props {
@@ -32,18 +29,8 @@ const BORDER_COLOR: Record<ChoreStatus, string> = {
 };
 
 export default function ChoreCard({ chore, completions, xpSettings, profile, packTitle, compact }: Props) {
-  const quickAnswerSets = useAppStore(useShallow((s) => s.quickAnswerSets.filter((set) => set.choreKey === chore.key)));
-  const questions = useAppStore(useShallow((s) => s.questions.filter((q) => q.choreKey === chore.key)));
-  const recordCompletion = useAppStore((s) => s.recordCompletion);
-  const [quickCompleting, setQuickCompleting] = useState<string | null>(null);
   const chorePack = useAppStore((s) => s.packs.find((p) => p.id === chore.packId));
   const packStreak = chorePack?.manifest.streak ?? true;
-
-  async function handleQuickComplete(set: QuickAnswerSet) {
-    if (quickCompleting) return;
-    setQuickCompleting(set.id);
-    try { await recordCompletion(chore.key, set.answers); } finally { setQuickCompleting(null); }
-  }
 
   const now = new Date();
   const choreCompletions = completions.filter((c) => c.choreKey === chore.key);
@@ -97,44 +84,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
             <span className="chore-recurrence">{formatRecurrence(chore.recurrence)}</span>
           </div>
 
-          {!isArchived && quickAnswerSets.length > 0 && (status === 'due' || status === 'overdue' || (status === 'completed' && chore.repeatable)) && (
-            <div className="mt-2 flex flex-wrap gap-2 border-t pt-2">
-              <TooltipProvider>
-                {quickAnswerSets.map((set) => {
-                  const tooltipRows = [...questions].sort((a, b) => a.order - b.order).map((q) => ({
-                    prompt: q.prompt,
-                    display: getAnswerDisplay(set.answers, q) || '—',
-                  }));
-                  return (
-                    <Tooltip key={set.id}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQuickComplete(set)}
-                          disabled={isArchived || !!quickCompleting}
-                          className="rounded-full border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800/30"
-                        >
-                          {quickCompleting === set.id ? 'Saving…' : `⚡ ${set.label}`}
-                        </Button>
-                      </TooltipTrigger>
-                      {tooltipRows.length > 0 && (
-                        <TooltipContent>
-                          <p className="mb-1 text-xs font-semibold">{set.label}</p>
-                          {tooltipRows.map((row) => (
-                            <div key={row.prompt} className="flex justify-between gap-3 text-xs">
-                              <span className="text-muted-foreground">{row.prompt}</span>
-                              <span className="font-medium">{row.display}</span>
-                            </div>
-                          ))}
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  );
-                })}
-              </TooltipProvider>
-            </div>
-          )}
+          <QuickCompleteButtonList chore={chore} disabled={isArchived} />
         </CardContent>
       </Card>
 
