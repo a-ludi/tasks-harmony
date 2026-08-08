@@ -52,7 +52,7 @@ export default function ChorePage() {
       {completions.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">No completions yet.</p>
       ) : (
-        <CompletionsTable completions={completions} questions={choreQuestions} choreTitle={chore.title} />
+        <CompletionsTable completions={completions} questions={choreQuestions} choreTitle={chore.title} onEdit={setEditingCompletion} />
       )}
 
       {editingCompletion && (
