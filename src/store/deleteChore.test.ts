@@ -26,6 +26,13 @@ describe('deleteChore', () => {
     } as DraftQuestion]);
 
     await useAppStore.getState().recordCompletion(choreKey, [{ questionId: qId, value: 'hello' }]);
+
+    await useAppStore.getState().saveQuickAnswerSet({
+      id: crypto.randomUUID(),
+      choreKey,
+      label: 'Quick',
+      answers: [],
+    });
   });
 
   test('removes chore from state', async () => {
@@ -39,5 +46,14 @@ describe('deleteChore', () => {
 
   test('removes associated questions from state', () => {
     expect(useAppStore.getState().questions.filter(q => q.choreKey === choreKey)).toHaveLength(0);
+  });
+
+  test('removes associated quick answer sets from state', () => {
+    expect(useAppStore.getState().quickAnswerSets.filter(s => s.choreKey === choreKey)).toHaveLength(0);
+  });
+
+  test('persists deletion to IndexedDB', async () => {
+    await useAppStore.getState().reload();
+    expect(useAppStore.getState().chores.find(c => c.key === choreKey)).toBeUndefined();
   });
 });
