@@ -116,6 +116,17 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
         </div>
       </div>
 
+      {archiveMode && (
+        <div
+          className="flex items-center justify-center rounded-md py-2 text-sm font-semibold"
+          style={{ background: 'repeating-linear-gradient(45deg, #f59e0b 0px, #f59e0b 20px, #000 20px, #000 40px)' }}
+        >
+          <span className="rounded bg-black/60 px-3 py-1 text-white">
+            Archived — read-only
+          </span>
+        </div>
+      )}
+
       {visibleChores.length === 0 && (
         <div className="rounded-xl border border-dashed p-12 text-center">
           <p className="text-muted-foreground">{archiveMode ? 'No archived chores.' : 'No chores yet.'}</p>
@@ -123,30 +134,48 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
         </div>
       )}
 
-      {SECTION_ORDER.map((status) => {
-        const sectionChores = grouped.get(status);
-        if (!sectionChores || sectionChores.length === 0) return null;
-        return (
-          <section key={status}>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              {SECTION_LABELS[status]}
-            </h2>
-            <div data-compact-list={compact || undefined} className="space-y-3">
-              {sectionChores.map((chore) => (
-                <ChoreCard
-                  key={chore.key}
-                  chore={chore}
-                  completions={completions.filter((c) => c.choreKey === chore.key)}
-                  xpSettings={xpSettings}
-                  profile={profile}
-                  packTitle={packs.find((p) => p.id === chore.packId)?.manifest.title}
-                  compact={compact}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      {archiveMode ? (
+        <div data-compact-list={compact || undefined} className="space-y-3">
+          {[...visibleChores].sort((a, b) => a.title.localeCompare(b.title)).map((chore) => (
+            <ChoreCard
+              key={chore.key}
+              chore={chore}
+              completions={completions.filter((c) => c.choreKey === chore.key)}
+              xpSettings={xpSettings}
+              profile={profile}
+              packTitle={packs.find((p) => p.id === chore.packId)?.manifest.title}
+              compact={compact}
+            />
+          ))}
+        </div>
+      ) : (
+        <>
+          {SECTION_ORDER.map((status) => {
+            const sectionChores = grouped.get(status);
+            if (!sectionChores || sectionChores.length === 0) return null;
+            return (
+              <section key={status}>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {SECTION_LABELS[status]}
+                </h2>
+                <div data-compact-list={compact || undefined} className="space-y-3">
+                  {sectionChores.map((chore) => (
+                    <ChoreCard
+                      key={chore.key}
+                      chore={chore}
+                      completions={completions.filter((c) => c.choreKey === chore.key)}
+                      xpSettings={xpSettings}
+                      profile={profile}
+                      packTitle={packs.find((p) => p.id === chore.packId)?.manifest.title}
+                      compact={compact}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </>
+      )}
 
       {showNewChoreModal && (
         <ChoreFormModal packId={currentPackId ?? 'personal'} onClose={() => setShowNewChoreModal(false)} />
