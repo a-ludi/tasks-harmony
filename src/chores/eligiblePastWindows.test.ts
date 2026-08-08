@@ -64,8 +64,17 @@ describe('eligiblePastWindows', () => {
     const now = new Date('2026-01-05T12:00:00');
     const completions = [makeCompletion('2026-01-01T10:00:00')]; // window 0
     const result = eligiblePastWindows(chore, completions, now);
-    // all windows 1,2,3 eligible (no exclusion for repeatable)
-    expect(result.map(w => w.index)).toEqual([1, 2, 3]);
+    // all windows 0,1,2,3 eligible for repeatable chores
+    expect(result.map(w => w.index)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('includes windows before the last completion for repeatable chores', () => {
+    const chore = makeChore(true); // repeatable
+    const now = new Date('2026-01-05T12:00:00'); // windows 0-3 closed
+    const completions = [makeCompletion('2026-01-03T10:00:00')]; // completion in window 2
+    const result = eligiblePastWindows(chore, completions, now);
+    // windows 0, 1, 2, 3 all eligible — last completion index does not restrict earlier windows
+    expect(result.map(w => w.index)).toEqual([0, 1, 2, 3]);
   });
 
   it('window start and end are correct', () => {

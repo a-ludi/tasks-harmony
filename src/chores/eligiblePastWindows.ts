@@ -15,14 +15,18 @@ export function eligiblePastWindows(
   const currentIdx = getCurrentWindowIndex(chore.recurrence, now);
   if (currentIdx === null || currentIdx === 0) return [];
 
-  let lastIdx = -1;
-  for (const c of completions) {
-    const idx = getCurrentWindowIndex(chore.recurrence, new Date(c.completedAt));
-    if (idx !== null && idx > lastIdx) lastIdx = idx;
+  let startIdx = 0;
+  if (!chore.repeatable) {
+    let lastIdx = -1;
+    for (const c of completions) {
+      const idx = getCurrentWindowIndex(chore.recurrence, new Date(c.completedAt));
+      if (idx !== null && idx > lastIdx) lastIdx = idx;
+    }
+    startIdx = lastIdx + 1;
   }
 
   const results: EligibleWindow[] = [];
-  for (let i = lastIdx + 1; i < currentIdx; i++) {
+  for (let i = startIdx; i < currentIdx; i++) {
     const start = getWindowStart(chore.recurrence, i);
     const end = getWindowEnd(chore.recurrence, i);
 
