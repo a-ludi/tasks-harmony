@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { Completion, Question } from '@/types';
 import { getAnswerDisplay } from '@/questions/display';
 import {
   type SortEntry, type SortKey, sortCompletions, clickColumnHeader,
+  groupCompletions, getGroupLabel, computeTotals, addGroupBy, removeGroupBy,
 } from './completionsTable';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   completions: Completion[];
@@ -26,7 +29,8 @@ function SortLabel({ sorts, colKey }: { sorts: SortEntry[]; colKey: SortKey }) {
 
 export default function CompletionsTable({ completions, questions, choreTitle }: Props) {
   const [sorts, setSorts] = useState<SortEntry[]>([]);
-  const [groupBys] = useState<string[]>([]); // extended in Task 7
+  const [groupBys, setGroupBys] = useState<string[]>([]);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   function handleHeaderClick(key: SortKey) {
     setSorts(prev => clickColumnHeader(prev, key, groupBys));
@@ -44,7 +48,52 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
 
   return (
     <div>
-      {/* Toolbar placeholder for groupBy + export (Tasks 7/8) */}
+      {/* Toolbar */}
+      {(() => {
+        const eligibleQuestions = questions.filter(q => q.type === 'ENUM' || q.type === 'INTEGER' || q.type === 'BOOLEAN');
+        const availableToGroup = eligibleQuestions.filter(q => !groupBys.includes(q.id));
+        return (
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            {groupBys.map(qId => {
+              const q = questions.find(q => q.id === qId);
+              return (
+                <span key={qId} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+                  {q?.prompt ?? qId}
+                  <button
+                    className="hover:text-destructive"
+                    onClick={() => {
+                      const next = removeGroupBy(groupBys, sorts, qId);
+                      setGroupBys(next.groupBys);
+                      setSorts(next.sorts);
+                      setOpenGroup(null);
+                    }}
+                    aria-label={`Remove ${q?.prompt} group`}
+                  >×</button>
+                </span>
+              );
+            })}
+            {availableToGroup.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-xs h-6 px-2">+ Group by</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {availableToGroup.map(q => (
+                    <DropdownMenuItem key={q.id} onClick={() => {
+                      const next = addGroupBy(groupBys, sorts, q.id);
+                      setGroupBys(next.groupBys);
+                      setSorts(next.sorts);
+                      setOpenGroup(null);
+                    }}>
+                      {q.prompt}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        );
+      })()}
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left border-collapse">
           <thead>
@@ -86,21 +135,70 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
             </tr>
           </thead>
           <tbody>
-            {sorted.map(c => (
-              <tr key={c.id} className="border-b border-border hover:bg-muted">
-                <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal">
-                  {formatDate(c.completedAt)}
-                </th>
-                {questions.map(q => (
-                  <td key={q.id} className="py-2 pr-4 text-muted-foreground">
-                    {getAnswerDisplay(c.answers, q)}
-                  </td>
-                ))}
-                <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
-                {hasSorts && <td />}
-              </tr>
-            ))}
+            {groupBys.length === 0 ? (
+              sorted.map(c => (
+                <tr key={c.id} className="border-b border-border hover:bg-muted">
+                  <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal">{formatDate(c.completedAt)}</th>
+                  {questions.map(q => (
+                    <td key={q.id} className="py-2 pr-4 text-muted-foreground">{getAnswerDisplay(c.answers, q)}</td>
+                  ))}
+                  <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
+                  {hasSorts && <td />}
+                </tr>
+              ))
+            ) : (
+              Array.from(groupCompletions(sorted, groupBys)).map(([key, groupRows]) => {
+                const label = getGroupLabel(key, groupBys, questions);
+                const subtotals = computeTotals(groupRows, questions);
+                const isOpen = openGroup === key;
+                return (
+                  <React.Fragment key={key}>
+                    <tr
+                      className="border-b border-border bg-muted/50 cursor-pointer select-none hover:bg-muted"
+                      onClick={() => setOpenGroup(isOpen ? null : key)}
+                    >
+                      <td colSpan={questions.length + 2 + (hasSorts ? 1 : 0)} className="py-2 px-2 font-medium">
+                        <span className="mr-2">{isOpen ? '▾' : '▸'}</span>
+                        {label}
+                        <span className="ml-3 text-xs font-normal text-muted-foreground">
+                          ({subtotals.count} completion{subtotals.count !== 1 ? 's' : ''} · {subtotals.xpSum} XP)
+                        </span>
+                      </td>
+                    </tr>
+                    {isOpen && groupRows.map(c => (
+                      <tr key={c.id} className="border-b border-border hover:bg-muted">
+                        <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal pl-6">{formatDate(c.completedAt)}</th>
+                        {questions.map(q => (
+                          <td key={q.id} className="py-2 pr-4 text-muted-foreground">{getAnswerDisplay(c.answers, q)}</td>
+                        ))}
+                        <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
+                        {hasSorts && <td />}
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                );
+              })
+            )}
           </tbody>
+          {(() => {
+            const totals = computeTotals(completions, questions);
+            return (
+              <tfoot>
+                <tr className="border-t-2 border-border font-medium bg-muted/30">
+                  <th scope="row" className="py-2 pr-4 text-foreground whitespace-nowrap text-left">
+                    {totals.count} completion{totals.count !== 1 ? 's' : ''}
+                  </th>
+                  {questions.map(q => (
+                    <td key={q.id} className="py-2 pr-4 text-foreground">
+                      {totals.questionSums[q.id] !== null ? totals.questionSums[q.id] : '—'}
+                    </td>
+                  ))}
+                  <td className="py-2 text-foreground font-medium text-right">{totals.xpSum}</td>
+                  {hasSorts && <td />}
+                </tr>
+              </tfoot>
+            );
+          })()}
         </table>
       </div>
     </div>
