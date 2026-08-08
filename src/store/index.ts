@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, deleteChore, putPack, deleteCompletion, deletePack as dbDeletePack, getChoresByPack, getQuestions, getCompletionsByChore, getAllQuickAnswerSets, putQuickAnswerSet, deleteQuickAnswerSet as dbDeleteQuickAnswerSet } from '@/db';
+import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, deleteChore as dbDeleteChore, putPack, deleteCompletion, deletePack as dbDeletePack, getChoresByPack, getQuestions, getCompletionsByChore, getAllQuickAnswerSets, putQuickAnswerSet, deleteQuickAnswerSet as dbDeleteQuickAnswerSet } from '@/db';
 import { titleToFilename } from '@/cdp/filename';
 import { slugifyPackId } from '@/cdp/packId';
 import { fetchCDP } from '@/cdp/cdp-import';
@@ -42,6 +42,7 @@ interface AppState {
   addChore: (data: Omit<Chore, 'key' | 'choreId' | 'createdAt'>) => Promise<string>;
   updateChore: (chore: Chore) => Promise<void>;
   deactivateChore: (key: string) => Promise<void>;
+  deleteChore: (key: string) => Promise<void>;
   recordCompletion: (choreKey: string, answers?: Answer[]) => Promise<void>;
   updateProfile: (profile: UserProfile) => Promise<void>;
   updateSyncState: (state: SyncState) => Promise<void>;
@@ -152,6 +153,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     await putChore(db, deactivated);
     set((state) => ({
       chores: state.chores.map((c) => (c.key === key ? deactivated : c)),
+    }));
+    markDirty();
+  },
+
+  deleteChore: async (key) => {
+    const { db, completions, questions, quickAnswerSets } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    const choreCompletions = completions.filter((c) => c.choreKey === key);
+    for (const c of choreCompletions) await deleteCompletion(db, c.id);
+
+    const choreQuestions = questions.filter((q) => q.choreKey === key);
+    for (const q of choreQuestions) await deleteQuestion(db, q.id);
+
+    const choreSets = quickAnswerSets.filter((s) => s.choreKey === key);
+    for (const s of choreSets) await dbDeleteQuickAnswerSet(db, s.id);
+
+    await dbDeleteChore(db, key);
+
+    set((state) => ({
+      chores: state.chores.filter((c) => c.key !== key),
+      completions: state.completions.filter((c) => c.choreKey !== key),
+      questions: state.questions.filter((q) => q.choreKey !== key),
+      quickAnswerSets: state.quickAnswerSets.filter((s) => s.choreKey !== key),
     }));
     markDirty();
   },
