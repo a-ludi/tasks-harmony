@@ -158,19 +158,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteChore: async (key) => {
-    const { db, completions, questions, quickAnswerSets } = get();
+    const { db, chores, completions, questions, quickAnswerSets } = get();
     if (!db) throw new Error('DB not initialised');
 
+    const chore = chores.find((c) => c.key === key);
+    if (!chore) return;
+
     const choreCompletions = completions.filter((c) => c.choreKey === key);
-    for (const c of choreCompletions) await deleteCompletion(db, c.id);
-
     const choreQuestions = questions.filter((q) => q.choreKey === key);
-    for (const q of choreQuestions) await deleteQuestion(db, q.id);
-
     const choreSets = quickAnswerSets.filter((s) => s.choreKey === key);
-    for (const s of choreSets) await dbDeleteQuickAnswerSet(db, s.id);
 
-    await dbDeleteChore(db, key);
+    const tx = db.transaction(['chores', 'questions', 'completions', 'quickAnswerSets'], 'readwrite');
+    for (const c of choreCompletions) await tx.objectStore('completions').delete(c.id);
+    for (const q of choreQuestions) await tx.objectStore('questions').delete(q.id);
+    for (const s of choreSets) await tx.objectStore('quickAnswerSets').delete(s.id);
+    await tx.objectStore('chores').delete(key);
+    await tx.done;
 
     set((state) => ({
       chores: state.chores.filter((c) => c.key !== key),
