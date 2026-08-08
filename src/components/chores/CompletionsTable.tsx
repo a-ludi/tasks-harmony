@@ -13,6 +13,7 @@ interface Props {
   completions: Completion[];
   questions: Question[];
   choreTitle: string;
+  onEdit?: (completion: Completion) => void;
 }
 
 function SortLabel({ sorts, colKey }: { sorts: SortEntry[]; colKey: SortKey }) {
@@ -21,14 +22,13 @@ function SortLabel({ sorts, colKey }: { sorts: SortEntry[]; colKey: SortKey }) {
   const entry = sorts[idx];
   const n = idx + 1;
   return (
-    <span
-      className="ml-1 text-xs"
-      dangerouslySetInnerHTML={{ __html: `${entry.dir === 'asc' ? '&uarr;' : '&darr;'}<sup>${n}</sup>` }}
-    />
+    <span className="ml-1 text-xs">
+      {entry.dir === 'asc' ? '↑' : '↓'}<sup>{n}</sup>
+    </span>
   );
 }
 
-export default function CompletionsTable({ completions, questions, choreTitle }: Props) {
+export default function CompletionsTable({ completions, questions, choreTitle, onEdit }: Props) {
   const [sorts, setSorts] = useState<SortEntry[]>([]);
   const [groupBys, setGroupBys] = useState<string[]>([]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -148,6 +148,7 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
                   </button>
                 </th>
               )}
+              {onEdit && <th />}
             </tr>
           </thead>
           <tbody>
@@ -160,6 +161,16 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
                   ))}
                   <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
                   {hasSorts && <td />}
+                  {onEdit && (
+                    <td className="py-2 pl-2">
+                      <button
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                        onClick={() => onEdit(c)}
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))
             ) : (
@@ -175,7 +186,7 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
                       className="border-b border-border bg-muted/50 cursor-pointer select-none hover:bg-muted"
                       onClick={() => setOpenGroup(isOpen ? null : key)}
                     >
-                      <td colSpan={questions.length + 2 + (hasSorts ? 1 : 0)} className="py-2 px-2 font-medium">
+                      <td colSpan={questions.length + 2 + (hasSorts ? 1 : 0) + (onEdit ? 1 : 0)} className="py-2 px-2 font-medium">
                         <span className="mr-2">{isOpen ? '▾' : '▸'}</span>
                         {label}
                         <span className="ml-3 text-xs font-normal text-muted-foreground">
@@ -191,6 +202,16 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
                         ))}
                         <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
                         {hasSorts && <td />}
+                        {onEdit && (
+                          <td className="py-2 pl-2">
+                            <button
+                              className="text-xs text-muted-foreground hover:text-foreground underline"
+                              onClick={() => onEdit(c)}
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </React.Fragment>
@@ -213,6 +234,7 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
                   ))}
                   <td className="py-2 text-foreground font-medium text-right">{totals.xpSum}</td>
                   {hasSorts && <td />}
+                  {onEdit && <td />}
                 </tr>
               </tfoot>
             );
