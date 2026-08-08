@@ -32,7 +32,7 @@ describe('recordRetroactiveCompletion', () => {
   test('computes streak based on the retroactive timestamp', () => {
     // window index 1 (Jan 2). No prior completion → streak should be 1
     const c = useAppStore.getState().completions.filter(c => c.choreKey === choreKey)[0];
-    expect(c.streak).toBeGreaterThanOrEqual(1);
+    expect(c.streak).toBe(1);
   });
 
   test('earns XP > 0', () => {

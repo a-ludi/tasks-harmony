@@ -246,7 +246,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const packStreak = chorePack?.manifest.streak ?? true;
     const packDecay = chorePack?.manifest.decay ?? true;
 
-    const now = new Date(completedAt);
+    const now = recordCompletionWithTimestamp(new Date(completedAt));
     const activeSettings = xpSettings.find((s) => s.id === profile?.activeXPSettingsId) ?? xpSettings[0];
     if (!activeSettings) throw new Error('No XP settings found');
 
