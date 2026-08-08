@@ -4,7 +4,7 @@ import {
   sortCompletions, getGroupKey, groupCompletions, getGroupLabel,
   computeTotals, addGroupBy, removeGroupBy, clickColumnHeader,
   buildCsvRows, buildCsvHeaders, buildJsonData,
-} from './completionsTable';
+} from './completionsTable.ts';
 import type { Completion, Question, EnumQuestion, IntegerQuestion } from '@/types';
 
 const mkCompletion = (overrides: Partial<Completion> = {}): Completion => ({
