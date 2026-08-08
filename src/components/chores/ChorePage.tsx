@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
-import { getAnswerDisplay } from '@/questions/display';
 import { Button } from '@/components/ui/button';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 import AmendCompletionModal from '@/components/completion/AmendCompletionModal';
 import CompleteButton from '@/components/chores/CompleteButton';
 import QuickCompleteButtonList from '@/components/chores/QuickCompleteButtonList';
 import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
+import CompletionsTable from '@/components/chores/CompletionsTable';
 import type { Completion } from '@/types';
 
 export default function ChorePage() {
@@ -31,16 +31,6 @@ export default function ChorePage() {
     .filter((c) => c.choreKey === choreKey)
     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
   return (
     <div className="py-4">
       <Button variant="link" onClick={() => navigate(-1)} className="mb-4 px-0">← Back</Button>
@@ -62,38 +52,7 @@ export default function ChorePage() {
       {completions.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">No completions yet.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="py-2 pr-4 font-medium text-foreground whitespace-nowrap">Completed at</th>
-                {choreQuestions.map((q) => (
-                  <th key={q.id} className="py-2 pr-4 font-medium text-foreground">{q.prompt}</th>
-                ))}
-                <th className="py-2 font-medium text-foreground text-right">XP earned</th>
-                <th className="py-2 pl-4 font-medium text-foreground text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {completions.map((c) => (
-                <tr key={c.id} className="border-b border-border hover:bg-muted">
-                  <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal">{formatDate(c.completedAt)}</th>
-                  {choreQuestions.map((q) => (
-                    <td key={q.id} className="py-2 pr-4 text-muted-foreground">
-                      {getAnswerDisplay(c.answers, q)}
-                    </td>
-                  ))}
-                  <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
-                  <td className="py-2 pl-4 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => setEditingCompletion(c)}>
-                      Edit
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CompletionsTable completions={completions} questions={choreQuestions} choreTitle={chore.title} />
       )}
 
       {editingCompletion && (
