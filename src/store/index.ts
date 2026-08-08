@@ -44,6 +44,7 @@ interface AppState {
   deactivateChore: (key: string) => Promise<void>;
   deleteChore: (key: string) => Promise<void>;
   recordCompletion: (choreKey: string, answers?: Answer[]) => Promise<void>;
+  amendCompletion: (id: string, patch: { completedAt: string; answers: Answer[] }) => Promise<void>;
   updateProfile: (profile: UserProfile) => Promise<void>;
   updateSyncState: (state: SyncState) => Promise<void>;
   saveQuestions: (choreKey: string, drafts: DraftQuestion[]) => Promise<void>;
@@ -230,6 +231,44 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await putCompletion(db, newCompletion);
     set((state) => ({ completions: [...state.completions, newCompletion] }));
+    markDirty();
+  },
+
+  amendCompletion: async (id, { completedAt, answers }) => {
+    const { db, completions, chores, xpSettings, profile, questions } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    const completion = completions.find((c) => c.id === id);
+    if (!completion) throw new Error(`Completion not found: ${id}`);
+
+    const chore = chores.find((c) => c.key === completion.choreKey);
+    if (!chore) throw new Error(`Chore not found: ${completion.choreKey}`);
+
+    const chorePack = get().packs.find((p) => p.id === chore.packId);
+    const packDecay = chorePack?.manifest.decay ?? true;
+
+    const activeSettings = xpSettings.find((s) => s.id === profile?.activeXPSettingsId) ?? xpSettings[0];
+    if (!activeSettings) throw new Error('No XP settings found');
+
+    const otherCompletions = completions.filter((c) => c.choreKey === completion.choreKey && c.id !== id);
+    const effectiveTotalCompletions = packDecay ? otherCompletions.length : 0;
+
+    let xpEarned = calculateXP(chore.xpSize, completion.streak, effectiveTotalCompletions, activeSettings);
+    const multiplierQ = questions.find(
+      (q): q is MultiplierQuestion => q.choreKey === completion.choreKey && q.type === 'MULTIPLIER',
+    );
+    if (multiplierQ) {
+      const mulAnswer = answers.find((a) => a.questionId === multiplierQ.id);
+      if (mulAnswer && typeof mulAnswer.value === 'number' && mulAnswer.value > 0) {
+        xpEarned = Math.round(xpEarned * multiplierQ.xpPerUnit * mulAnswer.value);
+      }
+    }
+
+    const updated = { ...completion, completedAt, answers, xpEarned };
+    await putCompletion(db, updated);
+    set((state) => ({
+      completions: state.completions.map((c) => (c.id === id ? updated : c)),
+    }));
     markDirty();
   },
 
