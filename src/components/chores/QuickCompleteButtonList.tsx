@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function QuickCompleteButtonList({ chore, disabled }: Props) {
-  const quickAnswerSets = useAppStore(useShallow((s) => s.quickAnswerSets.filter((s) => s.choreKey === chore.key)));
+  const quickAnswerSets = useAppStore(useShallow((s) => s.quickAnswerSets.filter((qs) => qs.choreKey === chore.key)));
   const completions = useAppStore(useShallow((s) => s.completions.filter((c) => c.choreKey === chore.key)));
 
   if (quickAnswerSets.length === 0) return null;
