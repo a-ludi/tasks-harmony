@@ -170,6 +170,8 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
                 return (
                   <React.Fragment key={key}>
                     <tr
+                      data-group={key}
+                      data-group-open={isOpen}
                       className="border-b border-border bg-muted/50 cursor-pointer select-none hover:bg-muted"
                       onClick={() => setOpenGroup(isOpen ? null : key)}
                     >
