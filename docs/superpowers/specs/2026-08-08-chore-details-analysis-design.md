@@ -112,7 +112,7 @@ const [openGroup, setOpenGroup] = useState<string | null>(null);
 ### Header rendering
 
 - Unsorted column: faint `↕` on hover.
-- Sorted column: inline badge showing priority and direction, e.g. `1↑` or `2↓`.
+- Sorted column: inline label showing direction then superscript priority, e.g. `↑²` or `↓¹`. Rendered as `&uarr;<sup>2</sup>` so sizing and placement can be adjusted via CSS.
 
 ### Sort value per column type
 
