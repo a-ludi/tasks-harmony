@@ -55,6 +55,20 @@ test('empty state shows "No archived chores." when archive mode is on and no arc
   await expect(page.getByText('No archived chores.')).toBeVisible();
 });
 
+test('complete buttons are disabled on archived chore detail page', async ({ page }) => {
+  await page.getByRole('button', { name: /Toggle compact view|Exit compact view/ }).click();
+  await page.getByRole('menuitem', { name: 'View archived' }).click();
+
+  const link = await page.getByTestId('chore-card')
+    .filter({ hasText: 'Archived chore' })
+    .getByRole('link', { name: 'Archived chore' })
+    .getAttribute('href');
+  await page.goto(link!);
+  await page.waitForURL(/\/chores\/.+/);
+
+  await expect(page.getByRole('button', { name: /^Complete/ })).toBeDisabled();
+});
+
 test('archive mode persists across page reload', async ({ page }) => {
   // Enter archive mode
   await page.getByRole('button', { name: /Toggle compact view|Exit compact view/ }).click();
