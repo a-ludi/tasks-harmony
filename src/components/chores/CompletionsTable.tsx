@@ -4,6 +4,7 @@ import { getAnswerDisplay } from '@/questions/display';
 import {
   type SortEntry, type SortKey, sortCompletions, clickColumnHeader,
   groupCompletions, getGroupLabel, computeTotals, addGroupBy, removeGroupBy,
+  exportCsv, exportJson,
 } from './completionsTable';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
@@ -91,6 +92,21 @@ export default function CompletionsTable({ completions, questions, choreTitle }:
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            <div className="ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-xs h-6 px-2">Export ▾</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportCsv(completions, questions, choreTitle)}>
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportJson(completions, questions, choreTitle)}>
+                    Export as JSON
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         );
       })()}
