@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useAppStore } from '@/store';
 import type { Chore, QuickAnswerSet } from '@/types';
@@ -16,11 +16,14 @@ export default function QuickCompleteButton({ set, chore, disabled }: Props) {
   const recordCompletion = useAppStore((s) => s.recordCompletion);
   const questions = useAppStore(useShallow((s) => s.questions.filter((q) => q.choreKey === chore.key)));
   const [processing, setProcessing] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   async function handleClick() {
     if (processing || disabled) return;
     setProcessing(true);
-    try { await recordCompletion(chore.key, set.answers); } finally { setProcessing(false); }
+    try { await recordCompletion(chore.key, set.answers); } finally { if (mountedRef.current) setProcessing(false); }
   }
 
   const tooltipRows = [...questions].sort((a, b) => a.order - b.order).map((q) => ({
