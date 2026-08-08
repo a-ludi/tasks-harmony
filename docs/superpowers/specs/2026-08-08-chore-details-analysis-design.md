@@ -7,7 +7,7 @@
 
 ## Overview
 
-Both issues centre on `ChorePage`. Issue #61 adds card controls to the details page and brings sorting + grouping to the completions table. Issue #71 adds totals and export. The implementation strategy is **B**: extract a `CompletionsTable` component that owns all table logic, while `ChorePage` handles chore info and card controls.
+Both issues centre on `ChorePage`. Issue #61 adds card controls to the details page and brings sorting + grouping to the completions table. Issue #71 adds totals and export. All table logic is extracted into a dedicated `CompletionsTable` component, while `ChorePage` handles chore info and card controls. This keeps the page component focused and isolates the complex sorting/grouping/export state in one place.
 
 ---
 
