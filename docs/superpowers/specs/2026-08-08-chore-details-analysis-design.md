@@ -157,7 +157,11 @@ A compact toolbar above the table (left side):
 
 ### Group key derivation
 
-For each completion, compute a tuple key by joining the display values of all `groupBys` columns with `|` (e.g. `"Happy|3"`). Group label: `"Mood: Happy, Difficulty: 3"`.
+For each completion, compute a tuple key by serialising the raw `Answer.value` fields for the `groupBys` columns: `JSON.stringify([answer.value, ...])`. Using internal values (rather than display strings) avoids false merges when two enum choices share the same label.
+
+The group label shown in the accordion header is derived separately via `getAnswerDisplay` per column: `"Mood: Happy, Difficulty: 3"`.
+
+`openGroup` holds the serialised internal key (`string | null`).
 
 ### Accordion rendering
 
