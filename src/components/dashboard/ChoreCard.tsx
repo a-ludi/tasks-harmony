@@ -68,7 +68,14 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
 
   async function handleDelete() {
     setDeleting(true);
-    try { await deleteChore(chore.key); } finally { setDeleting(false); setShowDeleteDialog(false); }
+    try {
+      await deleteChore(chore.key);
+      setShowDeleteDialog(false);
+    } catch (err) {
+      console.error('Failed to delete chore:', err);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleDeactivate() {
@@ -136,7 +143,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
             <span className="chore-recurrence">{formatRecurrence(chore.recurrence)}</span>
           </div>
 
-          {quickAnswerSets.length > 0 && (status === 'due' || status === 'overdue' || (status === 'completed' && chore.repeatable)) && (
+          {!isArchived && quickAnswerSets.length > 0 && (status === 'due' || status === 'overdue' || (status === 'completed' && chore.repeatable)) && (
             <div className="mt-2 flex flex-wrap gap-2 border-t pt-2">
               <TooltipProvider>
                 {quickAnswerSets.map((set) => {
@@ -189,7 +196,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
         const dupeChore = allChores.find((c) => c.key === editAfterDuplicateKey);
         return dupeChore ? <ChoreFormModal chore={dupeChore} packId={dupeChore.packId} onClose={() => setEditAfterDuplicateKey(null)} /> : null;
       })()}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <Dialog open={showDeleteDialog} onOpenChange={(open) => { if (!deleting) setShowDeleteDialog(open); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete chore?</DialogTitle>
