@@ -42,8 +42,8 @@ export default function ChorePage() {
       )}
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
-        <CompleteButton chore={chore} />
-        <QuickCompleteButtonList chore={chore} />
+        <CompleteButton chore={chore} disabled={!chore.active} />
+        <QuickCompleteButtonList chore={chore} disabled={!chore.active} />
         <ChoreActionsDropdown chore={chore} />
       </div>
 
