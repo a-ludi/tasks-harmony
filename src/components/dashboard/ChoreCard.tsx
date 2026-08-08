@@ -63,8 +63,7 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
           </CardDescription>
           <CardAction>
             <div className="flex items-center gap-1">
-              {(status === 'due' || status === 'overdue') && <CompleteButton choreKey={chore.key} disabled={isArchived} />}
-              {status === 'completed' && chore.repeatable && <CompleteButton choreKey={chore.key} label="Complete again" disabled={isArchived} />}
+              <CompleteButton chore={chore} disabled={isArchived} />
               <ChoreActionsDropdown chore={chore} />
             </div>
           </CardAction>
