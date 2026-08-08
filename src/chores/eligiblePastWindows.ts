@@ -23,20 +23,19 @@ export function eligiblePastWindows(
 
   const results: EligibleWindow[] = [];
   for (let i = lastIdx + 1; i < currentIdx; i++) {
+    const start = getWindowStart(chore.recurrence, i);
+    const end = getWindowEnd(chore.recurrence, i);
+
     if (!chore.repeatable) {
-      const s = getWindowStart(chore.recurrence, i).getTime();
-      const e = getWindowEnd(chore.recurrence, i).getTime();
+      const s = start.getTime();
+      const e = end.getTime();
       const hasCompletion = completions.some((c) => {
         const t = new Date(c.completedAt).getTime();
         return t >= s && t < e;
       });
       if (hasCompletion) continue;
     }
-    results.push({
-      index: i,
-      start: getWindowStart(chore.recurrence, i),
-      end: getWindowEnd(chore.recurrence, i),
-    });
+    results.push({ index: i, start, end });
   }
   return results;
 }
