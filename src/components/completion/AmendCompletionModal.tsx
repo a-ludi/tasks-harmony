@@ -75,7 +75,11 @@ export default function AmendCompletionModal({ completion, chore, choreCompletio
         answers: answerList,
       });
       onClose();
-    } finally { setSubmitting(false); }
+    } catch (err) {
+      console.error('Failed to amend completion:', err);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -92,6 +96,7 @@ export default function AmendCompletionModal({ completion, chore, choreCompletio
               value={completedAt}
               min={toDatetimeLocal(minDate)}
               max={toDatetimeLocal(maxDate)}
+              disabled={submitting}
               onChange={(e) => setCompletedAt(e.target.value)}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
