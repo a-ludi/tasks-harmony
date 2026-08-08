@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { getAnswerDisplay } from '@/questions/display';
 import { Button } from '@/components/ui/button';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
+import AmendCompletionModal from '@/components/completion/AmendCompletionModal';
+import type { Completion } from '@/types';
 
 export default function ChorePage() {
   const { encodedChoreKey } = useParams<{ encodedChoreKey: string }>();
   const navigate = useNavigate();
+  const [editingCompletion, setEditingCompletion] = useState<Completion | null>(null);
 
   const choreKey = encodedChoreKey ? decodeURIComponent(encodedChoreKey) : '';
   const chores = useAppStore((s) => s.chores);
@@ -58,6 +62,7 @@ export default function ChorePage() {
                   <th key={q.id} className="py-2 pr-4 font-medium text-foreground">{q.prompt}</th>
                 ))}
                 <th className="py-2 font-medium text-foreground text-right">XP earned</th>
+                <th className="py-2 pl-4 font-medium text-foreground text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -70,11 +75,26 @@ export default function ChorePage() {
                     </td>
                   ))}
                   <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
+                  <td className="py-2 pl-4 text-right">
+                    <Button variant="ghost" size="sm" onClick={() => setEditingCompletion(c)}>
+                      Edit
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {editingCompletion && (
+        <AmendCompletionModal
+          completion={editingCompletion}
+          chore={chore}
+          choreCompletions={completions}
+          questions={choreQuestions}
+          onClose={() => setEditingCompletion(null)}
+        />
       )}
     </div>
   );
