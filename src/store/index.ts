@@ -45,6 +45,7 @@ interface AppState {
   deleteChore: (key: string) => Promise<void>;
   recordCompletion: (choreKey: string, answers?: Answer[]) => Promise<void>;
   amendCompletion: (id: string, patch: { completedAt: string; answers: Answer[] }) => Promise<void>;
+  recordRetroactiveCompletion: (choreKey: string, data: { completedAt: string; answers: Answer[] }) => Promise<void>;
   updateProfile: (profile: UserProfile) => Promise<void>;
   updateSyncState: (state: SyncState) => Promise<void>;
   saveQuestions: (choreKey: string, drafts: DraftQuestion[]) => Promise<void>;
@@ -224,6 +225,51 @@ export const useAppStore = create<AppState>((set, get) => ({
       id: crypto.randomUUID(),
       choreKey,
       completedAt: now.toISOString(),
+      xpEarned,
+      streak,
+      answers,
+    };
+
+    await putCompletion(db, newCompletion);
+    set((state) => ({ completions: [...state.completions, newCompletion] }));
+    markDirty();
+  },
+
+  recordRetroactiveCompletion: async (choreKey, { completedAt, answers }) => {
+    const { db, chores, completions, xpSettings, profile, questions } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    const chore = chores.find((c) => c.key === choreKey);
+    if (!chore) throw new Error(`Chore not found: ${choreKey}`);
+
+    const chorePack = get().packs.find((p) => p.id === chore.packId);
+    const packStreak = chorePack?.manifest.streak ?? true;
+    const packDecay = chorePack?.manifest.decay ?? true;
+
+    const now = new Date(completedAt);
+    const activeSettings = xpSettings.find((s) => s.id === profile?.activeXPSettingsId) ?? xpSettings[0];
+    if (!activeSettings) throw new Error('No XP settings found');
+
+    const choreCompletions = completions.filter((c) => c.choreKey === choreKey);
+    const streak = packStreak ? computeNewStreak(chore, choreCompletions, now) : 0;
+    const totalCompletions = choreCompletions.length;
+    const effectiveTotalCompletions = packDecay ? totalCompletions : 0;
+
+    let xpEarned = calculateXP(chore.xpSize, streak, effectiveTotalCompletions, activeSettings);
+    const multiplierQ = questions.find(
+      (q): q is MultiplierQuestion => q.choreKey === choreKey && q.type === 'MULTIPLIER',
+    );
+    if (multiplierQ) {
+      const mulAnswer = answers.find((a) => a.questionId === multiplierQ.id);
+      if (mulAnswer && typeof mulAnswer.value === 'number' && mulAnswer.value > 0) {
+        xpEarned = Math.round(xpEarned * multiplierQ.xpPerUnit * mulAnswer.value);
+      }
+    }
+
+    const newCompletion: Completion = {
+      id: crypto.randomUUID(),
+      choreKey,
+      completedAt,
       xpEarned,
       streak,
       answers,
