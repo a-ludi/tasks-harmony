@@ -45,13 +45,8 @@ describe('CompleteButton visibility logic', () => {
       answers: [],
     };
     const status = getChoreStatus(repeatableChore, [completion], now);
-    // Only run the assertion when the completion actually puts it in 'completed' state
-    if (status === 'completed') {
-      expect(getCompleteButtonLabel(repeatableChore, [completion])).toBe('Complete again');
-    } else {
-      // If status is not 'completed', ensure it's at least actionable as 'due'/'overdue'
-      expect(['due', 'overdue']).toContain(status);
-    }
+    expect(status).toBe('completed');
+    expect(getCompleteButtonLabel(repeatableChore, [completion])).toBe('Complete again');
   });
 
   it('renders nothing when completed and not repeatable', () => {
@@ -66,11 +61,7 @@ describe('CompleteButton visibility logic', () => {
       answers: [],
     };
     const status = getChoreStatus(nonRepeatableChore, [completion], now);
-    if (status === 'completed') {
-      expect(getCompleteButtonLabel(nonRepeatableChore, [completion])).toBeNull();
-    } else {
-      // Not completed yet — skip this check (can't force the status without understanding the recurrence engine)
-      expect(true).toBe(true);
-    }
+    expect(status).toBe('completed');
+    expect(getCompleteButtonLabel(nonRepeatableChore, [completion])).toBeNull();
   });
 });
