@@ -4,7 +4,7 @@ import { useAppStore } from '@/store';
 import { validateAnswer } from '@/questions/validation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import AnswerField from './AnswerField';
+import AnswerForm from './AnswerForm';
 
 interface Props {
   choreKey: string;
@@ -50,16 +50,8 @@ export default function CompletionModal({ choreKey, questions, onClose }: Props)
           <DialogTitle>Complete Chore</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">Please answer the following questions to record your completion.</p>
-        <form id="completion-form" onSubmit={handleSubmit} noValidate className="space-y-4">
-          {sortedQuestions.map((question) => (
-            <AnswerField
-              key={question.id}
-              question={question}
-              value={answers[question.id] ?? null}
-              error={errors[question.id]}
-              onChange={(value) => handleChange(question.id, value)}
-            />
-          ))}
+        <form id="completion-form" onSubmit={handleSubmit} noValidate>
+          <AnswerForm questions={sortedQuestions} answers={answers} errors={errors} onChange={handleChange} />
         </form>
         <DialogFooter>
           <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
