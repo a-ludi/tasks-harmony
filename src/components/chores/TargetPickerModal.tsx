@@ -99,20 +99,19 @@ export default function TargetPickerModal({ choreKey, questions, onClose }: Prop
 
   async function handleComplete() {
     if (!selectedTarget) return;
-    if (unfilledQuestions.length > 0) {
-      // Validate unfilled answers before proceeding
+    if (unfilledQuestions.length > 0 && step === 'pick') {
+      setStep('answer');
+      return;
+    }
+    if (unfilledQuestions.length > 0 && step === 'answer') {
       const newErrors: Record<string, string> = {};
       for (const q of unfilledQuestions) {
         const answer: Answer = { questionId: q.id, value: answers[q.id] ?? null };
         const err = validateAnswer(answer, q);
         if (err) newErrors[q.id] = err;
       }
-      if (Object.keys(newErrors).length > 0 && step === 'answer') {
+      if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
-        return;
-      }
-      if (step === 'pick') {
-        setStep('answer');
         return;
       }
     }

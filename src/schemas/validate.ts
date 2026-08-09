@@ -113,6 +113,7 @@ const choreSchema = z.object({
   duePeriod: duePeriodSchema.optional(),
   createdAt: z.string(),
   syncStatus: z.enum(['in-sync', 'out-of-sync']).optional(),
+  completionBonusXPSize: xpSizeSchema.optional(),
 }).strict();
 
 const stateQuestionSchema = z.object({
@@ -136,6 +137,13 @@ const answerSchema = z.object({
   value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
 }).strict();
 
+const targetSchema = z.object({
+  id: z.string(),
+  choreKey: z.string(),
+  order: z.number().int(),
+  answers: z.array(answerSchema),
+}).strict();
+
 const completionSchema = z.object({
   id: z.string(),
   choreKey: z.string(),
@@ -143,6 +151,8 @@ const completionSchema = z.object({
   xpEarned: z.number(),
   streak: z.number(),
   answers: z.array(answerSchema),
+  targetId: z.string().optional(),
+  setCompletionBonus: z.number().optional(),
 }).strict();
 
 const xpSettingsSchema = z.object({
@@ -185,6 +195,7 @@ const appStateZodSchema = z.object({
   profile: profileSchema,
   syncState: syncStateSchema,
   quickAnswerSets: z.array(quickAnswerSetSchema).optional(),
+  targets: z.array(targetSchema).optional(),
 }).strict();
 
 function toResult(schema: z.ZodTypeAny, data: unknown): ValidationResult {
