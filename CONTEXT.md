@@ -5,7 +5,7 @@ A single-user PWA for tracking recurring chores, where completing chores on time
 ## Language
 
 **Chore**:
-A recurring task the user has committed to doing on a schedule. Each chore belongs to exactly one Pack. Chores have: a name, optional description (Markdown), XP size (preset or custom integer), frequency, interval, window start time, repeatable flag, optional due period, and an optional score multiplier. A deactivated chore is hidden from the dashboard but visible (greyed out) on its pack page; it can be reactivated from there.
+A recurring task the user has committed to doing on a schedule. Each chore belongs to exactly one Pack. Chores have: a name, optional description (Markdown), XP size (preset or custom integer), frequency, interval, window start time, repeatable flag, optional due period, and an optional score multiplier. A deactivated chore is hidden from the dashboard but visible (greyed out) on its pack page; it can be reactivated from there. When archive mode is active, deactivated chores are referred to as archived chores (see **Archive Mode**).
 _Avoid_: Task, habit, todo
 
 **Pack**:
@@ -25,6 +25,10 @@ Imported packs (those with a `sourceUrl`) show a `↻` refresh button in the sid
 
 The pack options modal consolidates: title, description, streak toggle, decay toggle, default XP size, XP target, target date, and allow-shift toggle. Destructive or export actions (Download as CDP, Delete Pack) remain directly in the kebab menu.
 _Avoid_: Group, category, collection
+
+**Archive Mode**:
+A UI mode toggled via `archiveMode`. When active, the dashboard and pack pages replace the normal chore list with a construction-site banner and a flat alphabetical list of archived (deactivated) chores. Cards are read-only: Complete and quick-answer buttons are disabled, and the card dropdown is reduced to Delete only. Deleting a chore in archive mode opens a Dialog (not `window.confirm`) explaining that completion history is permanently lost but total XP earned is preserved.
+_Avoid_: Read-only mode, maintenance mode
 
 **Chore Definition Pack (CDP)**:
 A ZIP file containing a `__pack__.yaml` manifest and one `.yaml` file per chore. The pack ID is the name of the root folder inside the ZIP (not stored in the manifest). The manifest contains: display name and optional metadata (author, creation date, license, revision, revision history, streak flag, decay flag, xpTarget, targetDate, allowShiftOnImport). Each chore YAML contains: name, description, XP size, frequency, interval, window start time, repeatable flag, due period, and questions. Start date is not included — it is chosen per chore by the user at import time, defaulting to today. Completion history is excluded.
@@ -47,15 +51,25 @@ The count of consecutive Windows in which a Chore was completed. Resets to 1 (no
 _Avoid_: Combo, run, chain
 
 **Completion**:
-A single recorded instance of marking a Chore done. Stores the XP earned, streak count, and any Question answers — all immutable after creation. A non-repeatable Chore allows at most one Completion per Window; a repeatable Chore allows unlimited Completions per Window, each earning XP independently. Streak for repeatable chores counts consecutive windows with at least one completion. On the dashboard, a repeatable chore that has been completed at least once in the current window shows as Completed with a "Complete again" button.
+A single recorded instance of marking a Chore done. Stores the XP earned, streak count, and any Question answers. A non-repeatable Chore allows at most one Completion per Window; a repeatable Chore allows unlimited Completions per Window, each earning XP independently. Streak for repeatable chores counts consecutive windows with at least one completion. On the dashboard, a repeatable chore that has been completed at least once in the current window shows as Completed with a "Complete again" button.
+
+`completedAt` and answers can be amended after creation (see **Amend completion**); XP is recalculated on amendment. Streak stored on a completion is not recalculated when an existing completion is amended.
 _Avoid_: Entry, record, log
+
+**Log past completion**:
+A user action that records a Completion in a past Window that has no completion yet. Accessible from the split-button dropdown on `CompleteButton` (disabled when no eligible past windows exist). Opens a modal with a window selector (lists eligible past windows as date ranges), a `completedAt` picker, and the answers form. XP and streak are computed the same way as a regular completion, but using the caller-supplied timestamp. Store action: `recordRetroactiveCompletion(choreKey, { completedAt, answers })`.
+_Avoid_: Back-fill, retroactive entry
+
+**Amend completion**:
+A user action that edits an existing Completion's `completedAt` timestamp (constrained to within the completion's original window) and/or answers. Accessible via the Edit button on each row of the completion history table (`CompletionsTable`) on the Chore page. XP is recalculated and overwritten on save; streak stored on the completion is not recalculated. Store action: `amendCompletion(id, { completedAt, answers })`.
+_Avoid_: Edit completion, update completion, correct completion
 
 **Total Completions**:
 The count of previous Completions for a specific Chore, not including the one currently being recorded. Used as the decay input in the XP formula. Scoped per-chore, not global.
 _Avoid_: Completion count, history length
 
 **XP** (Experience Points):
-Integer points earned per Completion. Calculated at completion time and stored immutably on the Completion record.
+Integer points earned per Completion. Calculated at completion time and stored on the Completion record. Recalculated and overwritten when a completion is amended.
 _Avoid_: Points, score, experience
 
 **Base XP**:
@@ -63,7 +77,7 @@ The XP a Chore would earn at streak=1 and total_completions=0 (first-ever comple
 _Avoid_: Default XP, raw XP
 
 **Score Multiplier**:
-An optional per-chore feature that scales earned XP by a user-entered number at completion time. Configured via a collapsible "Score Multiplier" section in the chore form: enable toggle, prompt text, Repetition Factor (positive integer ≥ 1), and answer type (integer or float). The XP formula with a score multiplier becomes: `round(base × (answer ÷ repetitionFactor) × streak_mult × decay_mult)`. At most one score multiplier per chore. The chore form renders a live formula display showing all active factors (base, answer/repetition factor, streak, decay).
+An optional per-chore feature that scales earned XP by a user-entered number at completion time. Configured via a collapsible "Score Multiplier" section in the chore form: enable toggle, prompt text, Repetition Factor (positive integer ≥ 1), and answer type (integer or float). The XP formula with a score multiplier becomes: `round(base × (answer ÷ repetitionFactor) × streak_mult × decay_mult)`. At most one score multiplier per chore. The chore form renders a live formula display showing all active factors (base, answer/repetition factor, streak, decay). The streak factor is displayed as a percentage range (e.g. `100%–250%`) rather than a raw multiplier range (e.g. `1–2.5`), consistent with how the decay factor is displayed.
 _Avoid_: Weight, multiplier question, MULTIPLIER type
 
 **Due Period**:

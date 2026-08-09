@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-08-09
+
+### Added
+
+- **Archive page** — a dedicated `/archive` route shows all archived chores in a flat alphabetical list with a construction-site banner; ChoreCard is rendered in read-only mode (Complete and quick-answer buttons disabled, dropdown reduced to Delete only); deleting an archived chore opens a Dialog explaining that completion history is lost but XP earned is preserved (#60)
+- **Log past completion** — the Complete button on the chore detail page becomes a split button: the primary action completes the current window as before, while a `▾` dropdown reveals 'Log past completion'; the dropdown item is disabled when no eligible past windows exist; clicking it opens `LogPastCompletionModal` with a window selector showing human-readable date ranges, a `completedAt` date-time picker defaulting to the window end, and the standard answers form; saves via a new `recordRetroactiveCompletion` store action (#63)
+- **Amend completions** — each row in the completion history table gains an Edit button that opens `AmendCompletionModal`; the user can adjust `completedAt` (constrained to the original window) and re-answer any questions; XP is recalculated and overwritten on save via a new `amendCompletion` store action (#63)
+- **CompletionsTable component** — the plain completion history table on `ChorePage` is replaced by a fully-featured `CompletionsTable`; features include: multi-column sort with header clicks (asc→desc→removed cycle) and priority superscripts (↑¹, ↑²) plus a 'Reset sorting' link; grouping accordion with chip-based group-by selector for discrete question columns (ENUM, INTEGER, BOOLEAN, and MULTIPLIER); accordion sections with per-group subtotals and one-open-at-a-time behaviour; a totals row showing completion count for the date column and sums for numeric columns; and an export dropdown for CSV (with double columns for ENUM: label + index) and JSON (#61, #71)
+- **Card controls bar on ChorePage** — the chore detail page now shows a controls bar above the completion history with the Complete button, quick-complete buttons, and actions dropdown; `CompleteButton`, `QuickCompleteButton`/`QuickCompleteButtonList`, and `ChoreActionsDropdown` are extracted as reusable components (#61)
+
+### Fixed
+
+- **XP formula streak factor display** — the streak factor in the XP formula block was shown as `1–N` (bare multiplier range); it now displays as `100%–N%` to match the decay factor convention and make the scaling immediately legible (#64)
+
 ## [0.12.3] — 2026-08-06
 
 ### Fixed
@@ -258,6 +272,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.13.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.13.0
 [0.12.3]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.3
 [0.12.2]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.2
 [0.12.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.1

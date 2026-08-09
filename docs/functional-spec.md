@@ -219,6 +219,21 @@
 
 - A deactivated chore disappears from the dashboard but is not permanently deleted. It is visible (greyed out) on its pack page and can be reactivated from there.
 
+### 5.3.1 Archive mode
+
+**As the user, I want to browse archived chores in a dedicated read-only view, so that I can inspect and clean up old chores.**
+
+- When archive mode is active, a full-width construction-site striped banner renders below the header with the label "Archived — read-only".
+- The standard status sections (Overdue, Due, Completed, Upcoming) are suppressed. Instead, archived chores are presented as a single flat list sorted alphabetically by name.
+- Each `ChoreCard` in archive mode is read-only:
+  - Complete and quick-answer buttons are rendered but disabled.
+  - The dropdown menu shows only the "Delete" action (destructive).
+- Clicking Delete opens a Dialog (not `window.confirm`) with:
+  - Title: "Delete chore?"
+  - Body: explains that completion history will be permanently lost, but that total XP earned is preserved.
+  - Buttons: Cancel / Delete.
+- The `deleteChore(key)` store action removes the chore record and all associated completions, questions, and quick-answer sets from both IndexedDB and Zustand state.
+
 ### 5.4 Duplicating a chore
 
 **As the user, I want to duplicate a chore, so that I can quickly create a similar one.**
@@ -267,7 +282,7 @@
 **As the user, I want to see how XP is calculated, so that I understand what I am configuring.**
 
 - A read-only formula block in the chore form shows all active factors as labelled blocks separated by operators. `round(...)` wraps the expression when any multiplier is active.
-- The streak factor shows `1–N` (N = `maxStreakMultiplier`) and is hidden when the pack has `streak: false`.
+- The streak factor shows `100%–N%` (N = `maxStreakMultiplier × 100`) and is hidden when the pack has `streak: false`.
 - The decay factor shows `F%–100%` (F = `decayFloor × 100`) and is hidden when the pack has `decay: false`.
 - The score multiplier factor shows `answer ÷ repetitionFactor` and appears only when the score multiplier is enabled.
 
@@ -404,18 +419,77 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 **As the user, I want to review a chore's full details and completion history, so that I can track my progress for that chore.**
 
 - Navigating to `/chores/:encodedChoreKey` opens the Chore Details Page.
-- The page shows: back button, full title and description (no truncation), XP size, recurrence, streak summary, and a completion history table.
+- The page shows: back button, full title and description (no truncation), XP size, recurrence, streak summary, a controls bar, and a completion history table.
 - Clicking a chore card's body navigates here.
 - The old `/chores/:encodedChoreKey/completions` route redirects to the Chore Details Page.
 
+### 11.0 Card controls bar
+
+**As the user, I want the same chore actions available on the details page as on the card, so that I can act without going back to the dashboard.**
+
+- A controls bar is inserted between the description and the "Completion History" heading.
+- The bar contains: `CompleteButton`, `QuickCompleteButtonList`, and `ChoreActionsDropdown`.
+- These are the same reusable components used in `ChoreCard`.
+
 ### 11.1 Completion history table
 
-- Columns: **Completed at** (formatted local date/time), one column per question in question order, **XP earned**.
-- Rows are sorted newest-first.
+**As the user, I want a rich, sortable, groupable completion history, so that I can analyse my past performance.**
+
+- Implemented as `CompletionsTable`.
+- Columns: **Completed at** (formatted local date/time), one column per question in question order, **XP earned**, and an **Edit** action column (rightmost).
 - Empty state: "No completions yet."
 - ENUM answers are displayed as the human-readable choice label, not the internal identifier.
 - If the stored identifier no longer matches any current choice, the raw value is shown as a fallback.
 - BOOLEAN answers are displayed as `true` or `false`.
+
+**Multi-column sort:**
+- Clicking a column header cycles its sort direction: ascending → descending → removed.
+- When one or more sorts are active, each sorted column header shows a direction indicator and a priority superscript (e.g. `↑¹`).
+- A "Reset sorting" link appears in the table controls while any sort is active; clicking it removes all sorts.
+
+**Grouping:**
+- A chip toolbar allows the user to group rows by any discrete question column (types ENUM, INTEGER, BOOLEAN, or MULTIPLIER).
+- When a group is selected, rows are divided into accordion sections, one per distinct value.
+- Each accordion section header shows subtotals: N completions · X XP.
+- Only one accordion section is open at a time.
+
+**Totals row:**
+- Always shown at the bottom of the table.
+- The **Completed at** column shows the total count of rows.
+- Numeric columns show the column sum.
+
+**Export:**
+- An Export dropdown offers "Export as CSV" and "Export as JSON".
+- Filename format: `YYYY-MM-DD-completions-<slug>.{csv,json}`.
+- Exported data is always in chronological ascending order regardless of current sort.
+- CSV produces double columns for ENUM questions: the human-readable label and the internal index.
+- JSON includes an `enumIndex` field on ENUM answers.
+
+### 11.2 Log past completion
+
+**As the user, I want to log a completion for a past window, so that I can record work I did but forgot to log.**
+
+- `CompleteButton` is a split button:
+  - Primary action ("Complete") is unchanged.
+  - A secondary dropdown trigger (`▾`) opens a menu with the item "Log past completion".
+- "Log past completion" is disabled when no eligible past windows exist. Eligible windows are closed windows with an index greater than the last-completion window index, subject to per-window completion limits.
+- Clicking "Log past completion" opens `LogPastCompletionModal` containing:
+  - A window selector listing eligible past windows as human-readable date ranges.
+  - A `completedAt` datetime picker defaulting to the window end, clamped to `[window_start, window_end]`.
+  - The same answers form as the regular completion modal.
+- On save, `recordRetroactiveCompletion(choreKey, { completedAt, answers })` is called; XP and streak are computed via the normal path.
+
+### 11.3 Amend completion
+
+**As the user, I want to edit a past completion, so that I can correct mistakes in recorded data or timestamps.**
+
+- Each row in the completion history table has an Edit button in the rightmost column.
+- Clicking an Edit button opens `AmendCompletionModal` containing:
+  - A `completedAt` datetime input constrained to `[window_start, window_end]` of the completion's window.
+  - For repeatable chores, `completedAt` is further clamped to `(prev_completion_time, next_completion_time)`.
+  - The same answers form as the regular completion modal.
+- On save, `amendCompletion(id, { completedAt, answers })` updates the record and recalculates `xpEarned`; streak is **not** recalculated.
+- Edge case: `completedAt` must fall within the completion's original window; values outside this range are rejected.
 
 ---
 
@@ -515,3 +589,14 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 | Move chore — collision with existing choreId blocks save | §5.5 |
 | Delete pack — completions preserved under UUID-format key | §4.6 |
 | Duplicate & Edit cancelled — duplicate is kept | §5.4 |
+| Archive mode — Complete/quick-answer buttons rendered but disabled | §5.3.1 |
+| Archive mode — dropdown menu shows only "Delete" | §5.3.1 |
+| Archive mode — Delete opens a Dialog, not window.confirm | §5.3.1 |
+| deleteChore removes chore, completions, questions, and quick-answer sets | §5.3.1 |
+| Log past completion disabled when no eligible past windows exist | §11.2 |
+| Past window eligibility: closed windows with index > last-completion window index, subject to per-window limits | §11.2 |
+| Amend completedAt clamped to completion's original window; out-of-range values rejected | §11.3 |
+| Amend on repeatable chore: completedAt further clamped to (prev_completion_time, next_completion_time) | §11.3 |
+| Amend recalculates xpEarned but does not recalculate streak | §11.3 |
+| CompletionsTable export always in chronological ascending order regardless of UI sort | §11.1 |
+| ENUM CSV export produces double columns: label and index | §11.1 |
