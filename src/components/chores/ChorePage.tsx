@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { getAnswerDisplay } from '@/questions/display';
-import type { Answer, Completion } from '@/types';
+import type { Answer, Completion, Target } from '@/types';
 import { Button } from '@/components/ui/button';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 import AmendCompletionModal from '@/components/completion/AmendCompletionModal';
 import CompleteButton from '@/components/chores/CompleteButton';
 import QuickCompleteButtonList from '@/components/chores/QuickCompleteButtonList';
 import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
-import { groupCompletions, getGroupLabel, computeTotals, addGroupBy, removeGroupBy, isGroupableQuestion, exportCsv, exportJson, sortCompletions } from './completionsTable';
+import { groupCompletions, getGroupLabel, computeTotals, addGroupBy, removeGroupBy, isGroupableQuestion, exportCsv, exportJson, sortCompletions, groupTargets } from './completionsTable';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 type SortDir = 'asc' | 'desc';
@@ -292,63 +292,72 @@ export default function ChorePage() {
                   })
                 ) : (
                   <>
-                    {Array.from(groupCompletions(sortedCompletions, groupBys)).map(([key, groupRows]) => {
-                      const label = getGroupLabel(key, groupBys, choreQuestions);
-                      const subtotals = computeTotals(groupRows, choreQuestions);
-                      const isOpen = openGroup === key;
-                      return (
-                        <React.Fragment key={key}>
-                          <tr
-                            data-group={key}
-                            data-group-open={isOpen}
-                            className="border-b border-border bg-muted/50 cursor-pointer select-none hover:bg-muted"
-                            onClick={() => setOpenGroup(isOpen ? null : key)}
-                          >
-                            <td colSpan={choreQuestions.length + 3} className="py-2 px-2 font-medium">
-                              <span className="mr-2">{isOpen ? '▾' : '▸'}</span>
-                              {label}
-                              <span className="ml-3 text-xs font-normal text-muted-foreground">
-                                ({subtotals.count} completion{subtotals.count !== 1 ? 's' : ''} · {subtotals.xpSum} XP)
-                              </span>
-                            </td>
-                          </tr>
-                          {isOpen && groupRows.map((c) => (
-                            <tr key={c.id} className="border-b border-border hover:bg-muted">
-                              <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal pl-6">{formatDate(c.completedAt)}</th>
-                              {choreQuestions.map((q) => (
-                                <td key={q.id} className="py-2 pr-4 text-muted-foreground">{getAnswerDisplay(c.answers, q)}</td>
-                              ))}
-                              <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
-                              <td className="py-2 pl-4">
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                                    onClick={() => setEditingCompletion(c)}
-                                  >
-                                    Edit
-                                  </button>
-                                </div>
+                    {(() => {
+                      const completionGroups = groupCompletions(sortedCompletions, groupBys);
+                      const targetGroups: Map<string, Target[]> = showTargets
+                        ? groupTargets(pendingTargets, groupBys)
+                        : new Map();
+                      const allKeys = Array.from(new Set([...completionGroups.keys(), ...targetGroups.keys()]));
+                      return allKeys.map((key) => {
+                        const groupRows = completionGroups.get(key) ?? [];
+                        const groupTargetRows = targetGroups.get(key) ?? [];
+                        const label = getGroupLabel(key, groupBys, choreQuestions);
+                        const subtotals = computeTotals(groupRows, choreQuestions);
+                        const isOpen = openGroup === key;
+
+                        const countParts: string[] = [];
+                        if (subtotals.count > 0) countParts.push(`${subtotals.count} completion${subtotals.count !== 1 ? 's' : ''}`);
+                        if (groupTargetRows.length > 0) countParts.push(`${groupTargetRows.length} target${groupTargetRows.length !== 1 ? 's' : ''}`);
+
+                        return (
+                          <React.Fragment key={key}>
+                            <tr
+                              data-group={key}
+                              data-group-open={isOpen}
+                              className="border-b border-border bg-muted/50 cursor-pointer select-none hover:bg-muted"
+                              onClick={() => setOpenGroup(isOpen ? null : key)}
+                            >
+                              <td colSpan={choreQuestions.length + 3} className="py-2 px-2 font-medium">
+                                <span className="mr-2">{isOpen ? '▾' : '▸'}</span>
+                                {label}
+                                <span className="ml-3 text-xs font-normal text-muted-foreground">
+                                  ({countParts.join(' · ')}{subtotals.count > 0 ? ` · ${subtotals.xpSum} XP` : ''})
+                                </span>
                               </td>
                             </tr>
-                          ))}
-                        </React.Fragment>
-                      );
-                    })}
-                    {targetRows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="border-b border-border opacity-40"
-                      >
-                        <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal">—</th>
-                        {choreQuestions.map((q) => (
-                          <td key={q.id} className="py-2 pr-4 text-muted-foreground">
-                            {getAnswerDisplay(row.answers, q)}
-                          </td>
-                        ))}
-                        <td className="py-2 text-foreground font-medium text-right">—</td>
-                        <td className="py-2 pl-4" />
-                      </tr>
-                    ))}
+                            {isOpen && groupRows.map((c) => (
+                              <tr key={c.id} className="border-b border-border hover:bg-muted">
+                                <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal pl-6">{formatDate(c.completedAt)}</th>
+                                {choreQuestions.map((q) => (
+                                  <td key={q.id} className="py-2 pr-4 text-muted-foreground">{getAnswerDisplay(c.answers, q)}</td>
+                                ))}
+                                <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
+                                <td className="py-2 pl-4">
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                                      onClick={() => setEditingCompletion(c)}
+                                    >
+                                      Edit
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                            {isOpen && groupTargetRows.map((t) => (
+                              <tr key={t.id} className="border-b border-border opacity-40">
+                                <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal pl-6">—</th>
+                                {choreQuestions.map((q) => (
+                                  <td key={q.id} className="py-2 pr-4 text-muted-foreground">{getAnswerDisplay(t.answers, q)}</td>
+                                ))}
+                                <td className="py-2 text-foreground font-medium text-right">—</td>
+                                <td className="py-2 pl-4" />
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        );
+                      });
+                    })()}
                   </>
                 )}
               </tbody>
