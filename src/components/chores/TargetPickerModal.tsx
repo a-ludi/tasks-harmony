@@ -52,8 +52,10 @@ function CelebrationStep({ bonusXP, totalTargets, onClose }: { bonusXP?: number;
 }
 
 export default function TargetPickerModal({ choreKey, questions, onClose }: Props) {
-  const targets = useAppStore((s) => s.targets.filter((t) => t.choreKey === choreKey));
-  const completions = useAppStore((s) => s.completions.filter((c) => c.choreKey === choreKey));
+  const allTargets = useAppStore((s) => s.targets);
+  const targets = allTargets.filter((t) => t.choreKey === choreKey);
+  const allCompletions = useAppStore((s) => s.completions);
+  const completions = allCompletions.filter((c) => c.choreKey === choreKey);
   const recordCompletion = useAppStore((s) => s.recordCompletion);
 
   const [step, setStep] = useState<Step>('pick');
