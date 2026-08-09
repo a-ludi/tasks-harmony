@@ -118,12 +118,18 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
 
       {archiveMode && (
         <div
-          className="flex items-center justify-center rounded-md py-2 text-sm font-semibold"
+          className="relative flex items-center justify-center rounded-md py-2 text-sm font-semibold"
           style={{ background: 'repeating-linear-gradient(45deg, rgba(245,158,11,0.5) 0px, rgba(245,158,11,0.5) 20px, rgba(0,0,0,0.5) 20px, rgba(0,0,0,0.5) 40px)' }}
         >
           <span className="rounded bg-black/60 px-3 py-1 text-white">
             Archived — read-only
           </span>
+          <button
+            onClick={toggleArchiveMode}
+            className="absolute left-2 rounded bg-black/60 px-3 py-1 text-xs font-normal text-white/80 hover:text-white hover:bg-black/80 transition-colors"
+          >
+            ↩ Leave archive
+          </button>
         </div>
       )}
 
