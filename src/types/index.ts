@@ -136,6 +136,13 @@ export interface QuickAnswerSet {
   answers: Answer[];
 }
 
+export interface Target {
+  id: string;
+  choreKey: string;
+  order: number;
+  answers: Answer[];
+}
+
 export interface AppState {
   schemaVersion: 1;
   exportedAt: string;
@@ -147,6 +154,7 @@ export interface AppState {
   profile: UserProfile;
   syncState: SyncState;
   quickAnswerSets: QuickAnswerSet[];
+  targets: Target[];
 }
 
 export interface ChoreDisposition {

@@ -14,6 +14,7 @@ function makeState(): AppState {
     exportedAt: '2026-06-25T00:00:00.000Z',
     packs: [], chores: [], questions: [], completions: [], xpSettings: [],
     quickAnswerSets: [],
+    targets: [],
     profile: { id: 'me', displayName: 'Test', email: 't@example.com', activeXPSettingsId: 's1' },
     syncState: { id: 'main', pendingSync: false },
   };
@@ -111,6 +112,7 @@ describe('encryptState / decryptState', () => {
       completions: [],
       xpSettings: [],
       quickAnswerSets: [],
+      targets: [],
       profile: { id: 'me', displayName: 'Test', email: 't@example.com', activeXPSettingsId: 's1' },
       syncState: { id: 'main', pendingSync: false },
     };
@@ -143,6 +145,7 @@ describe('encryptState / decryptState', () => {
       completions: [],
       xpSettings: [],
       quickAnswerSets: [],
+      targets: [],
       profile: { id: 'me', displayName: 'Test', email: 't@example.com', activeXPSettingsId: 's1' },
       syncState: { id: 'main', pendingSync: false },
     };
