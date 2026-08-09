@@ -486,6 +486,10 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
               </div>
             )}
 
+            {isEdit && hasTargets && (
+              <p className="text-xs text-muted-foreground">Quick Answers are not available while targets are defined.</p>
+            )}
+
             {isEdit && !hasTargets && (
               <div>
                 <div className="mb-2 flex items-center justify-between">

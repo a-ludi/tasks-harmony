@@ -88,7 +88,7 @@ export default function TargetPickerModal({ choreKey, questions, onClose }: Prop
         ...unfilledQuestions.map((q) => ({ questionId: q.id, value: answers[q.id] ?? null })),
       ];
       const result = await recordCompletion(choreKey, mergedAnswers, selectedTargetId);
-      if (result.setCompletionBonus !== undefined) {
+      if (result.setCompleted) {
         setBonusXP(result.setCompletionBonus);
         setStep('celebrate');
       } else {
