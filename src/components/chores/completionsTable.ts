@@ -6,6 +6,10 @@ export type SortDir = 'asc' | 'desc';
 export type SortKey = 'completedAt' | `question:${string}` | 'xpEarned';
 export interface SortEntry { key: SortKey; dir: SortDir; }
 
+export function isGroupableQuestion(q: Question): boolean {
+  return q.type === 'ENUM' || q.type === 'INTEGER' || q.type === 'BOOLEAN' || q.type === 'MULTIPLIER';
+}
+
 export interface TotalsRow {
   count: number;
   xpSum: number;

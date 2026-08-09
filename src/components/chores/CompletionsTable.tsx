@@ -4,7 +4,7 @@ import { getAnswerDisplay } from '@/questions/display';
 import {
   type SortEntry, type SortKey, sortCompletions, clickColumnHeader,
   groupCompletions, getGroupLabel, computeTotals, addGroupBy, removeGroupBy,
-  exportCsv, exportJson,
+  exportCsv, exportJson, isGroupableQuestion,
 } from './completionsTable';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,7 @@ export default function CompletionsTable({ completions, questions, choreTitle, o
     <div>
       {/* Toolbar */}
       {(() => {
-        const eligibleQuestions = questions.filter(q => q.type === 'ENUM' || q.type === 'INTEGER' || q.type === 'BOOLEAN');
+        const eligibleQuestions = questions.filter(isGroupableQuestion);
         const availableToGroup = eligibleQuestions.filter(q => !groupBys.includes(q.id));
         return (
           <div className="flex items-center gap-2 mb-3 flex-wrap">
