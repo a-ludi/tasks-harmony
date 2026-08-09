@@ -191,7 +191,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         if (allDrafts.length > 0 || initialQuestions.length > 0) {
           await saveQuestions(activeChoreKey, allDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
         }
-        await saveTargets(activeChoreKey, targetDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
+        if (targetDrafts.length > 0 || initialTargets.length > 0) {
+          await saveTargets(activeChoreKey, targetDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
+        }
       } else {
         const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, completionBonusXPSize, active: true });
         const allDrafts = [
@@ -202,7 +204,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         if (allDrafts.some((d) => !('_deleted' in d && d._deleted))) {
           await saveQuestions(newChoreKey, allDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
         }
-        await saveTargets(newChoreKey, targetDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
+        if (targetDrafts.length > 0) {
+          await saveTargets(newChoreKey, targetDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
+        }
       }
       onClose();
     } finally { setSubmitting(false); }
