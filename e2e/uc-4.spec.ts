@@ -25,6 +25,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('add one question of each type and save', async ({ page }) => {
+  test.setTimeout(60000); // webkit is significantly slower for this multi-step test
   await openEditModal(page, 'Workout log');
 
   // Add TEXT question
