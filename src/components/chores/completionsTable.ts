@@ -168,19 +168,19 @@ function chronological(completions: Completion[]): Completion[] {
 }
 
 export function buildCsvHeaders(questions: Question[]): string[] {
-  const headers = ['completedAt', 'streak'];
+  const headers = ['Completed at', 'Streak'];
   for (const q of questions) {
     headers.push(q.prompt);
     if (q.type === 'ENUM') headers.push(`${q.prompt} (index)`);
   }
-  headers.push('xpEarned');
+  headers.push('XP earned');
   return headers;
 }
 
 export function buildCsvRows(completions: Completion[], questions: Question[]): string[][] {
   return chronological(completions).map(c => {
     const row: string[] = [
-      new Date(c.completedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      c.completedAt,
       String(c.streak),
     ];
     for (const q of questions) {
