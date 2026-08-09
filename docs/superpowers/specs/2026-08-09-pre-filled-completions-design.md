@@ -75,6 +75,7 @@ Targets and Quick Answer Sets are **mutually exclusive**:
 - When quick answer sets exist, the Targets section is hidden with a note: "Not available when quick answer sets are defined."
 - No data is destroyed — removing all targets restores the Quick Answer Sets section intact, and vice versa.
 - When the user first adds a target while quick answer sets exist, a warning explains they will be hidden.
+- As a consequence, `QuickCompleteButtonList` renders nothing on target chores (both on `ChoreCard` and `ChorePage`) since there are no quick answer sets to show.
 
 ### 2.2 Section layout
 
