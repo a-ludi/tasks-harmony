@@ -48,7 +48,7 @@ Text (e.g. *"Archived — read-only"*) is centered over the stripe with white co
 `ChoreCard` derives its mode from `chore.active`:
 
 - **`CompleteButton`**: remains rendered but receives `disabled={true}`.
-- **Quick-answer buttons**: hidden entirely.
+- **Quick-answer buttons**: remain rendered but receive `disabled={true}`.
 - **Dropdown menu**: shows only a **Delete** item (destructive variant). Edit and Duplicate are removed.
 
 ### Delete confirmation

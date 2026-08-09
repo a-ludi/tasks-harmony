@@ -138,17 +138,16 @@ export default function CompletionsTable({ completions, questions, choreTitle, o
                 XP earned
                 <SortLabel sorts={sorts} colKey="xpEarned" />
               </th>
-              {hasSorts && (
-                <th className="py-2 pl-4 font-normal">
-                  <button
-                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                    onClick={() => setSorts([])}
-                  >
-                    Reset sorting
-                  </button>
-                </th>
-              )}
-              {onEdit && <th />}
+              <th className="py-2 pl-4 font-normal">
+                <button
+                  className={`text-xs text-muted-foreground hover:text-foreground underline${!hasSorts ? ' invisible' : ''}`}
+                  onClick={() => setSorts([])}
+                  tabIndex={hasSorts ? undefined : -1}
+                  aria-hidden={!hasSorts || undefined}
+                >
+                  Reset sorting
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -160,17 +159,18 @@ export default function CompletionsTable({ completions, questions, choreTitle, o
                     <td key={q.id} className="py-2 pr-4 text-muted-foreground">{getAnswerDisplay(c.answers, q)}</td>
                   ))}
                   <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
-                  {hasSorts && <td />}
-                  {onEdit && (
-                    <td className="py-2 pl-2">
-                      <button
-                        className="text-xs text-muted-foreground hover:text-foreground underline"
-                        onClick={() => onEdit(c)}
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  )}
+                  <td className="py-2 pl-2">
+                    <div className="flex justify-end gap-2">
+                      {onEdit && (
+                        <button
+                          className="text-xs text-muted-foreground hover:text-foreground underline"
+                          onClick={() => onEdit(c)}
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
@@ -186,7 +186,7 @@ export default function CompletionsTable({ completions, questions, choreTitle, o
                       className="border-b border-border bg-muted/50 cursor-pointer select-none hover:bg-muted"
                       onClick={() => setOpenGroup(isOpen ? null : key)}
                     >
-                      <td colSpan={questions.length + 2 + (hasSorts ? 1 : 0) + (onEdit ? 1 : 0)} className="py-2 px-2 font-medium">
+                      <td colSpan={questions.length + 3} className="py-2 px-2 font-medium">
                         <span className="mr-2">{isOpen ? '▾' : '▸'}</span>
                         {label}
                         <span className="ml-3 text-xs font-normal text-muted-foreground">
@@ -201,17 +201,18 @@ export default function CompletionsTable({ completions, questions, choreTitle, o
                           <td key={q.id} className="py-2 pr-4 text-muted-foreground">{getAnswerDisplay(c.answers, q)}</td>
                         ))}
                         <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
-                        {hasSorts && <td />}
-                        {onEdit && (
-                          <td className="py-2 pl-2">
-                            <button
-                              className="text-xs text-muted-foreground hover:text-foreground underline"
-                              onClick={() => onEdit(c)}
-                            >
-                              Edit
-                            </button>
-                          </td>
-                        )}
+                        <td className="py-2 pl-2">
+                          <div className="flex justify-end gap-2">
+                            {onEdit && (
+                              <button
+                                className="text-xs text-muted-foreground hover:text-foreground underline"
+                                onClick={() => onEdit(c)}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </React.Fragment>
@@ -233,8 +234,7 @@ export default function CompletionsTable({ completions, questions, choreTitle, o
                     </td>
                   ))}
                   <td className="py-2 text-foreground font-medium text-right">{totals.xpSum}</td>
-                  {hasSorts && <td />}
-                  {onEdit && <td />}
+                  <td />
                 </tr>
               </tfoot>
             );
