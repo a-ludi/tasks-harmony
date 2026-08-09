@@ -213,13 +213,13 @@ describe('buildCsvHeaders', () => {
   it('includes two columns for ENUM questions', () => {
     const q = mkEnumQ();
     const headers = buildCsvHeaders([q]);
-    expect(headers).toEqual(['completedAt', 'streak', 'Mood', 'Mood (index)', 'xpEarned']);
+    expect(headers).toEqual(['Completed at', 'Streak', 'Mood', 'Mood (index)', 'XP earned']);
   });
 
   it('includes one column for INTEGER questions', () => {
     const q = mkIntQ();
     const headers = buildCsvHeaders([q]);
-    expect(headers).toEqual(['completedAt', 'streak', 'Count', 'xpEarned']);
+    expect(headers).toEqual(['Completed at', 'Streak', 'Count', 'XP earned']);
   });
 });
 
@@ -228,8 +228,8 @@ describe('buildCsvRows', () => {
     const a = mkCompletion({ id: 'a', completedAt: '2026-01-01T00:00:00Z' });
     const b = mkCompletion({ id: 'b', completedAt: '2026-01-02T00:00:00Z' });
     const rows = buildCsvRows([b, a], []);
-    expect(rows[0][0]).toContain('Jan 1');
-    expect(rows[1][0]).toContain('Jan 2');
+    expect(rows[0][0]).toBe('2026-01-01T00:00:00Z');
+    expect(rows[1][0]).toBe('2026-01-02T00:00:00Z');
   });
 
   it('includes enumIndex column for ENUM questions', () => {
