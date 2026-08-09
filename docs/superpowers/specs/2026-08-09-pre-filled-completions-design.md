@@ -310,4 +310,4 @@ Note: `completionSchema` currently uses `.strict()` — the new optional fields 
 ## 8. New Dependencies
 
 - **`canvas-confetti`** — confetti burst on set-completion celebration screen (~3 KB gzipped, zero dependencies)
-- **`trophy.svg`** — local SVG asset at project root, referenced as `/trophy.svg`
+- **`trophy.svg`** — local SVG asset at project root, referenced as `/trophy.svg`. Source: https://opensvg.dev/icons/action?prefix=noto&icon=trophy
