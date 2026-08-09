@@ -617,7 +617,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   moveChore: async (choreKey, targetPackId) => {
-    const { db, chores, questions, completions } = get();
+    const { db, chores, questions, completions, targets } = get();
     if (!db) throw new Error('DB not initialised');
 
     const chore = chores.find((c) => c.key === choreKey);
@@ -628,9 +628,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const choreQuestions = questions.filter((q) => q.choreKey === choreKey);
     const choreCompletions = completions.filter((c) => c.choreKey === choreKey);
+    const choreTargets = targets.filter((t) => t.choreKey === choreKey);
     const newChore: Chore = { ...chore, key: newKey, packId: targetPackId };
 
-    const tx = db.transaction(['chores', 'questions', 'completions'], 'readwrite');
+    const tx = db.transaction(['chores', 'questions', 'completions', 'targets'], 'readwrite');
     await tx.objectStore('chores').delete(choreKey);
     await tx.objectStore('chores').put(newChore);
     for (const q of choreQuestions) {
@@ -638,6 +639,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     for (const c of choreCompletions) {
       await tx.objectStore('completions').put({ ...c, choreKey: newKey });
+    }
+    for (const t of choreTargets) {
+      await tx.objectStore('targets').delete(t.id);
+      await tx.objectStore('targets').put({ ...t, choreKey: newKey });
     }
     await tx.done;
 
@@ -648,6 +653,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
       completions: state.completions.map((c) =>
         c.choreKey === choreKey ? { ...c, choreKey: newKey } : c,
+      ),
+      targets: state.targets.map((t) =>
+        t.choreKey === choreKey ? { ...t, choreKey: newKey } : t,
       ),
     }));
     markDirty();
