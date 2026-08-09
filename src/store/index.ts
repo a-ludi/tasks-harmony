@@ -53,7 +53,7 @@ interface AppState {
   updateChore: (chore: Chore) => Promise<void>;
   deactivateChore: (key: string) => Promise<void>;
   deleteChore: (key: string) => Promise<void>;
-  recordCompletion: (choreKey: string, answers?: Answer[], targetId?: string) => Promise<{ setCompletionBonus?: number }>;
+  recordCompletion: (choreKey: string, answers?: Answer[], targetId?: string) => Promise<{ setCompletionBonus?: number; setCompleted?: boolean }>;
   amendCompletion: (id: string, patch: { completedAt: string; answers: Answer[] }) => Promise<void>;
   recordRetroactiveCompletion: (choreKey: string, data: { completedAt: string; answers: Answer[] }) => Promise<void>;
   updateProfile: (profile: UserProfile) => Promise<void>;
@@ -268,7 +268,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     // Set-completion bonus check
     let setCompletionBonus: number | undefined;
-    if (targetId && chore.completionBonusXPSize !== undefined) {
+    let setCompleted: boolean | undefined;
+    if (targetId) {
       const { targets } = get();
       const choreTargets = targets.filter((t) => t.choreKey === choreKey);
       if (choreTargets.length > 0) {
@@ -280,9 +281,12 @@ export const useAppStore = create<AppState>((set, get) => ({
           (c) => c.choreKey === choreKey && c.setCompletionBonus,
         );
         if (allDone && !bonusAlreadyEarned) {
-          const bonusXP = calculateXP(chore.completionBonusXPSize, 0, 0, activeSettings);
-          setCompletionBonus = bonusXP;
-          newCompletion = { ...newCompletion, xpEarned: xpEarned + bonusXP, setCompletionBonus: bonusXP };
+          setCompleted = true;
+          if (chore.completionBonusXPSize !== undefined) {
+            const bonusXP = calculateXP(chore.completionBonusXPSize, 0, 0, activeSettings);
+            setCompletionBonus = bonusXP;
+            newCompletion = { ...newCompletion, xpEarned: xpEarned + bonusXP, setCompletionBonus: bonusXP };
+          }
         }
       }
     }
@@ -290,7 +294,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await putCompletion(db, newCompletion);
     set((state) => ({ completions: [...state.completions, newCompletion] }));
     markDirty();
-    return { setCompletionBonus };
+    return { setCompletionBonus, setCompleted };
   },
 
   recordRetroactiveCompletion: async (choreKey, { completedAt, answers }) => {
