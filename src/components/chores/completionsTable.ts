@@ -1,5 +1,5 @@
 // src/components/chores/completionsTable.ts
-import type { Completion, Question, Answer, EnumQuestion } from '@/types';
+import type { Completion, Question, Answer, EnumQuestion, Target } from '@/types';
 import { getAnswerDisplay } from '@/questions/display';
 
 export type SortDir = 'asc' | 'desc';
@@ -91,6 +91,17 @@ export function groupCompletions(completions: Completion[], groupBys: string[]):
     const existing = groups.get(key);
     if (existing) existing.push(c);
     else groups.set(key, [c]);
+  }
+  return groups;
+}
+
+export function groupTargets(targets: Target[], groupBys: string[]): Map<string, Target[]> {
+  const groups = new Map<string, Target[]>();
+  for (const t of targets) {
+    const key = JSON.stringify(groupBys.map((qId) => t.answers.find((a) => a.questionId === qId)?.value ?? null));
+    const existing = groups.get(key);
+    if (existing) existing.push(t);
+    else groups.set(key, [t]);
   }
   return groups;
 }

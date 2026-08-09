@@ -4,8 +4,9 @@ import {
   sortCompletions, getGroupKey, groupCompletions, getGroupLabel,
   computeTotals, addGroupBy, removeGroupBy, clickColumnHeader,
   buildCsvRows, buildCsvHeaders, buildJsonData, isGroupableQuestion,
+  groupTargets,
 } from './completionsTable.ts';
-import type { Completion, Question, EnumQuestion, IntegerQuestion } from '@/types';
+import type { Completion, Question, EnumQuestion, IntegerQuestion, Target } from '@/types';
 
 const mkCompletion = (overrides: Partial<Completion> = {}): Completion => ({
   id: 'c1', choreKey: 'k', completedAt: '2026-01-01T12:00:00Z',
@@ -279,5 +280,55 @@ describe('isGroupableQuestion', () => {
 
   it('returns false for TEXT questions', () => {
     expect(isGroupableQuestion({ type: 'TEXT' } as Question)).toBe(false);
+  });
+});
+
+describe('groupTargets', () => {
+  const targets: Target[] = [
+    { id: 't1', choreKey: 'p/c', order: 0, answers: [{ questionId: 'q1', value: 'A' }] },
+    { id: 't2', choreKey: 'p/c', order: 1, answers: [{ questionId: 'q1', value: 'B' }] },
+    { id: 't3', choreKey: 'p/c', order: 2, answers: [{ questionId: 'q1', value: 'A' }] },
+    { id: 't4', choreKey: 'p/c', order: 3, answers: [] }, // no answer for q1 → null group
+  ];
+
+  it('groups targets with the same answer value together', () => {
+    const groups = groupTargets(targets, ['q1']);
+    expect(groups.get(JSON.stringify(['A']))?.map((t) => t.id)).toEqual(['t1', 't3']);
+    expect(groups.get(JSON.stringify(['B']))?.map((t) => t.id)).toEqual(['t2']);
+  });
+
+  it('places targets with missing answers in the null-keyed group', () => {
+    const groups = groupTargets(targets, ['q1']);
+    expect(groups.get(JSON.stringify([null]))?.map((t) => t.id)).toEqual(['t4']);
+  });
+
+  it('produces a composite key for multiple groupBys', () => {
+    const multi: Target[] = [
+      { id: 'm1', choreKey: 'p/c', order: 0, answers: [{ questionId: 'q1', value: 'A' }, { questionId: 'q2', value: 1 }] },
+      { id: 'm2', choreKey: 'p/c', order: 1, answers: [{ questionId: 'q1', value: 'A' }, { questionId: 'q2', value: 2 }] },
+      { id: 'm3', choreKey: 'p/c', order: 2, answers: [{ questionId: 'q1', value: 'A' }, { questionId: 'q2', value: 1 }] },
+    ];
+    const groups = groupTargets(multi, ['q1', 'q2']);
+    expect(groups.get(JSON.stringify(['A', 1]))?.map((t) => t.id)).toEqual(['m1', 'm3']);
+    expect(groups.get(JSON.stringify(['A', 2]))?.map((t) => t.id)).toEqual(['m2']);
+  });
+
+  it('returns an empty map when given no targets', () => {
+    expect(groupTargets([], ['q1']).size).toBe(0);
+  });
+
+  it('produces a key that matches groupCompletions for the same answer value', () => {
+    const completion: Completion = {
+      id: 'c1', choreKey: 'p/c', completedAt: '2026-01-01T00:00:00Z',
+      xpEarned: 10, streak: 1,
+      answers: [{ questionId: 'q1', value: 'A' }],
+    };
+    const target: Target = { id: 't1', choreKey: 'p/c', order: 0, answers: [{ questionId: 'q1', value: 'A' }] };
+    const completionGroups = groupCompletions([completion], ['q1']);
+    const targetGroups = groupTargets([target], ['q1']);
+    // Same answer → same key → both maps have the same single key
+    const completionKeys = Array.from(completionGroups.keys());
+    const targetKeys = Array.from(targetGroups.keys());
+    expect(targetKeys).toEqual(completionKeys);
   });
 });
