@@ -8,6 +8,7 @@ import { getChoreStatus } from '@/chores/recurrence';
 import { eligiblePastWindows } from '@/chores/eligiblePastWindows';
 import CompletionModal from '@/components/completion/CompletionModal';
 import LogPastCompletionModal from '@/components/completion/LogPastCompletionModal';
+import TargetPickerModal from './TargetPickerModal';
 
 interface Props {
   chore: Chore;
@@ -18,6 +19,7 @@ export default function CompleteButton({ chore, disabled }: Props) {
   const recordCompletion = useAppStore((s) => s.recordCompletion);
   const questions = useAppStore(useShallow((s) => s.questions.filter((q) => q.choreKey === chore.key)));
   const completions = useAppStore(useShallow((s) => s.completions.filter((c) => c.choreKey === chore.key)));
+  const targets = useAppStore((s) => s.targets);
   const [processing, setProcessing] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showLogPastModal, setShowLogPastModal] = useState(false);
@@ -25,6 +27,7 @@ export default function CompleteButton({ chore, disabled }: Props) {
 
   useEffect(() => () => { mountedRef.current = false; }, []);
 
+  const hasTargets = targets.some((t) => t.choreKey === chore.key);
   const status = getChoreStatus(chore, completions, new Date());
   const showComplete = status === 'due' || status === 'overdue';
   const showCompleteAgain = status === 'completed' && chore.repeatable;
@@ -78,7 +81,14 @@ export default function CompleteButton({ chore, disabled }: Props) {
         </DropdownMenu>
       </div>
 
-      {showModal && (
+      {showModal && hasTargets && (
+        <TargetPickerModal
+          choreKey={chore.key}
+          questions={questions}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+      {showModal && !hasTargets && questions.length > 0 && (
         <CompletionModal choreKey={chore.key} questions={questions} onClose={() => setShowModal(false)} />
       )}
       {showLogPastModal && (
