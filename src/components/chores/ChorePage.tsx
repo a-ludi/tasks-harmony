@@ -48,7 +48,7 @@ export default function ChorePage() {
   const pendingTargets = targets.filter((t) => !completions.some((c) => c.targetId === t.id));
 
   const [showTargets, setShowTargets] = useState(false);
-  const [sorts, setSorts] = useState<SortEntry[]>([{ key: 'completedAt', dir: 'desc' }]);
+  const [sorts, setSorts] = useState<SortEntry[]>([]);
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleString('en-US', {
@@ -86,8 +86,9 @@ export default function ChorePage() {
     return String(a).localeCompare(String(b));
   }
 
+  const effectiveSorts: SortEntry[] = sorts.length > 0 ? sorts : [{ key: 'completedAt', dir: 'desc' }];
   const sorted = [...allRows].sort((a, b) => {
-    for (const sort of sorts) {
+    for (const sort of effectiveSorts) {
       let result = 0;
       if (sort.key === 'completedAt') result = compareValues(a.completedAt, b.completedAt);
       else if (sort.key === 'xpEarned') result = compareValues(a.xpEarned, b.xpEarned);
