@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { getAnswerDisplay } from '@/questions/display';
@@ -9,6 +9,8 @@ import AmendCompletionModal from '@/components/completion/AmendCompletionModal';
 import CompleteButton from '@/components/chores/CompleteButton';
 import QuickCompleteButtonList from '@/components/chores/QuickCompleteButtonList';
 import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
+import { groupCompletions, getGroupLabel, computeTotals, addGroupBy, removeGroupBy, isGroupableQuestion, exportCsv, exportJson, sortCompletions } from './completionsTable';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 type SortDir = 'asc' | 'desc';
 type SortKey = 'completedAt' | `question:${string}` | 'xpEarned';
@@ -49,6 +51,8 @@ export default function ChorePage() {
 
   const [showTargets, setShowTargets] = useState(false);
   const [sorts, setSorts] = useState<SortEntry[]>([]);
+  const [groupBys, setGroupBys] = useState<string[]>([]);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleString('en-US', {
@@ -101,6 +105,9 @@ export default function ChorePage() {
     return 0;
   });
 
+  // Sorted completions (Completion[] for grouping and export)
+  const sortedCompletions = sortCompletions(completions, effectiveSorts, choreQuestions);
+
   function clickHeader(key: SortKey) {
     setSorts((prev) => {
       const existing = prev.find((s) => s.key === key);
@@ -144,82 +151,209 @@ export default function ChorePage() {
       {allRows.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">No completions yet.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th
-                  className="py-2 pr-4 font-medium text-foreground whitespace-nowrap cursor-pointer select-none"
-                  onClick={() => clickHeader('completedAt')}
-                >
-                  Completed at <SortLabel colKey="completedAt" />
-                </th>
-                {choreQuestions.map((q) => (
+        <div>
+          {/* Toolbar: Group by + Export */}
+          {(() => {
+            const eligibleQuestions = choreQuestions.filter(isGroupableQuestion);
+            const availableToGroup = eligibleQuestions.filter((q) => !groupBys.includes(q.id));
+            return (
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                {groupBys.map((qId) => {
+                  const q = choreQuestions.find((q) => q.id === qId);
+                  return (
+                    <span key={qId} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+                      {q?.prompt ?? qId}
+                      <button
+                        className="hover:text-destructive"
+                        onClick={() => {
+                          const next = removeGroupBy(groupBys, sorts, qId);
+                          setGroupBys(next.groupBys);
+                          setSorts(next.sorts);
+                          setOpenGroup(null);
+                        }}
+                        aria-label={`Remove ${q?.prompt} group`}
+                      >×</button>
+                    </span>
+                  );
+                })}
+                {availableToGroup.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-xs h-6 px-2">+ Group by</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {availableToGroup.map((q) => (
+                        <DropdownMenuItem key={q.id} onClick={() => {
+                          const next = addGroupBy(groupBys, sorts, q.id);
+                          setGroupBys(next.groupBys);
+                          setSorts(next.sorts);
+                          setOpenGroup(null);
+                        }}>
+                          {q.prompt}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                {completions.length > 0 && (
+                  <div className="ml-auto">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-xs h-6 px-2">Export ▾</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => exportCsv(completions, choreQuestions, chore.title)}>
+                          Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportJson(completions, choreQuestions, chore.title)}>
+                          Export as JSON
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="border-b border-border">
                   <th
-                    key={q.id}
-                    className="py-2 pr-4 font-medium text-foreground cursor-pointer select-none"
-                    onClick={() => clickHeader(`question:${q.id}`)}
+                    className="py-2 pr-4 font-medium text-foreground whitespace-nowrap cursor-pointer select-none"
+                    onClick={() => clickHeader('completedAt')}
                   >
-                    {q.prompt} <SortLabel colKey={`question:${q.id}`} />
+                    Completed at <SortLabel colKey="completedAt" />
                   </th>
-                ))}
-                <th
-                  className="py-2 font-medium text-foreground text-right cursor-pointer select-none"
-                  onClick={() => clickHeader('xpEarned')}
-                >
-                  XP earned <SortLabel colKey="xpEarned" />
-                </th>
-                <th className="py-2 pl-4 font-normal">
-                  <button
-                    className={`text-xs text-muted-foreground hover:text-foreground underline${!hasSorts ? ' invisible' : ''}`}
-                    onClick={() => setSorts([])}
-                    tabIndex={hasSorts ? undefined : -1}
-                    aria-hidden={!hasSorts || undefined}
-                  >
-                    Reset sorting
-                  </button>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((row) => {
-                const isPending = row.kind === 'target';
-                return (
-                  <tr
-                    key={row.id}
-                    className={`border-b border-border ${isPending ? 'opacity-40' : 'hover:bg-muted'}`}
-                  >
-                    <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal">
-                      {row.completedAt ? formatDate(row.completedAt) : '—'}
+                  {choreQuestions.map((q) => (
+                    <th
+                      key={q.id}
+                      className="py-2 pr-4 font-medium text-foreground cursor-pointer select-none"
+                      onClick={() => clickHeader(`question:${q.id}`)}
+                    >
+                      {q.prompt} <SortLabel colKey={`question:${q.id}`} />
                     </th>
-                    {choreQuestions.map((q) => (
-                      <td key={q.id} className="py-2 pr-4 text-muted-foreground">
-                        {getAnswerDisplay(row.answers, q)}
-                      </td>
-                    ))}
-                    <td className="py-2 text-foreground font-medium text-right">
-                      {row.xpEarned !== null ? row.xpEarned : '—'}
-                    </td>
-                    <td className="py-2 pl-4">
-                      <div className="flex justify-end gap-2">
-                        {row.kind === 'completion' && (
-                          <button
-                            className="text-xs text-muted-foreground hover:text-foreground underline"
-                            onClick={() => {
-                              const completion = completions.find((c) => c.id === row.id);
-                              if (completion) setEditingCompletion(completion);
-                            }}
+                  ))}
+                  <th
+                    className="py-2 font-medium text-foreground text-right cursor-pointer select-none"
+                    onClick={() => clickHeader('xpEarned')}
+                  >
+                    XP earned <SortLabel colKey="xpEarned" />
+                  </th>
+                  <th className="py-2 pl-4 font-normal">
+                    <button
+                      className={`text-xs text-muted-foreground hover:text-foreground underline${!hasSorts ? ' invisible' : ''}`}
+                      onClick={() => setSorts([])}
+                      tabIndex={hasSorts ? undefined : -1}
+                      aria-hidden={!hasSorts || undefined}
+                    >
+                      Reset sorting
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupBys.length === 0 ? (
+                  sorted.map((row) => {
+                    const isPending = row.kind === 'target';
+                    return (
+                      <tr
+                        key={row.id}
+                        className={`border-b border-border ${isPending ? 'opacity-40' : 'hover:bg-muted'}`}
+                      >
+                        <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal">
+                          {row.completedAt ? formatDate(row.completedAt) : '—'}
+                        </th>
+                        {choreQuestions.map((q) => (
+                          <td key={q.id} className="py-2 pr-4 text-muted-foreground">
+                            {getAnswerDisplay(row.answers, q)}
+                          </td>
+                        ))}
+                        <td className="py-2 text-foreground font-medium text-right">
+                          {row.xpEarned !== null ? row.xpEarned : '—'}
+                        </td>
+                        <td className="py-2 pl-4">
+                          <div className="flex justify-end gap-2">
+                            {row.kind === 'completion' && (
+                              <button
+                                className="text-xs text-muted-foreground hover:text-foreground underline"
+                                onClick={() => {
+                                  const completion = completions.find((c) => c.id === row.id);
+                                  if (completion) setEditingCompletion(completion);
+                                }}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <>
+                    {Array.from(groupCompletions(sortedCompletions, groupBys)).map(([key, groupRows]) => {
+                      const label = getGroupLabel(key, groupBys, choreQuestions);
+                      const subtotals = computeTotals(groupRows, choreQuestions);
+                      const isOpen = openGroup === key;
+                      return (
+                        <React.Fragment key={key}>
+                          <tr
+                            data-group={key}
+                            data-group-open={isOpen}
+                            className="border-b border-border bg-muted/50 cursor-pointer select-none hover:bg-muted"
+                            onClick={() => setOpenGroup(isOpen ? null : key)}
                           >
-                            Edit
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                            <td colSpan={choreQuestions.length + 3} className="py-2 px-2 font-medium">
+                              <span className="mr-2">{isOpen ? '▾' : '▸'}</span>
+                              {label}
+                              <span className="ml-3 text-xs font-normal text-muted-foreground">
+                                ({subtotals.count} completion{subtotals.count !== 1 ? 's' : ''} · {subtotals.xpSum} XP)
+                              </span>
+                            </td>
+                          </tr>
+                          {isOpen && groupRows.map((c) => (
+                            <tr key={c.id} className="border-b border-border hover:bg-muted">
+                              <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal pl-6">{formatDate(c.completedAt)}</th>
+                              {choreQuestions.map((q) => (
+                                <td key={q.id} className="py-2 pr-4 text-muted-foreground">{getAnswerDisplay(c.answers, q)}</td>
+                              ))}
+                              <td className="py-2 text-foreground font-medium text-right">{c.xpEarned}</td>
+                              <td className="py-2 pl-4">
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                                    onClick={() => setEditingCompletion(c)}
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      );
+                    })}
+                    {targetRows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-b border-border opacity-40"
+                      >
+                        <th scope="row" className="py-2 pr-4 text-muted-foreground whitespace-nowrap font-normal">—</th>
+                        {choreQuestions.map((q) => (
+                          <td key={q.id} className="py-2 pr-4 text-muted-foreground">
+                            {getAnswerDisplay(row.answers, q)}
+                          </td>
+                        ))}
+                        <td className="py-2 text-foreground font-medium text-right">—</td>
+                        <td className="py-2 pl-4" />
+                      </tr>
+                    ))}
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
