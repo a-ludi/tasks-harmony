@@ -124,6 +124,7 @@ export default function ChorePage() {
   }
 
   const hasSorts = sorts.length > 0;
+  const totals = computeTotals(completions, choreQuestions);
 
   return (
     <div className="py-4">
@@ -361,6 +362,25 @@ export default function ChorePage() {
                   </>
                 )}
               </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-border font-medium bg-muted/30">
+                  <th scope="row" className="py-2 pr-4 text-foreground whitespace-nowrap text-left">
+                    {[
+                      `${completions.length} completion${completions.length !== 1 ? 's' : ''}`,
+                      showTargets && pendingTargets.length > 0
+                        ? `${pendingTargets.length} target${pendingTargets.length !== 1 ? 's' : ''}`
+                        : null,
+                    ].filter(Boolean).join(' · ')}
+                  </th>
+                  {choreQuestions.map((q) => (
+                    <td key={q.id} className="py-2 pr-4 text-foreground">
+                      {totals.questionSums[q.id] !== null ? totals.questionSums[q.id] : '—'}
+                    </td>
+                  ))}
+                  <td className="py-2 text-foreground font-medium text-right">{totals.xpSum}</td>
+                  <td />
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
