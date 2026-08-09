@@ -2,7 +2,7 @@
 import type { DBSchema } from 'idb';
 import type {
   Pack, Chore, Question, Completion,
-  XPSettings, UserProfile, SyncState, QuickAnswerSet,
+  XPSettings, UserProfile, SyncState, QuickAnswerSet, Target,
 } from '@/types';
 
 export interface LegacySyncCredentials {
@@ -30,5 +30,6 @@ export interface TasksHarmonyDB extends DBSchema {
   profile:         { key: string; value: UserProfile };
   syncState:       { key: string; value: SyncState };
   quickAnswerSets: { key: string; value: QuickAnswerSet; indexes: { 'by-chore': string } };
+  targets:         { key: string; value: Target; indexes: { 'by-chore': string } };
   credentials:     { key: string; value: SyncCredentials };
 }

@@ -12,6 +12,7 @@ const MINIMAL_STATE: AppState = {
   completions: [],
   xpSettings: [],
   quickAnswerSets: [],
+  targets: [],
   profile: { id: 'me', displayName: 'Test', email: 'test@example.com', activeXPSettingsId: 'default' },
   syncState: { id: 'main', pendingSync: false },
 };

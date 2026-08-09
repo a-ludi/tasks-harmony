@@ -4,11 +4,11 @@ import type { TasksHarmonyDB, SyncCredentials } from './schema';
 import { seed } from './seed';
 import type {
   Pack, Chore, Question, Completion,
-  XPSettings, UserProfile, SyncState, QuickAnswerSet,
+  XPSettings, UserProfile, SyncState, QuickAnswerSet, Target,
 } from '@/types';
 
 const DB_NAME = 'tasks-harmony';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export function migrateXpPerUnit(xpPerUnit: number): number {
   return xpPerUnit < 1 ? 1 / Math.round(1 / xpPerUnit) : xpPerUnit;
@@ -55,6 +55,10 @@ export async function openDB(
       }
       if (oldVersion < 4) {
         db.createObjectStore('credentials', { keyPath: 'id' });
+      }
+      if (oldVersion < 5) {
+        const targets = db.createObjectStore('targets', { keyPath: 'id' });
+        targets.createIndex('by-chore', 'choreKey');
       }
     },
   });
@@ -199,6 +203,8 @@ export const deleteQuickAnswerSet = (
   id: string,
 ): Promise<void> =>
   db.delete('quickAnswerSets', id);
+
+export { getAllTargets, getTargetsByChore, putTarget, deleteTarget } from './targets';
 
 export const getCredentials = (
   db: IDBPDatabase<TasksHarmonyDB>,
