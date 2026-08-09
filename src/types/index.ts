@@ -64,6 +64,7 @@ export interface Chore {
   duePeriod?: DuePeriod;   // if set, chore shows as upcoming until this long before window end
   createdAt: string;            // ISO datetime
   syncStatus?: ChoreSyncStatus; // set after "Update from URL"; only present on URL-imported chores
+  completionBonusXPSize?: XPSize | number; // XP bonus awarded when all targets completed
 }
 
 export interface PackManifest {
@@ -105,6 +106,8 @@ export interface Completion {
   xpEarned: number;
   streak: number;
   answers: Answer[];
+  targetId?: string;           // if set, this completion was linked to a target
+  setCompletionBonus?: number; // XP bonus awarded for completing all targets
 }
 
 export interface XPSettings {

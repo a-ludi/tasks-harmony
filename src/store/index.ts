@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, deleteChore as dbDeleteChore, putPack, deleteCompletion, deletePack as dbDeletePack, getChoresByPack, getQuestions, getCompletionsByChore, getAllQuickAnswerSets, putQuickAnswerSet, deleteQuickAnswerSet as dbDeleteQuickAnswerSet } from '@/db';
+import { openDB, getAllChores, getAllCompletions, getAllQuestions, getXPSettings, getProfile, getSyncState, getPacks, putChore, putCompletion, putProfile, putSyncState, putQuestion, deleteQuestion, deleteChore as dbDeleteChore, putPack, deleteCompletion, deletePack as dbDeletePack, getChoresByPack, getQuestions, getCompletionsByChore, getAllQuickAnswerSets, putQuickAnswerSet, deleteQuickAnswerSet as dbDeleteQuickAnswerSet, getAllTargets, putTarget, deleteTarget } from '@/db';
 import { titleToFilename } from '@/cdp/filename';
 import { slugifyPackId } from '@/cdp/packId';
 import { fetchCDP } from '@/cdp/cdp-import';
@@ -20,10 +20,19 @@ import type {
   SyncState,
   Answer,
   QuickAnswerSet,
+  Target,
 } from '@/types';
 import type { IDBPDatabase } from 'idb';
 import type { TasksHarmonyDB } from '@/db/schema';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
+
+export interface DraftTarget {
+  id: string;
+  order: number;
+  answers: Answer[];
+  linkedCompletionId?: string;
+  _deleted?: boolean;
+}
 
 interface AppState {
   db: IDBPDatabase<TasksHarmonyDB> | null;
@@ -36,6 +45,7 @@ interface AppState {
   profile: UserProfile | null;
   syncState: SyncState | null;
   quickAnswerSets: QuickAnswerSet[];
+  targets: Target[];
 
   init: () => Promise<void>;
   reload: () => Promise<void>;
@@ -43,7 +53,7 @@ interface AppState {
   updateChore: (chore: Chore) => Promise<void>;
   deactivateChore: (key: string) => Promise<void>;
   deleteChore: (key: string) => Promise<void>;
-  recordCompletion: (choreKey: string, answers?: Answer[]) => Promise<void>;
+  recordCompletion: (choreKey: string, answers?: Answer[], targetId?: string) => Promise<{ setCompletionBonus?: number }>;
   amendCompletion: (id: string, patch: { completedAt: string; answers: Answer[] }) => Promise<void>;
   recordRetroactiveCompletion: (choreKey: string, data: { completedAt: string; answers: Answer[] }) => Promise<void>;
   updateProfile: (profile: UserProfile) => Promise<void>;
@@ -60,6 +70,8 @@ interface AppState {
   removeQuickAnswerSet: (id: string) => Promise<void>;
   moveChore: (choreKey: string, targetPackId: string) => Promise<boolean>;
   duplicateChore: (choreKey: string, newTitle: string, targetPackId: string) => Promise<string>;
+  saveTargets: (choreKey: string, drafts: DraftTarget[]) => Promise<void>;
+  linkCompletionToTarget: (completionId: string, targetId: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -73,12 +85,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   profile: null,
   syncState: null,
   quickAnswerSets: [],
+  targets: [],
 
   init: async () => {
     if (get().loaded) return;
 
     const db = await openDB();
-    const [packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets] =
+    const [packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets, targets] =
       await Promise.all([
         getPacks(db),
         getAllChores(db),
@@ -88,20 +101,21 @@ export const useAppStore = create<AppState>((set, get) => ({
         getProfile(db),
         getSyncState(db),
         getAllQuickAnswerSets(db),
+        getAllTargets(db),
       ]);
 
-    set({ db, loaded: true, packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets });
+    set({ db, loaded: true, packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets, targets });
   },
 
   reload: async () => {
     const { db } = get();
     if (!db) return;
-    const [packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets] =
+    const [packs, chores, completions, questions, xpSettings, profile, syncState, quickAnswerSets, targets] =
       await Promise.all([
         getPacks(db), getAllChores(db), getAllCompletions(db), getAllQuestions(db),
-        getXPSettings(db), getProfile(db), getSyncState(db), getAllQuickAnswerSets(db),
+        getXPSettings(db), getProfile(db), getSyncState(db), getAllQuickAnswerSets(db), getAllTargets(db),
       ]);
-    set({ packs, chores, completions, questions, xpSettings, profile: profile ?? null, syncState: syncState ?? null, quickAnswerSets });
+    set({ packs, chores, completions, questions, xpSettings, profile: profile ?? null, syncState: syncState ?? null, quickAnswerSets, targets });
   },
 
   addChore: async (data) => {
@@ -160,7 +174,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteChore: async (key) => {
-    const { db, chores, completions, questions, quickAnswerSets, packs } = get();
+    const { db, chores, completions, questions, quickAnswerSets, targets, packs } = get();
     if (!db) throw new Error('DB not initialised');
 
     const chore = chores.find((c) => c.key === key);
@@ -169,14 +183,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     const choreCompletions = completions.filter((c) => c.choreKey === key);
     const choreQuestions = questions.filter((q) => q.choreKey === key);
     const choreSets = quickAnswerSets.filter((s) => s.choreKey === key);
+    const choreTargets = targets.filter((t) => t.choreKey === key);
 
     const choreXP = choreCompletions.reduce((sum, c) => sum + c.xpEarned, 0);
     const pack = packs.find((p) => p.id === chore.packId);
 
-    const tx = db.transaction(['chores', 'questions', 'completions', 'quickAnswerSets', 'packs'], 'readwrite');
+    const tx = db.transaction(['chores', 'questions', 'completions', 'quickAnswerSets', 'targets', 'packs'], 'readwrite');
     for (const c of choreCompletions) await tx.objectStore('completions').delete(c.id);
     for (const q of choreQuestions) await tx.objectStore('questions').delete(q.id);
     for (const s of choreSets) await tx.objectStore('quickAnswerSets').delete(s.id);
+    for (const t of choreTargets) await tx.objectStore('targets').delete(t.id);
     await tx.objectStore('chores').delete(key);
     if (pack && choreXP > 0) {
       const updatedPack = {
@@ -193,6 +209,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       completions: state.completions.filter((c) => c.choreKey !== key),
       questions: state.questions.filter((q) => q.choreKey !== key),
       quickAnswerSets: state.quickAnswerSets.filter((s) => s.choreKey !== key),
+      targets: state.targets.filter((t) => t.choreKey !== key),
       packs: pack && choreXP > 0
         ? state.packs.map((p) =>
             p.id === pack.id
@@ -204,7 +221,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     markDirty();
   },
 
-  recordCompletion: async (choreKey, answers = []) => {
+  recordCompletion: async (choreKey, answers = [], targetId) => {
     const { db, chores, completions, xpSettings, profile } = get();
     if (!db) throw new Error('DB not initialised');
 
@@ -239,18 +256,41 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
 
-    const newCompletion: Completion = {
+    let newCompletion: Completion = {
       id: crypto.randomUUID(),
       choreKey,
       completedAt: now.toISOString(),
       xpEarned,
       streak,
       answers,
+      ...(targetId ? { targetId } : {}),
     };
+
+    // Set-completion bonus check
+    let setCompletionBonus: number | undefined;
+    if (targetId && chore.completionBonusXPSize !== undefined) {
+      const { targets } = get();
+      const choreTargets = targets.filter((t) => t.choreKey === choreKey);
+      if (choreTargets.length > 0) {
+        const allCompletionsAfter = [...completions, newCompletion];
+        const allDone = choreTargets.every((t) =>
+          allCompletionsAfter.some((c) => c.targetId === t.id),
+        );
+        const bonusAlreadyEarned = completions.some(
+          (c) => c.choreKey === choreKey && c.setCompletionBonus,
+        );
+        if (allDone && !bonusAlreadyEarned) {
+          const bonusXP = calculateXP(chore.completionBonusXPSize, 0, 0, activeSettings);
+          setCompletionBonus = bonusXP;
+          newCompletion = { ...newCompletion, xpEarned: xpEarned + bonusXP, setCompletionBonus: bonusXP };
+        }
+      }
+    }
 
     await putCompletion(db, newCompletion);
     set((state) => ({ completions: [...state.completions, newCompletion] }));
     markDirty();
+    return { setCompletionBonus };
   },
 
   recordRetroactiveCompletion: async (choreKey, { completedAt, answers }) => {
@@ -659,5 +699,57 @@ export const useAppStore = create<AppState>((set, get) => ({
     markDirty();
 
     return newKey;
+  },
+
+  saveTargets: async (choreKey, drafts) => {
+    const { db } = get();
+    if (!db) throw new Error('DB not initialised');
+
+    // Delete removed targets and clear their linked completions
+    for (const draft of drafts.filter((d) => d._deleted)) {
+      await deleteTarget(db, draft.id);
+      // Clear targetId on any completions linked to this target
+      const linkedCompletions = get().completions.filter((c) => c.targetId === draft.id);
+      for (const c of linkedCompletions) {
+        const { targetId: _removed, ...rest } = c;
+        await putCompletion(db, rest as Completion);
+      }
+    }
+
+    // Upsert active targets
+    const toSave = drafts.filter((d) => !d._deleted);
+    for (const draft of toSave) {
+      const target: Target = { id: draft.id, choreKey, order: draft.order, answers: draft.answers };
+      await putTarget(db, target);
+      // Link completion if specified
+      if (draft.linkedCompletionId) {
+        const completion = get().completions.find((c) => c.id === draft.linkedCompletionId);
+        if (completion) {
+          const linked = { ...completion, targetId: draft.id };
+          await putCompletion(db, linked);
+        }
+      }
+    }
+
+    // Reload targets and completions from DB
+    const [updatedTargets, updatedCompletions] = await Promise.all([
+      getAllTargets(db),
+      getAllCompletions(db),
+    ]);
+    set({ targets: updatedTargets, completions: updatedCompletions });
+    markDirty();
+  },
+
+  linkCompletionToTarget: async (completionId, targetId) => {
+    const { db } = get();
+    if (!db) throw new Error('DB not initialised');
+    const completion = get().completions.find((c) => c.id === completionId);
+    if (!completion) throw new Error(`Completion not found: ${completionId}`);
+    const linked = { ...completion, targetId };
+    await putCompletion(db, linked);
+    set((state) => ({
+      completions: state.completions.map((c) => (c.id === completionId ? linked : c)),
+    }));
+    markDirty();
   },
 }));
