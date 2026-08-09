@@ -572,6 +572,114 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 
 ---
 
+## 14. Targets
+
+A chore with at least one question may carry a pre-defined list of **Targets** — expected answer sets that together form a finite collection. Completing all targets constitutes a *set completion*.
+
+**Example:** "Visit all terminal stations of the city tram system." The chore has one question "Terminal Station?" The user pre-defines every station name as a target. Each visit logs a completion linked to the matching target. When the last station is visited, a set-completion celebration fires.
+
+**Glossary additions:**
+
+| Term | Meaning |
+|---|---|
+| **Target** | A pre-defined answer set for a chore; identified by `id`, ordered by `order`, linked to a chore via `choreKey`. |
+| **Set Completion** | The event that all targets for a chore have been completed for the first time. |
+| **Completion Bonus** | Optional bonus XP awarded on set completion; stored on the triggering completion as `setCompletionBonus`. |
+
+### 14.1 Defining targets in the chore form
+
+**As the user, I want to pre-define a list of targets for a chore, so that I can turn a repeating chore into a finite collection challenge.**
+
+- A **Targets** section appears in `ChoreFormModal` after the Questions section, but only when the chore has at least one question.
+- **Targets and Quick Answer Sets are mutually exclusive.** When targets exist, the Quick Answer Sets section is hidden and replaced with an explanatory note (and vice versa). No data from the hidden section is destroyed.
+- The target list shows each target as a reorderable row with ↑ / ↓ buttons, an Edit button, and a × (delete) button.
+- Deleting an existing target is a **soft delete**: the row turns grey and a "Restore" button replaces ×. The deletion is committed only when the form is saved. A soft-deleted target cannot be reordered.
+- Clicking Edit or clicking a new "Add target" button opens `TargetFormModal` (see §14.2).
+- **Set-completion bonus subsection:**
+  - An opt-in toggle labelled "Award bonus XP on set completion".
+  - When enabled, an XP size picker appears (pre-filled with the chore's current `xpSize`).
+  - The bonus is stored as `completionBonusXPSize` on the chore; absent means no bonus.
+
+### 14.2 TargetFormModal — creating and editing targets
+
+**As the user, I want a dedicated modal for entering a target's answers, so that I can pre-fill or import values without cluttering the chore form.**
+
+- `TargetFormModal` is a secondary modal (opens on top of `ChoreFormModal`).
+- **Step 1 — Import from completion (new targets only):** shown only when there are *unlinked* completions (completions with no `targetId`). Presents a picker of those completions; selecting one imports its answers as the starting values for the target and optionally sets `linkedCompletionId`, retroactively marking the target as done. When no unlinked completions exist, Step 1 is skipped and the modal opens directly on Step 2.
+- **Step 2 — Edit answers:** renders `AnswerForm` for the chore's questions. At least one non-null answer is required to enable Save.
+- Editing an existing target always opens directly on Step 2.
+- Saving returns to `ChoreFormModal` with the new or updated target in the list.
+
+### 14.3 Completing targets — TargetPickerModal
+
+**As the user, I want to pick which target I am completing, so that each visit is linked to the right entry in my collection.**
+
+- When a chore has targets, tapping "Complete" opens `TargetPickerModal` instead of `CompletionModal`.
+- **Step 1 — Pick a target:**
+  - Renders `TargetsTable` in interactive (radio-select) mode.
+  - A "Show completed / Hide completed" toggle controls visibility of already-done targets.
+  - The Complete button is enabled only when a target is selected.
+  - Tapping Complete advances to Step 2 (or records directly — see edge case below).
+- **Step 2 — Answer remaining questions:**
+  - Shows `AnswerForm` for any questions whose answer was not pre-filled by the selected target.
+  - A ← Back button returns to Step 1 without losing the selection.
+  - Submitting records the completion with `targetId` set to the selected target's `id`.
+- **After recording:**
+  - If all targets are now done for the first time → advance to Step 3 (celebration).
+  - Otherwise the modal closes normally.
+- **Step 3 — Set completion celebration:**
+  - Trophy graphic + confetti burst.
+  - Congratulatory heading.
+  - Summary: total targets completed and bonus XP awarded (if any).
+  - A Done button closes the modal.
+- Edge case: if the selected target has all questions pre-filled, Step 2 is skipped and the completion is recorded immediately after Step 1.
+
+### 14.4 Set-completion bonus logic
+
+**As the user, I want a one-time XP bonus when I finish all targets, so that completing a collection feels rewarding.**
+
+- After every target completion is recorded, the system checks:
+  1. Are all targets for this chore now done (each has at least one completion with a matching `targetId`)?
+  2. Has no prior completion for this chore already carried a `setCompletionBonus`?
+- If both conditions are true: the bonus XP (derived from `completionBonusXPSize`) is added to the just-recorded completion's `xpEarned`, and `completion.setCompletionBonus` is set.
+- The bonus fires at most once per chore, only via a new real completion. It is never awarded retroactively (e.g. when linking a completion during target creation in §14.2).
+- Edge case: if a second "full completion" state is somehow reached (all targets done again after new targets were added and completed), the bonus is not re-awarded because a prior completion already carries it.
+
+### 14.5 Progress bar on ChoreCard
+
+**As the user, I want to see at a glance how many targets I have completed, so that I can track collection progress from the dashboard.**
+
+- A progress bar is shown between the XP / streak row and the `QuickCompleteButtonList`, but only when the chore has targets.
+- The bar shows `N / total` label and a green fill proportional to `N / total`.
+- When all targets are done, the label area is replaced with a green "Completed" pill.
+- In compact mode: the label row is hidden; the bar itself remains visible with a `title="N / total targets"` tooltip.
+
+### 14.6 Targets on the Chore Details Page
+
+**As the user, I want to see pending and completed targets alongside my completion history, so that I know which targets remain.**
+
+- A "Show targets / Hide targets" toggle appears above the completion history table on the Chore Details Page.
+- When targets are shown:
+  - Pending targets (no linked completion) appear as greyed-out rows sorted by their pre-filled answer values; `completedAt` is treated as null and sorts to the end in ascending order.
+  - Completed targets appear only as their linked completion row — they are not duplicated.
+- When targets are hidden, the table shows only plain completion rows (existing behaviour).
+
+### 14.7 Removing all targets from a chore
+
+**As the user, I want to remove targets from a chore, so that I can revert it to a plain repeating chore.**
+
+- Soft-deleting all targets in `ChoreFormModal` and saving removes all `Target` records from the store.
+- Linked completions have their `targetId` field cleared and become plain completions.
+- Any `setCompletionBonus` already recorded on a completion is preserved as historical XP; it is not recalculated or removed.
+
+### 14.8 Moving a chore with targets
+
+**As the user, I want to move a chore that has targets without losing those targets, so that reorganising packs is safe.**
+
+- The `moveChore` store action rewrites the `choreKey` on all associated `Target` records as part of the same atomic transaction used to rewrite completions and questions.
+
+---
+
 ## Appendix: Edge Case Index
 
 | Edge case | Section |
@@ -600,3 +708,10 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 | Amend recalculates xpEarned but does not recalculate streak | §11.3 |
 | CompletionsTable export always in chronological ascending order regardless of UI sort | §11.1 |
 | ENUM CSV export produces double columns: label and index | §11.1 |
+| Targets and Quick Answer Sets mutually exclusive — section not shown when the other has entries | §14.1 |
+| New target with no unlinked completions — TargetFormModal opens directly on Step 2 | §14.2 |
+| Editing existing target — TargetFormModal opens directly on Step 2 | §14.2 |
+| All questions pre-filled in target — TargetPickerModal skips Step 2 and records directly | §14.3 |
+| Set-completion bonus already earned — second full completion does not re-award bonus | §14.4 |
+| All targets removed + form saved — linked completions' targetId cleared; setCompletionBonus preserved | §14.7 |
+| moveChore updates choreKey on all associated targets | §14.8 |
