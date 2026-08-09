@@ -31,7 +31,8 @@ const BORDER_COLOR: Record<ChoreStatus, string> = {
 export default function ChoreCard({ chore, completions, xpSettings, profile, packTitle, compact }: Props) {
   const chorePack = useAppStore((s) => s.packs.find((p) => p.id === chore.packId));
   const packStreak = chorePack?.manifest.streak ?? true;
-  const targets = useAppStore((s) => s.targets.filter((t) => t.choreKey === chore.key));
+  const allTargets = useAppStore((s) => s.targets);
+  const targets = allTargets.filter((t) => t.choreKey === chore.key);
 
   const now = new Date();
   const choreCompletions = completions.filter((c) => c.choreKey === chore.key);
