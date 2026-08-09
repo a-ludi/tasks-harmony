@@ -3,7 +3,7 @@ import { describe, it, expect } from 'bun:test';
 import {
   sortCompletions, getGroupKey, groupCompletions, getGroupLabel,
   computeTotals, addGroupBy, removeGroupBy, clickColumnHeader,
-  buildCsvRows, buildCsvHeaders, buildJsonData,
+  buildCsvRows, buildCsvHeaders, buildJsonData, isGroupableQuestion,
 } from './completionsTable.ts';
 import type { Completion, Question, EnumQuestion, IntegerQuestion } from '@/types';
 
@@ -266,5 +266,18 @@ describe('buildJsonData', () => {
     const b = mkCompletion({ id: 'b', completedAt: '2026-01-02T00:00:00Z' });
     const data = buildJsonData([b, a], []);
     expect(data[0].completedAt).toBe('2026-01-01T00:00:00Z');
+  });
+});
+
+describe('isGroupableQuestion', () => {
+  it.each(['ENUM', 'INTEGER', 'BOOLEAN', 'MULTIPLIER'] as const)(
+    'returns true for %s questions',
+    (type) => {
+      expect(isGroupableQuestion({ type } as Question)).toBe(true);
+    },
+  );
+
+  it('returns false for TEXT questions', () => {
+    expect(isGroupableQuestion({ type: 'TEXT' } as Question)).toBe(false);
   });
 });
