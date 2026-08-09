@@ -38,7 +38,7 @@ test('details page shows full description without truncation', async ({ page }) 
 test('details page shows completion history', async ({ page }) => {
   await page.getByTestId('chore-card').filter({ hasText: 'Walk the dog' }).getByRole('link', { name: 'Walk the dog' }).click();
   await expect(page.getByRole('columnheader', { name: 'Completed at' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '7' })).toBeVisible();
+  await expect(page.locator('tbody').getByRole('cell', { name: '7' })).toBeVisible();
 });
 
 test('back button returns to previous page', async ({ page }) => {
