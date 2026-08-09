@@ -18,9 +18,12 @@
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^0.9.9",
+    "@happy-dom/global-registrator": "^20.11.2",
     "@playwright/cli": "^0.1.13",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.0",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "14",
     "@types/bun": "latest",
     "@types/canvas-confetti": "^1.9.0",
     "@types/js-yaml": "^4.0.9",

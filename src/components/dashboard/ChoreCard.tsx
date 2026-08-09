@@ -9,6 +9,7 @@ import StatusBadge from './StatusBadge';
 import CompleteButton from '@/components/chores/CompleteButton';
 import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
 import QuickCompleteButtonList from '@/components/chores/QuickCompleteButtonList';
+import TargetProgressBar from '@/components/chores/TargetProgressBar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from '@/components/ui/card';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 
@@ -48,9 +49,6 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
   const doneTargets = targets.filter((t) =>
     choreCompletions.some((c) => c.targetId === t.id),
   ).length;
-  const targetProgress = totalTargets > 0 ? doneTargets / totalTargets : null;
-  const allTargetsDone = totalTargets > 0 && doneTargets === totalTargets;
-
   const isArchived = !chore.active;
 
   return (
@@ -94,26 +92,9 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
             <span className="chore-recurrence">{formatRecurrence(chore.recurrence)}</span>
           </div>
 
-          {targetProgress !== null && (
-            <div className="mt-2 space-y-1">
-              {!compact && (
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Target progress</span>
-                  {allTargetsDone
-                    ? <span className="rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-green-800 dark:text-green-300 font-medium">Completed</span>
-                    : <span>{doneTargets} / {totalTargets}</span>
-                  }
-                </div>
-              )}
-              <div
-                className="h-2 w-full rounded-full bg-muted overflow-hidden"
-                title={compact ? `${doneTargets} / ${totalTargets} targets` : undefined}
-              >
-                <div
-                  className="h-full rounded-full bg-green-500 transition-all"
-                  style={{ width: `${Math.round(targetProgress * 100)}%` }}
-                />
-              </div>
+          {totalTargets > 0 && (
+            <div className="mt-2">
+              <TargetProgressBar done={doneTargets} total={totalTargets} compact={compact} />
             </div>
           )}
 

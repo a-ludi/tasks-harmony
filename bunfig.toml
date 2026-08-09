@@ -1,3 +1,4 @@
 [test]
 parallelism = 1
 exclude = ["e2e/**"]
+preload = ["./src/setupTests.ts"]
