@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
-import type { Chore, XPSize, RecurrenceFrequency, DuePeriodUnit, MultiplierQuestion, QuickAnswerSet } from '@/types';
+import type { Chore, XPSize, RecurrenceFrequency, DuePeriodUnit, MultiplierQuestion, QuickAnswerSet, Question } from '@/types';
+import type { DraftTarget } from '@/store';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import QuestionBuilder from '@/components/questions/QuestionBuilder';
 import type { DraftQuestion } from '@/components/questions/QuestionFormFields';
 import { validateQuestionDrafts } from './choreFormValidation';
+import TargetBuilder from './TargetBuilder';
 import { XP_BASE } from '@/xp/calculator';
 import { buildXPPreview } from '@/xp/xpPreview';
 import QuickAnswerSetModal from './QuickAnswerSetModal';
@@ -40,8 +42,11 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const addChore = useAppStore((s) => s.addChore);
   const updateChore = useAppStore((s) => s.updateChore);
   const saveQuestions = useAppStore((s) => s.saveQuestions);
+  const saveTargets = useAppStore((s) => s.saveTargets);
   const packs = useAppStore((s) => s.packs);
   const allQuestions = useAppStore((s) => s.questions);
+  const allTargets = useAppStore((s) => s.targets);
+  const allCompletions = useAppStore((s) => s.completions);
   const xpSettings = useAppStore((s) => s.xpSettings);
   const profile = useAppStore((s) => s.profile);
   const allQuickAnswerSets = useAppStore((s) => s.quickAnswerSets);
@@ -102,8 +107,23 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
     existingMultiplier?.multiplierAnswerType ?? 'integer'
   );
 
+  const initialTargets = choreKey ? allTargets.filter((t) => t.choreKey === choreKey) : [];
+  const [targetDrafts, setTargetDrafts] = useState<DraftTarget[]>(() =>
+    initialTargets.map((t) => ({ ...t })),
+  );
+
+  // Determine initial bonus XP size
+  const initialBonusSize: XPSize = typeof chore?.completionBonusXPSize === 'string'
+    ? chore.completionBonusXPSize as XPSize
+    : (typeof initialXpSize === 'string' ? initialXpSize as XPSize : 'M');
+  const [bonusEnabled, setBonusEnabled] = useState(!!chore?.completionBonusXPSize);
+  const [bonusXPSize, setBonusXPSize] = useState<XPSize>(initialBonusSize);
+
   const choreQuickSets = isEdit ? allQuickAnswerSets.filter((s) => s.choreKey === chore!.key) : [];
   const [editingSet, setEditingSet] = useState<QuickAnswerSet | null | 'new'>(null);
+
+  const hasTargets = targetDrafts.some((d) => !d._deleted);
+  const hasQuickAnswerSets = choreQuickSets.length > 0;
 
   function handlePackChange(newPackId: string) {
     setSelectedPackId(newPackId);
@@ -153,6 +173,8 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           }
         : null;
 
+      const completionBonusXPSize = bonusEnabled ? bonusXPSize : undefined;
+
       if (isEdit && chore) {
         const packChanged = selectedPackId !== chore.packId;
         if (packChanged) {
@@ -160,7 +182,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           if (!moved) { setErrors((prev) => ({ ...prev, pack: `A chore with ID "${chore.choreId}" already exists in this pack.` })); setSubmitting(false); return; }
         }
         const activeChoreKey = packChanged ? `${selectedPackId}/${chore.choreId}` : chore.key;
-        await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod });
+        await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, completionBonusXPSize });
         const allDrafts = [
           ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
           ...(multiplierDraft ? [multiplierDraft] : []),
@@ -169,8 +191,9 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         if (allDrafts.length > 0 || initialQuestions.length > 0) {
           await saveQuestions(activeChoreKey, allDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
         }
+        await saveTargets(activeChoreKey, targetDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
       } else {
-        const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, active: true });
+        const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, completionBonusXPSize, active: true });
         const allDrafts = [
           ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
           ...(multiplierDraft ? [multiplierDraft] : []),
@@ -179,6 +202,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
         if (allDrafts.some((d) => !('_deleted' in d && d._deleted))) {
           await saveQuestions(newChoreKey, allDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
         }
+        await saveTargets(newChoreKey, targetDrafts.map((d) => ({ ...d, choreKey: newChoreKey })));
       }
       onClose();
     } finally { setSubmitting(false); }
@@ -432,7 +456,37 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
               <QuestionBuilder choreKey={isEdit ? chore!.key : ''} initialQuestions={isEdit ? initialQuestions.filter(q => q.type !== 'MULTIPLIER') : []} onChange={setQuestionDrafts} />
             </div>
 
-            {isEdit && (
+            {questionDrafts.filter((d) => !d._deleted).length > 0 && (
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold">Targets</h3>
+                  <span className="text-xs text-muted-foreground">
+                    {hasTargets ? `${targetDrafts.filter((d) => !d._deleted).length} target(s)` : 'None'}
+                  </span>
+                </div>
+                {hasQuickAnswerSets && !hasTargets && (
+                  <p className="text-xs text-muted-foreground mb-2">Not available when quick answer sets are defined.</p>
+                )}
+                {!hasQuickAnswerSets && (
+                  <TargetBuilder
+                    questions={questionDrafts.filter((d) => !d._deleted) as Question[]}
+                    existingCompletions={choreKey ? allCompletions.filter((c) => c.choreKey === choreKey) : []}
+                    drafts={targetDrafts}
+                    bonusEnabled={bonusEnabled}
+                    bonusXPSize={bonusXPSize}
+                    choreXPSize={effectiveXpSize}
+                    onChange={setTargetDrafts}
+                    onBonusEnabledChange={setBonusEnabled}
+                    onBonusXPSizeChange={setBonusXPSize}
+                  />
+                )}
+                {hasTargets && hasQuickAnswerSets && (
+                  <p className="text-xs text-muted-foreground mb-2">Quick answer sets are hidden while targets are defined.</p>
+                )}
+              </div>
+            )}
+
+            {isEdit && !hasTargets && (
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Quick Answers</h3>
