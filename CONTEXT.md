@@ -5,7 +5,7 @@ A single-user PWA for tracking recurring chores, where completing chores on time
 ## Language
 
 **Chore**:
-A recurring task the user has committed to doing on a schedule. Each chore belongs to exactly one Pack. Chores have: a name, optional description (Markdown), XP size (preset or custom integer), frequency, interval, window start time, repeatable flag, optional due period, and an optional score multiplier. A deactivated chore is hidden from the dashboard but visible (greyed out) on its pack page; it can be reactivated from there. When archive mode is active, deactivated chores are referred to as archived chores (see **Archive Mode**).
+A recurring task the user has committed to doing on a schedule. Each chore belongs to exactly one Pack. Chores have: a name, optional description (Markdown), XP size (preset or custom integer), frequency, interval, window start time, repeatable flag, optional due period, an optional score multiplier, and an optional `completionBonusXPSize` (an `XPSize` preset or custom integer that enables the Set-completion bonus when Targets are defined). A deactivated chore is hidden from the dashboard but visible (greyed out) on its pack page; it can be reactivated from there. When archive mode is active, deactivated chores are referred to as archived chores (see **Archive Mode**).
 _Avoid_: Task, habit, todo
 
 **Pack**:
@@ -54,7 +54,21 @@ _Avoid_: Combo, run, chain
 A single recorded instance of marking a Chore done. Stores the XP earned, streak count, and any Question answers. A non-repeatable Chore allows at most one Completion per Window; a repeatable Chore allows unlimited Completions per Window, each earning XP independently. Streak for repeatable chores counts consecutive windows with at least one completion. On the dashboard, a repeatable chore that has been completed at least once in the current window shows as Completed with a "Complete again" button.
 
 `completedAt` and answers can be amended after creation (see **Amend completion**); XP is recalculated on amendment. Streak stored on a completion is not recalculated when an existing completion is amended.
+
+Optional fields added by the Targets feature: `targetId` links the completion to a specific Target; `setCompletionBonus` records any Set-completion bonus XP that was included in `xpEarned` (present only on the triggering completion).
 _Avoid_: Entry, record, log
+
+**Target**:
+A pre-defined completion for a chore with questions — a named set of pre-filled answers for at least one of the chore's questions. Has `id`, `choreKey`, `order`, and `answers` fields. A target is _done_ once any Completion has `targetId === target.id`. The user's goal is to complete every target in the chore's set. When recording a completion for a chore that has targets, a `TargetPickerModal` (three-step: pick target → fill remaining answers → optional celebration) replaces the standard `CompletionModal`. Targets and Quick Answer Sets are mutually exclusive for a given chore.
+_Avoid_: Goal, milestone, preset answer
+
+**Set** (of targets):
+The full collection of Targets defined for a chore. The set is _complete_ when every target has at least one linked Completion. Targets within the set are displayed via a `TargetsTable` — both interactively in `TargetPickerModal` (for picking a pending target) and read-only on the Chore page (pending rows mixed into completion history).
+_Avoid_: Target list, checklist, collection
+
+**Set-completion bonus**:
+Optional extra XP awarded the first time all Targets in a set become done. Configured via `completionBonusXPSize` on the Chore (an `XPSize` preset or custom integer; absent means no bonus). The bonus is included in `xpEarned` of the triggering Completion and also stored separately in that completion's `setCompletionBonus` field. After the set is first completed, subsequent completions of individual targets do not re-trigger the bonus. A celebration screen in `TargetPickerModal` appears when the bonus fires.
+_Avoid_: Bonus XP, completion reward, set reward
 
 **Log past completion**:
 A user action that records a Completion in a past Window that has no completion yet. Accessible from the split-button dropdown on `CompleteButton` (disabled when no eligible past windows exist). Opens a modal with a window selector (lists eligible past windows as date ranges), a `completedAt` picker, and the answers form. XP and streak are computed the same way as a regular completion, but using the caller-supplied timestamp. Store action: `recordRetroactiveCompletion(choreKey, { completedAt, answers })`.

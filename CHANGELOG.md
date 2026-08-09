@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-08-09
+
+### Added
+
+- **Targets** — a chore with at least one question can have a pre-defined list of Targets (pre-filled answer sets). Each Target is a record the user intends to complete; the chore becomes a finite collection challenge. Targets are defined in a new **Targets** section of `ChoreFormModal` (shown after Questions). Targets and Quick Answer Sets are mutually exclusive — when one is defined the other section is hidden with an explanatory note. (#72)
+- **TargetFormModal** — a two-step secondary modal for adding or editing a Target: Step 1 imports pre-filled answers from an existing unlinked completion (shown when unlinked completions exist); Step 2 edits the answers via `AnswerForm`. (#72)
+- **TargetPickerModal** — replaces `CompletionModal` when the chore has targets. Three steps: (1) select a pending target from `TargetsTable`; (2) fill any unfilled answers; (3) celebration screen with confetti burst and trophy graphic when all targets are completed for the first time. (#72)
+- **Set-completion bonus** — an optional extra XP award configured per-chore (`completionBonusXPSize`), credited once when a real completion causes all targets to be done for the first time. The triggering completion stores `setCompletionBonus` and the bonus is included in its `xpEarned`. (#72)
+- **Target progress bar on ChoreCard** — rendered between the XP/streak row and quick-complete buttons when the chore has targets. Shows `N / total` and a green fill bar; displays a green 'Completed' pill when all targets are done. Compact mode hides the label but keeps the bar with a tooltip. (#72)
+- **Unified completion history + targets table on ChorePage** — pending targets appear as greyed-out hidden rows in the completions table, toggled with 'Show targets / Hide targets'. Completed targets appear as their linked completion row — no duplication. Sorting applies to both row types. (#72)
+
+### Fixed
+
+- **Trophy icon** — replaced placeholder `trophy.svg` with actual trophy graphic displayed on the set-completion celebration screen
+- **Set-completion celebration** — the celebration screen now fires whenever all targets are first completed, regardless of whether a bonus XP award is configured
+- **Infinite render loop** — moved the completion filter out of Zustand selectors (which run on every render) into component-level derived state, preventing a render loop on pages with target data
+- **moveChore migrates targets** — moving a chore to another pack now correctly updates `choreKey` on all associated targets, keeping target data consistent after a move
+
 ## [0.13.0] — 2026-08-09
 
 ### Added
@@ -272,6 +290,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.14.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.14.0
 [0.13.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.13.0
 [0.12.3]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.3
 [0.12.2]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.2
