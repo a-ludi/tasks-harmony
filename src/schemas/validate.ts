@@ -114,7 +114,6 @@ const choreSchema = z.object({
   createdAt: z.string(),
   completionBonusXPSize: xpSizeSchema.optional(),
   syncStatus: z.enum(['in-sync', 'out-of-sync']).optional(),
-  completionBonusXPSize: xpSizeSchema.optional(),
 }).strict();
 
 const stateQuestionSchema = z.object({
@@ -182,13 +181,6 @@ const quickAnswerSetSchema = z.object({
   id: z.string(),
   choreKey: z.string(),
   label: z.string(),
-  answers: z.array(answerSchema),
-}).strict();
-
-const targetSchema = z.object({
-  id: z.string(),
-  choreKey: z.string(),
-  order: z.number().int(),
   answers: z.array(answerSchema),
 }).strict();
 
