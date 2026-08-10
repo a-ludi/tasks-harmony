@@ -9,6 +9,7 @@ import AmendCompletionModal from '@/components/completion/AmendCompletionModal';
 import CompleteButton from '@/components/chores/CompleteButton';
 import QuickCompleteButtonList from '@/components/chores/QuickCompleteButtonList';
 import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
+import TargetProgressBar from '@/components/chores/TargetProgressBar';
 import { groupCompletions, getGroupLabel, computeTotals, addGroupBy, removeGroupBy, isGroupableQuestion, exportCsv, exportJson, sortCompletions, groupTargets } from './completionsTable';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -153,6 +154,14 @@ export default function ChorePage() {
         <p className="text-sm text-muted-foreground italic">No completions yet.</p>
       ) : (
         <div>
+          {targets.length > 0 && (
+            <div className="mb-3">
+              <TargetProgressBar
+                done={targets.length - pendingTargets.length}
+                total={targets.length}
+              />
+            </div>
+          )}
           {/* Toolbar: Group by + Export */}
           {(() => {
             const eligibleQuestions = choreQuestions.filter(isGroupableQuestion);
