@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-08-10
+
+### Fixed
+
+- **Target reorder buttons removed** — the ↑/↓ buttons in the chore editor's target list were removed; targets are now sorted deterministically by question answer values (first question as primary key, subsequent questions as secondary keys), matching the order they appear in the completion picker (#75)
+- **Duplicate target prevention** — the Add Target import list now excludes past completions whose answers exactly match an existing target draft across all chore questions, preventing accidental duplicates (null == null counts as a match) (#75)
+- **Targets in grouped ChorePage view** — when Group By is active on the chore details page, pending targets now appear inside their matching group section (not as a separate ungrouped block at the bottom); group headers show 'N completions · M targets' (#75)
+- **Totals row restored on ChorePage** — the completion count, target count (when targets are visible), XP total, and per-question numeric sums row was missing from the chore details table; it is now shown again (#75)
+- **Target progress bar on ChorePage** — the target progress bar (showing N / total targets and a fill bar) now appears on the chore details page above the toolbar, matching the one already shown on the dashboard card (#75)
+- **Progress bar color** — the target progress bar fill color changed from green (`bg-green-500`) to indigo (`bg-indigo-400`) on both the dashboard card and the chore details page; extracted into a shared `TargetProgressBar` component (#75)
+- **Target label answer order** — answer labels in the chore editor's target list now appear in question order (by `q.order`) rather than arbitrary insertion order (#75)
+
 ## [0.14.0] — 2026-08-09
 
 ### Added
@@ -290,6 +302,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.15.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.15.0
 [0.14.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.14.0
 [0.13.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.13.0
 [0.12.3]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.12.3
