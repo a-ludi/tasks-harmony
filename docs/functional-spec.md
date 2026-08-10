@@ -592,8 +592,8 @@ A chore with at least one question may carry a pre-defined list of **Targets** �
 
 - A **Targets** section appears in `ChoreFormModal` after the Questions section, but only when the chore has at least one question.
 - **Targets and Quick Answer Sets are mutually exclusive.** When targets exist, the Quick Answer Sets section is hidden and replaced with an explanatory note (and vice versa). No data from the hidden section is destroyed.
-- The target list shows each target as a reorderable row with ↑ / ↓ buttons, an Edit button, and a × (delete) button.
-- Deleting an existing target is a **soft delete**: the row turns grey and a "Restore" button replaces ×. The deletion is committed only when the form is saved. A soft-deleted target cannot be reordered.
+- The target list shows each target as a row sorted by question answer values (first question = primary key, subsequent questions = secondary keys), with an Edit button and a × (delete) button.
+- Deleting an existing target is a **soft delete**: the row turns grey and a "Restore" button replaces ×. The deletion is committed only when the form is saved.
 - Clicking Edit or clicking a new "Add target" button opens `TargetFormModal` (see §14.2).
 - **Set-completion bonus subsection:**
   - An opt-in toggle labelled "Award bonus XP on set completion".
@@ -605,7 +605,7 @@ A chore with at least one question may carry a pre-defined list of **Targets** �
 **As the user, I want a dedicated modal for entering a target's answers, so that I can pre-fill or import values without cluttering the chore form.**
 
 - `TargetFormModal` is a secondary modal (opens on top of `ChoreFormModal`).
-- **Step 1 — Import from completion (new targets only):** shown only when there are *unlinked* completions (completions with no `targetId`). Presents a picker of those completions; selecting one imports its answers as the starting values for the target and optionally sets `linkedCompletionId`, retroactively marking the target as done. When no unlinked completions exist, Step 1 is skipped and the modal opens directly on Step 2.
+- **Step 1 — Import from completion (new targets only):** shown only when there are *unlinked* completions (completions with no `targetId` and whose answers do not exactly match any existing target draft across all chore questions). Presents a picker of those completions; selecting one imports its answers as the starting values for the target and optionally sets `linkedCompletionId`, retroactively marking the target as done. When no eligible unlinked completions exist, Step 1 is skipped and the modal opens directly on Step 2.
 - **Step 2 — Edit answers:** renders `AnswerForm` for the chore's questions. At least one non-null answer is required to enable Save.
 - Editing an existing target always opens directly on Step 2.
 - Saving returns to `ChoreFormModal` with the new or updated target in the list.
@@ -650,19 +650,23 @@ A chore with at least one question may carry a pre-defined list of **Targets** �
 **As the user, I want to see at a glance how many targets I have completed, so that I can track collection progress from the dashboard.**
 
 - A progress bar is shown between the XP / streak row and the `QuickCompleteButtonList`, but only when the chore has targets.
-- The bar shows `N / total` label and a green fill proportional to `N / total`.
+- The bar shows `N / total` label and an indigo fill proportional to `N / total`.
 - When all targets are done, the label area is replaced with a green "Completed" pill.
 - In compact mode: the label row is hidden; the bar itself remains visible with a `title="N / total targets"` tooltip.
+- The progress bar is implemented as a shared `TargetProgressBar` component also used on the Chore Details page.
 
 ### 14.6 Targets on the Chore Details Page
 
 **As the user, I want to see pending and completed targets alongside my completion history, so that I know which targets remain.**
 
-- A "Show targets / Hide targets" toggle appears above the completion history table on the Chore Details Page.
+- A target progress bar (shared `TargetProgressBar` component) appears above the toolbar when the chore has targets, showing `N / total` targets done with an indigo fill bar.
+- A "Show targets / Hide targets" toggle appears above the completion history table.
 - When targets are shown:
-  - Pending targets (no linked completion) appear as greyed-out rows sorted by their pre-filled answer values; `completedAt` is treated as null and sorts to the end in ascending order.
+  - Pending targets (no linked completion) appear as greyed-out rows (opacity-40) with "—" in the date and XP columns, sorted by their pre-filled answer values; `completedAt` is treated as null and sorts to the end in ascending order.
   - Completed targets appear only as their linked completion row — they are not duplicated.
+  - When **Group By** is active, pending targets appear inside their matching group section (same key computed from their answers). Group headers show "N completions · M targets". Targets with no answer for the group-by question land in the null-keyed group.
 - When targets are hidden, the table shows only plain completion rows (existing behaviour).
+- A totals row (`<tfoot>`) appears below the table showing: completion count (and target count when targets are visible and pending), XP sum, and per-question numeric sums.
 
 ### 14.7 Removing all targets from a chore
 

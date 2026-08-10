@@ -59,7 +59,7 @@ Optional fields added by the Targets feature: `targetId` links the completion to
 _Avoid_: Entry, record, log
 
 **Target**:
-A pre-defined completion for a chore with questions — a named set of pre-filled answers for at least one of the chore's questions. Has `id`, `choreKey`, `order`, and `answers` fields. A target is _done_ once any Completion has `targetId === target.id`. The user's goal is to complete every target in the chore's set. When recording a completion for a chore that has targets, a `TargetPickerModal` (three-step: pick target → fill remaining answers → optional celebration) replaces the standard `CompletionModal`. Targets and Quick Answer Sets are mutually exclusive for a given chore.
+A pre-defined completion for a chore with questions — a named set of pre-filled answers for at least one of the chore's questions. Has `id`, `choreKey`, `order`, and `answers` fields. A target is _done_ once any Completion has `targetId === target.id`. The user's goal is to complete every target in the chore's set. When recording a completion for a chore that has targets, a `TargetPickerModal` (three-step: pick target → fill remaining answers → optional celebration) replaces the standard `CompletionModal`. Targets and Quick Answer Sets are mutually exclusive for a given chore. In the chore editor, targets are displayed sorted by question answer values (first question = primary sort key); manual reordering is not supported.
 _Avoid_: Goal, milestone, preset answer
 
 **Set** (of targets):
