@@ -2,14 +2,17 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { clampSidebarWidth, SIDEBAR_MIN, SIDEBAR_DEFAULT, computeSidebarMax, readStoredWidth, writeStoredWidth } from './sidebarResize';
 
 const mockStorage: Record<string, string> = {};
-global.localStorage = {
-  getItem: (key: string) => mockStorage[key] ?? null,
-  setItem: (key: string, value: string) => { mockStorage[key] = value; },
-  removeItem: (key: string) => { delete mockStorage[key]; },
-  clear: () => { Object.keys(mockStorage).forEach(key => delete mockStorage[key]); },
-  length: 0,
-  key: () => null,
-} as Storage;
+Object.defineProperty(global, 'localStorage', {
+  value: {
+    getItem: (key: string) => mockStorage[key] ?? null,
+    setItem: (key: string, value: string) => { mockStorage[key] = value; },
+    removeItem: (key: string) => { delete mockStorage[key]; },
+    clear: () => { Object.keys(mockStorage).forEach(key => delete mockStorage[key]); },
+    length: 0,
+    key: () => null,
+  } as Storage,
+  writable: true,
+});
 
 describe('SIDEBAR_MIN', () => {
   it('is 200', () => {
