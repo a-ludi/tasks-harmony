@@ -67,11 +67,11 @@ One document per device. A user with multiple devices has multiple documents sha
   "keys": { "p256dh": "...", "auth": "..." },
   "createdAt": "2026-08-10T12:00:00Z",
   "failedAttempts": 0,
-  "blockedUntil": 0
+  "blockedUntil": "0001-01-01T00:00:00Z"
 }
 ```
 
-`failedAttempts` and `blockedUntil` (Unix ms, `0` = epoch = not blocked) implement per-subscription delivery backoff. Index on `{ syncId, blockedUntil }`.
+`failedAttempts` and `blockedUntil` (ISO 8601 UTC, `"0001-01-01T00:00:00Z"` = not blocked) implement per-subscription delivery backoff. Index on `{ syncId, blockedUntil }`.
 
 ### `push-schedules` database
 
@@ -99,7 +99,7 @@ One document per user per chore. `_id` is the compound `<syncId>/<packId>/<chore
 
 `nextNotificationAt` is stored (not computed at query time) so CouchDB can index and filter on it. Index on `nextNotificationAt`. Schedule documents are persistent — they live as long as notifications are enabled for the chore.
 
-CouchDB's `$lte` operator performs string comparison on string fields with no datetime awareness. ISO 8601 UTC strings sort lexicographically in correct chronological order, so the comparison is correct — but only if the format is consistent. `nextNotificationAt` must always be stored as UTC with the `Z` suffix (e.g. `"2026-08-11T09:00:00Z"`). Mixed timezone representations would silently corrupt ordering. `blockedUntil` uses a Unix millisecond integer and is unaffected.
+CouchDB's `$lte` operator performs string comparison on string fields with no datetime awareness. ISO 8601 UTC strings sort lexicographically in correct chronological order, so the comparison is correct — but only if the format is consistent. Both `nextNotificationAt` and `blockedUntil` must always be stored as UTC with the `Z` suffix (e.g. `"2026-08-11T09:00:00Z"`). Mixed timezone representations would silently corrupt ordering.
 
 ---
 
@@ -138,7 +138,7 @@ Returns choreKeys and next notification times for the authenticated user. Used b
 ```json
 { "endpoint": "https://fcm.googleapis.com/...", "keys": { "p256dh": "...", "auth": "..." } }
 ```
-Upserts by `_id = sub-<sha256(endpoint)>`. Sets `failedAttempts: 0, blockedUntil: 0` on write.
+Upserts by `_id = sub-<sha256(endpoint)>`. Sets `failedAttempts: 0, blockedUntil: "0001-01-01T00:00:00Z"` on write.
 
 **`DELETE /push/subscriptions`** — unregisters a device:
 ```json
@@ -252,7 +252,7 @@ Runs every `POLL_INTERVAL_MS` (default 60s). CouchDB unavailability is logged an
 
 2. For each due schedule:
    a. Query push-subscriptions:
-      { "selector": { "syncId": "<syncId>", "blockedUntil": { "$lte": <now_ms> } } }
+      { "selector": { "syncId": "<syncId>", "blockedUntil": { "$lte": <now_iso> } } }
    b. For each eligible subscription, send VAPID push
    c. On 410 or 404 from push service: DELETE subscription document
    d. On other delivery failure: update subscription backoff (see below)
@@ -276,23 +276,24 @@ trigger 'at-due-time' with duePeriod:   fire at (window start + period - duePeri
 
 ```typescript
 const BACKOFF_BASE_S = 2; // change this constant to tune the entire backoff curve
+const BLOCKED_UNTIL_RESET = "0001-01-01T00:00:00Z"; // sentinel: not blocked
 
 // On delivery failure (non-410/404):
 failedAttempts += 1;
-blockedUntil = Date.now() + (BACKOFF_BASE_S ** failedAttempts) * 1000;
+blockedUntil = new Date(Date.now() + (BACKOFF_BASE_S ** failedAttempts) * 1000).toISOString();
 // PUT updated failedAttempts + blockedUntil to CouchDB subscription document
 
 // On successful delivery:
 failedAttempts = 0;
-blockedUntil = 0;
+blockedUntil = BLOCKED_UNTIL_RESET;
 // PUT reset values to CouchDB subscription document
 
 // On new subscription document via _changes (push-subscriptions):
-// sync-server already writes failedAttempts: 0, blockedUntil: 0 on PUT
+// sync-server already writes failedAttempts: 0, blockedUntil: BLOCKED_UNTIL_RESET on PUT
 // no additional action needed in observer
 ```
 
-`blockedUntil: 0` (epoch) always satisfies `<= now`, so the CouchDB query naturally includes unblocked subscriptions with no special case. Backoff state is persisted in CouchDB and survives observer restarts. Without a cap, permanently broken endpoints that never return 410/404 eventually reach intervals measured in days — an effective soft-off that resets on the next successful delivery.
+`blockedUntil: "0001-01-01T00:00:00Z"` always satisfies `<= now` via string comparison, so the CouchDB query naturally includes unblocked subscriptions with no special case. Backoff state is persisted in CouchDB and survives observer restarts. Without a cap, permanently broken endpoints that never return 410/404 eventually reach intervals measured in days — an effective soft-off that resets on the next successful delivery.
 
 ### `_changes` listener
 
