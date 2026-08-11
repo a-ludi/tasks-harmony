@@ -5,7 +5,7 @@ export type Recurrence = {
   windowStartTime: string;
 };
 
-export type DuePeriod = { value: number; unit: string };
+export type DuePeriod = { value: number; unit: 'minutes' | 'hours' | 'days' | 'weeks' | 'months' };
 
 export function computeNextNotificationAt(
   recurrence: Recurrence,
