@@ -99,6 +99,8 @@ One document per user per chore. `_id` is the compound `<syncId>/<packId>/<chore
 
 `nextNotificationAt` is stored (not computed at query time) so CouchDB can index and filter on it. Index on `nextNotificationAt`. Schedule documents are persistent — they live as long as notifications are enabled for the chore.
 
+CouchDB's `$lte` operator performs string comparison on string fields with no datetime awareness. ISO 8601 UTC strings sort lexicographically in correct chronological order, so the comparison is correct — but only if the format is consistent. `nextNotificationAt` must always be stored as UTC with the `Z` suffix (e.g. `"2026-08-11T09:00:00Z"`). Mixed timezone representations would silently corrupt ordering. `blockedUntil` uses a Unix millisecond integer and is unaffected.
+
 ---
 
 ## API Surface (sync-server)
