@@ -37,6 +37,9 @@ export function ProfilePage() {
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [email, setEmail] = useState(profile?.email ?? '');
   const [activeXPSettingsId, setActiveXPSettingsId] = useState(profile?.activeXPSettingsId ?? '');
+  const [defaultNotificationsLocal, setDefaultNotificationsLocal] = useState<'on' | 'off'>(
+    profile?.defaultNotifications ?? 'off'
+  );
   const [emailError, setEmailError] = useState<string | null>(null);
   const [savedAlert, setSavedAlert] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +61,7 @@ export function ProfilePage() {
   function handleSave() {
     if (!isValidEmail(email)) { setEmailError('Please enter a valid email address.'); setEmail(profile?.email ?? ''); return; }
     setEmailError(null);
-    const updatedProfile: UserProfile = { ...profile!, displayName: displayName.trim(), email: email.trim(), activeXPSettingsId };
+    const updatedProfile: UserProfile = { ...profile!, displayName: displayName.trim(), email: email.trim(), activeXPSettingsId, defaultNotifications: defaultNotificationsLocal };
     updateProfile(updatedProfile);
     setSavedAlert(true);
   }
@@ -268,9 +271,9 @@ export function ProfilePage() {
                 <Button
                   key={v}
                   type="button"
-                  variant={(profile?.defaultNotifications ?? 'off') === v ? 'default' : 'outline'}
+                  variant={defaultNotificationsLocal === v ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => void updateProfile({ ...profile!, defaultNotifications: v })}
+                  onClick={() => setDefaultNotificationsLocal(v)}
                 >
                   {v === 'on' ? 'On' : 'Off'}
                 </Button>
