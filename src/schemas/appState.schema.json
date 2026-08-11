@@ -30,7 +30,8 @@
               "targetDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
               "allowShiftOnImport": { "type": "boolean" },
               "decay": { "type": "boolean" },
-              "defaultXPSize": { "oneOf": [{ "type": "string", "enum": ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"] }, { "type": "number" }] }
+              "defaultXPSize": { "oneOf": [{ "type": "string", "enum": ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"] }, { "type": "number" }] },
+              "defaultNotifications": { "type": "string", "enum": ["on", "off", "default"] }
             },
             "additionalProperties": false
           },
@@ -78,7 +79,16 @@
             "additionalProperties": false
           },
           "createdAt": { "type": "string" },
-          "syncStatus": { "type": "string", "enum": ["in-sync", "out-of-sync"] }
+          "syncStatus": { "type": "string", "enum": ["in-sync", "out-of-sync"] },
+          "notifications": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "string", "enum": ["on", "off", "default"] },
+              "trigger": { "type": "string", "enum": ["at-due-time"] }
+            },
+            "required": ["enabled", "trigger"],
+            "additionalProperties": false
+          }
         },
         "additionalProperties": false
       }
@@ -156,7 +166,8 @@
         "id": { "type": "string", "const": "me" },
         "displayName": { "type": "string" },
         "email": { "type": "string" },
-        "activeXPSettingsId": { "type": "string" }
+        "activeXPSettingsId": { "type": "string" },
+        "defaultNotifications": { "type": "string", "enum": ["on", "off"] }
       },
       "additionalProperties": false
     },

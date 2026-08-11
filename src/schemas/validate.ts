@@ -29,6 +29,7 @@ const packManifestZodSchema = z.object({
   xpTarget: z.number().min(0).optional(),
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   allowShiftOnImport: z.boolean().optional(),
+  defaultNotifications: z.enum(['on', 'off', 'default']).optional(),
 }).strict();
 
 // --- choreDefinition.schema.json ---
@@ -83,6 +84,7 @@ const appStateManifestSchema = z.object({
   allowShiftOnImport: z.boolean().optional(),
   decay: z.boolean().optional(),
   defaultXPSize: xpSizeSchema.optional(),
+  defaultNotifications: z.enum(['on', 'off', 'default']).optional(),
 }).strict();
 
 const packSchema = z.object({
@@ -114,6 +116,10 @@ const choreSchema = z.object({
   createdAt: z.string(),
   completionBonusXPSize: xpSizeSchema.optional(),
   syncStatus: z.enum(['in-sync', 'out-of-sync']).optional(),
+  notifications: z.object({
+    enabled: z.enum(['on', 'off', 'default']),
+    trigger: z.enum(['at-due-time']),
+  }).strict().optional(),
 }).strict();
 
 const stateQuestionSchema = z.object({
@@ -169,6 +175,7 @@ const profileSchema = z.object({
   displayName: z.string(),
   email: z.string(),
   activeXPSettingsId: z.string(),
+  defaultNotifications: z.enum(['on', 'off']).optional(),
 }).strict();
 
 const syncStateSchema = z.object({

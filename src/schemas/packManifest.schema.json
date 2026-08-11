@@ -15,7 +15,8 @@
     "streak": { "type": "boolean" },
     "xpTarget": { "type": "number", "minimum": 0 },
     "targetDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-    "allowShiftOnImport": { "type": "boolean" }
+    "allowShiftOnImport": { "type": "boolean" },
+    "defaultNotifications": { "type": "string", "enum": ["on", "off", "default"] }
   },
   "additionalProperties": false
 }
