@@ -4,7 +4,6 @@ import { deliverToSubscriptions, type Subscription, type Payload } from './deliv
 
 const DB_SCHEDULES = 'push-schedules';
 const DB_SUBS = 'push-subscriptions';
-const BLOCKED_UNTIL_RESET = '0001-01-01T00:00:00Z';
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? 60_000);
 
 type ScheduleDoc = {
@@ -33,51 +32,57 @@ async function poll() {
   }
 
   for (const schedule of due) {
-    const subs = await couchFind<Subscription>(DB_SUBS, {
-      syncId: schedule.syncId,
-      blockedUntil: { $lte: now },
-    });
+    try {
+      const subs = await couchFind<Subscription>(DB_SUBS, {
+        syncId: schedule.syncId,
+        blockedUntil: { $lte: now },
+      });
 
-    if (subs.length === 0) continue;
+      if (subs.length === 0) continue;
 
-    const payload: Payload = {
-      title: schedule.title,
-      body: `${schedule.title} is due`,
-      choreKey: schedule.choreKey,
-    };
+      const payload: Payload = {
+        title: schedule.title,
+        body: `${schedule.title} is due`,
+        choreKey: schedule.choreKey,
+      };
 
-    const anySuccess = await deliverToSubscriptions(subs, payload);
+      const anySuccess = await deliverToSubscriptions(subs, payload);
 
-    if (anySuccess) {
-      const lastDeliveredAt = now;
-      const nextNotificationAt = computeNextNotificationAt(
-        schedule.recurrence,
-        schedule.duePeriod,
-        'at-due-time',
-        lastDeliveredAt,
-      );
-      await couchPut(DB_SCHEDULES, schedule._id, { ...schedule, lastDeliveredAt, nextNotificationAt });
+      if (anySuccess) {
+        const lastDeliveredAt = now;
+        const nextNotificationAt = computeNextNotificationAt(
+          schedule.recurrence,
+          schedule.duePeriod,
+          'at-due-time',
+          lastDeliveredAt,
+        );
+        await couchPut(DB_SCHEDULES, schedule._id, { ...schedule, lastDeliveredAt, nextNotificationAt });
+      }
+    } catch (err) {
+      console.error(`[poll] error processing schedule ${schedule._id}:`, err);
     }
   }
 }
 
 async function handleTestDoc(docId: string) {
+  if (!docId.includes('/~test')) return;
   const syncId = docId.slice(0, docId.indexOf('/~test'));
   const now = new Date().toISOString();
-
-  const subs = await couchFind<Subscription>(DB_SUBS, {
-    syncId,
-    blockedUntil: { $lte: now },
-  });
-
-  const payload: Payload = {
-    title: 'Tasks Harmony',
-    body: 'Notifications are working correctly!',
-    choreKey: '',
-  };
-
-  await deliverToSubscriptions(subs, payload);
-  await couchDel(DB_SCHEDULES, docId);
+  try {
+    const subs = await couchFind<Subscription>(DB_SUBS, {
+      syncId,
+      blockedUntil: { $lte: now },
+    });
+    const payload: Payload = {
+      title: 'Tasks Harmony',
+      body: 'Notifications are working correctly!',
+      choreKey: '',
+    };
+    await deliverToSubscriptions(subs, payload);
+    await couchDel(DB_SCHEDULES, docId);
+  } catch (err) {
+    console.error('[handleTestDoc] error:', err);
+  }
 }
 
 async function watchChanges(signal: AbortSignal) {
@@ -100,11 +105,16 @@ async function watchChanges(signal: AbortSignal) {
 }
 
 // Startup
-await ensureDb(DB_SUBS);
-await ensureDb(DB_SCHEDULES);
-await ensureIndex(DB_SUBS, ['syncId', 'blockedUntil']);
-await ensureIndex(DB_SCHEDULES, ['nextNotificationAt']);
-await ensureIndex(DB_SCHEDULES, ['syncId']);
+try {
+  await ensureDb(DB_SUBS);
+  await ensureDb(DB_SCHEDULES);
+  await ensureIndex(DB_SUBS, ['syncId', 'blockedUntil']);
+  await ensureIndex(DB_SCHEDULES, ['nextNotificationAt']);
+  await ensureIndex(DB_SCHEDULES, ['syncId']);
+} catch (err) {
+  console.error('[startup] Failed to initialize CouchDB:', err);
+  process.exit(1);
+}
 
 console.log('[vapid-observer] started');
 

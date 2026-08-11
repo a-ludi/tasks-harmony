@@ -6,4 +6,7 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
+RUN addgroup --system --gid 1001 app && adduser --system --uid 1001 --ingroup app app
+USER app
+
 CMD ["bun", "run", "index.ts"]
