@@ -11,8 +11,10 @@ function couchHeaders() {
 }
 
 export async function ensureDb(db: string): Promise<void> {
-  await fetch(`${COUCHDB_URL}/${db}`, { method: 'PUT', headers: couchHeaders() });
-  // 201 = created, 412 = already exists — both OK
+  const res = await fetch(`${COUCHDB_URL}/${db}`, { method: 'PUT', headers: couchHeaders() });
+  if (res.status !== 201 && res.status !== 412) {
+    throw new Error(`CouchDB ensureDb failed: ${res.status}`);
+  }
 }
 
 export async function ensureIndex(db: string, fields: string[]): Promise<void> {
