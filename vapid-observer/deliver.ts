@@ -8,6 +8,7 @@ webpush.setVapidDetails(
 );
 
 const BACKOFF_BASE_S = 2;
+const BACKOFF_MAX_ATTEMPTS = 30; // 2^30 seconds ≈ 34 years — effectively permanent
 const BLOCKED_UNTIL_RESET = '0001-01-01T00:00:00Z';
 const DB_SUBS = 'push-subscriptions';
 
@@ -28,10 +29,11 @@ export function buildBackoff(failedAttempts: number): { failedAttempts: number; 
   if (failedAttempts === 0) {
     return { failedAttempts: 0, blockedUntil: BLOCKED_UNTIL_RESET };
   }
+  const cappedAttempts = Math.min(failedAttempts, BACKOFF_MAX_ATTEMPTS);
   const blockedUntil = new Date(
-    Date.now() + (BACKOFF_BASE_S ** failedAttempts) * 1000,
+    Date.now() + (BACKOFF_BASE_S ** cappedAttempts) * 1000,
   ).toISOString();
-  return { failedAttempts, blockedUntil };
+  return { failedAttempts, blockedUntil }; // store actual count, use capped for calculation
 }
 
 export async function sendToSubscription(
@@ -59,14 +61,14 @@ export async function deliverToSubscriptions(
   for (const sub of subscriptions) {
     const result = await sendToSubscription(sub, payload);
     if (result === 'gone') {
-      await couchDel(DB_SUBS, sub._id);
+      try { await couchDel(DB_SUBS, sub._id); } catch (err) { console.error('[deliver] couchDel error:', err); }
     } else if (result === 'error') {
       const backoff = buildBackoff(sub.failedAttempts + 1);
-      await couchPut(DB_SUBS, sub._id, { ...sub, ...backoff });
+      try { await couchPut(DB_SUBS, sub._id, { ...sub, ...backoff }); } catch (err) { console.error('[deliver] couchPut backoff error:', err); }
     } else {
       anySuccess = true;
       if (sub.failedAttempts > 0) {
-        await couchPut(DB_SUBS, sub._id, { ...sub, ...buildBackoff(0) });
+        try { await couchPut(DB_SUBS, sub._id, { ...sub, ...buildBackoff(0) }); } catch (err) { console.error('[deliver] couchPut reset error:', err); }
       }
     }
   }
