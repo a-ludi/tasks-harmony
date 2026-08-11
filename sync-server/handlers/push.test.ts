@@ -59,3 +59,29 @@ describe('PUT /push/subscriptions', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('DELETE /push/subscriptions', () => {
+  it('returns 204 on valid body', async () => {
+    const res = await handlePush(
+      makeRequest('DELETE', '/push/subscriptions', { endpoint: 'https://fcm.googleapis.com/send/abc' }),
+      null,
+    );
+    expect(res.status).toBe(204);
+  });
+});
+
+describe('POST /push/test', () => {
+  it('returns 204', async () => {
+    const res = await handlePush(makeRequest('POST', '/push/test'), null);
+    expect(res.status).toBe(204);
+  });
+});
+
+describe('GET /push/schedules', () => {
+  it('returns 200 with schedule list', async () => {
+    const res = await handlePush(makeRequest('GET', '/push/schedules'), null);
+    expect(res.status).toBe(200);
+    const body = await res.json() as unknown[];
+    expect(Array.isArray(body)).toBe(true);
+  });
+});
