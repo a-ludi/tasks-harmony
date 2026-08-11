@@ -67,21 +67,23 @@ export function usePushNotifications(): PushNotificationState {
 
   useEffect(() => {
     if (!supported || Notification.permission !== 'granted') return;
+    let cancelled = false;
     void (async () => {
       const serverKey = await fetchVapidPublicKey();
-      if (!serverKey) return;
+      if (!serverKey || cancelled) return;
       const storedKey = localStorage.getItem(VAPID_KEY_STORAGE);
       if (storedKey && storedKey !== serverKey) {
         // Key rotated — unsubscribe old
         const reg = await navigator.serviceWorker.ready;
         const oldSub = await reg.pushManager.getSubscription();
-        if (oldSub) {
+        if (oldSub && !cancelled) {
           await unregisterSubscription(oldSub.endpoint);
           await oldSub.unsubscribe();
         }
       }
-      await subscribe(serverKey);
+      if (!cancelled) await subscribe(serverKey);
     })();
+    return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function requestPermission() {
@@ -93,8 +95,12 @@ export function usePushNotifications(): PushNotificationState {
       if (result === 'granted') {
         const serverKey = await fetchVapidPublicKey();
         if (serverKey) {
-          await subscribe(serverKey);
-          await sendTestNotification();
+          try {
+            await subscribe(serverKey);
+            await sendTestNotification();
+          } catch (err) {
+            console.error('[usePushNotifications] subscribe error:', err);
+          }
         }
       }
     } finally {
