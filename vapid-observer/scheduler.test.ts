@@ -38,4 +38,12 @@ describe('computeNextNotificationAt', () => {
     const last = new Date(lastDeliveredAt);
     expect(d.getTime() - last.getTime()).toBe(7 * 86_400_000);
   });
+
+  it('handles monthly recurrence', () => {
+    const monthlyRec = { frequency: 'monthly' as const, interval: 1, startDate: '2030-01-15', windowStartTime: '08:00' };
+    const lastDeliveredAt = '2030-03-15T08:00:00Z';
+    const result = computeNextNotificationAt(monthlyRec, undefined, 'at-due-time', lastDeliveredAt);
+    // Next window after 2030-03-15T08:00Z should be 2030-04-15T08:00Z
+    expect(result).toBe('2030-04-15T08:00:00.000Z');
+  });
 });
