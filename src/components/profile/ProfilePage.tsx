@@ -14,6 +14,7 @@ import { exportKeyFile, importKeyFile, isLegacyCredentials } from '@/sync/creden
 import { putCredentials, getCredentials } from '@/db';
 import { pull, deleteRemote } from '@/sync/server';
 import { SyncPanel } from '@/components/sync/SyncPanel';
+import { NotificationsPanel } from '@/components/notifications/NotificationsPanel';
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -357,6 +358,8 @@ export function ProfilePage() {
       </section>
 
       <SyncPanel />
+
+      <NotificationsPanel />
 
       <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">App</h2>
