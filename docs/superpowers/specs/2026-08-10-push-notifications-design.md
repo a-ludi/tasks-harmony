@@ -223,14 +223,17 @@ vapid-observer/
 
 ### Environment variables
 
-| Variable | Used by |
-|---|---|
-| `VAPID_PUBLIC_KEY` | sync-server + observer |
-| `VAPID_PRIVATE_KEY` | observer only |
-| `VAPID_SUBJECT` | observer only (mailto: or URL) |
-| `COUCHDB_URL` | both |
-| `COUCHDB_USER` / `COUCHDB_PASSWORD` | both |
-| `POLL_INTERVAL_MS` | observer (default 60000) |
+| Variable | Used by | Secret |
+|---|---|---|
+| `VAPID_PUBLIC_KEY` | sync-server + observer | no |
+| `VAPID_PRIVATE_KEY` | observer only | **yes** |
+| `VAPID_SUBJECT` | observer only (mailto: or URL) | no |
+| `COUCHDB_URL` | both | no |
+| `COUCHDB_USER` | both | no |
+| `COUCHDB_PASSWORD` | both | **yes** |
+| `POLL_INTERVAL_MS` | observer (default 60000) | no |
+
+`VAPID_PRIVATE_KEY` and `COUCHDB_PASSWORD` are secrets and must be injected by the CD pipeline (e.g. as Docker secrets or CI secret variables). They must never appear in compose files, `.env` files committed to version control, or build artifacts.
 
 ### Indexes created on startup (if absent)
 
