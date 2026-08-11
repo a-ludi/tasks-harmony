@@ -122,6 +122,7 @@ The PWA needs the VAPID public key before calling `pushManager.subscribe()`. Pub
 GET    /push/schedules
 PUT    /push/subscriptions
 DELETE /push/subscriptions
+POST   /push/test
 PUT    /push/schedules/<packId>/<choreId>
 DELETE /push/schedules/<packId>/<choreId>
 ```
@@ -154,6 +155,19 @@ Upserts by `_id = sub-<sha256(endpoint)>`. Sets `failedAttempts: 0, blockedUntil
   "trigger": "at-due-time"
 }
 ```
+
+**`POST /push/test`** — triggers an immediate test notification to all eligible subscriptions for the authenticated user. The sync-server writes a sentinel document to `push-schedules`:
+
+```json
+{
+  "_id": "<syncId>/~test",
+  "syncId": "<64-char hex>",
+  "trigger": "test",
+  "nextNotificationAt": "<now_iso>"
+}
+```
+
+The `~` prefix makes the sentinel lexicographically distinct from real schedule IDs and visually obvious in a database dump. The observer's `_changes` listener detects the document and delivers immediately (see VAPID Observer section). Returns `204` once the document is written; delivery is asynchronous.
 
 **`DELETE /push/schedules/<packId>/<choreId>`** — removes the schedule when the user disables notifications for a chore or when the chore is deleted.
 
@@ -299,8 +313,10 @@ blockedUntil = BLOCKED_UNTIL_RESET;
 
 Maintains two concurrent long-poll subscriptions to CouchDB:
 
-- `push-schedules/_changes` — triggers an immediate poll when a new or updated schedule document arrives (user just enabled notifications; deliver promptly rather than wait for the next timed poll)
-- `push-subscriptions/_changes` — no immediate action needed; `failedAttempts: 0, blockedUntil: 0` is already written by the sync-server on PUT
+- `push-schedules/_changes` — two cases:
+  - `trigger: "test"` document: send test notification to all eligible subscriptions for that `syncId` (title: `"Tasks Harmony"`, body: `"Notifications are working correctly!"`), then DELETE the sentinel document. Handled exclusively here — the poll loop filters out `trigger: "test"` documents.
+  - any other document: triggers an immediate poll (user just enabled notifications; deliver promptly rather than wait for the next timed interval)
+- `push-subscriptions/_changes` — no immediate action needed; `failedAttempts: 0, blockedUntil: "0001-01-01T00:00:00Z"` is already written by the sync-server on PUT
 
 ### Notification content
 
@@ -393,6 +409,7 @@ requestPermission():
      a. pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })
      b. PUT /push/subscriptions with endpoint + keys
      c. Store VAPID public key in localStorage
+     d. POST /push/test — triggers immediate end-to-end verification
 
 Exposes: { supported, permission, requestPermission, loading }
 ```
@@ -414,6 +431,7 @@ Runs after every successful sync pull (triggered from `useSync`):
 **`NotificationsPanel`** (profile/settings area):
 - Shows overall permission state
 - "Enable notifications" button if permission is `'default'`
+- "Send test notification" button if permission is `'granted'` — calls `POST /push/test` for troubleshooting after initial setup
 - Informative message directing to OS settings if `'denied'`
 - "Install the app to enable notifications" if `'unsupported'` due to non-installed iOS PWA
 
