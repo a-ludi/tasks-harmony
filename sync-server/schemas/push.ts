@@ -6,16 +6,16 @@ export const PushSubscriptionBody = z.object({
     p256dh: z.string().min(1),
     auth: z.string().min(1),
   }),
-});
+}).strict();
 
 export const DeleteSubscriptionBody = z.object({
   endpoint: z.string().url(),
-});
+}).strict();
 
 const DuePeriodSchema = z.object({
   value: z.number().int().positive(),
   unit: z.enum(['minutes', 'hours', 'days', 'weeks', 'months']),
-});
+}).strict();
 
 export const PushScheduleBody = z.object({
   title: z.string().min(1),
@@ -27,6 +27,6 @@ export const PushScheduleBody = z.object({
   }),
   duePeriod: DuePeriodSchema.optional(),
   trigger: z.enum(['at-due-time']),
-});
+}).strict();
 
 export type PushScheduleInput = z.infer<typeof PushScheduleBody>;

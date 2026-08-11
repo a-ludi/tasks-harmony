@@ -19,6 +19,20 @@ describe('PushSubscriptionBody', () => {
   });
 });
 
+describe('DeleteSubscriptionBody', () => {
+  it('accepts valid endpoint', () => {
+    const result = DeleteSubscriptionBody.safeParse({
+      endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects non-URL endpoint', () => {
+    const result = DeleteSubscriptionBody.safeParse({ endpoint: 'not-a-url' });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe('PushScheduleBody', () => {
   it('accepts valid daily schedule', () => {
     const result = PushScheduleBody.safeParse({
