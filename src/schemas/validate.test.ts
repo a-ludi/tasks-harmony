@@ -268,6 +268,141 @@ describe('validateAppState — malicious pack sourceUrl (SEC-000023)', () => {
   });
 });
 
+describe('validateAppState — notification fields', () => {
+  const baseState = {
+    schemaVersion: 1, exportedAt: '2026-01-01T00:00:00.000Z',
+    packs: [{
+      id: 'personal', manifest: { title: 'Personal' }, isPersonal: true,
+      importedAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+    }],
+    questions: [], completions: [], xpSettings: [], quickAnswerSets: [],
+    profile: { id: 'me', displayName: '', email: '', activeXPSettingsId: 'standard' },
+    syncState: { id: 'main', pendingSync: false },
+  };
+
+  it('accepts a chore with notifications enabled', () => {
+    const state = {
+      ...baseState,
+      chores: [{
+        key: 'personal/floss', choreId: 'floss', packId: 'personal',
+        title: 'Floss', xpSize: 'XS',
+        recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+        repeatable: false, active: true, createdAt: '2026-01-01T00:00:00Z',
+        notifications: { enabled: 'on', trigger: 'at-due-time' },
+      }],
+    };
+    expect(validateAppState(state).valid).toBe(true);
+  });
+
+  it('accepts a chore with notifications set to default', () => {
+    const state = {
+      ...baseState,
+      chores: [{
+        key: 'personal/floss', choreId: 'floss', packId: 'personal',
+        title: 'Floss', xpSize: 'XS',
+        recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+        repeatable: false, active: true, createdAt: '2026-01-01T00:00:00Z',
+        notifications: { enabled: 'default', trigger: 'at-due-time' },
+      }],
+    };
+    expect(validateAppState(state).valid).toBe(true);
+  });
+
+  it('rejects a chore with an invalid notifications.enabled value', () => {
+    const state = {
+      ...baseState,
+      chores: [{
+        key: 'personal/floss', choreId: 'floss', packId: 'personal',
+        title: 'Floss', xpSize: 'XS',
+        recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+        repeatable: false, active: true, createdAt: '2026-01-01T00:00:00Z',
+        notifications: { enabled: 'maybe', trigger: 'at-due-time' },
+      }],
+    };
+    expect(validateAppState(state).valid).toBe(false);
+  });
+
+  it('rejects a chore with an invalid notifications.trigger value', () => {
+    const state = {
+      ...baseState,
+      chores: [{
+        key: 'personal/floss', choreId: 'floss', packId: 'personal',
+        title: 'Floss', xpSize: 'XS',
+        recurrence: { frequency: 'daily', interval: 1, startDate: '2026-01-01', windowStartTime: '00:00' },
+        repeatable: false, active: true, createdAt: '2026-01-01T00:00:00Z',
+        notifications: { enabled: 'on', trigger: 'immediately' },
+      }],
+    };
+    expect(validateAppState(state).valid).toBe(false);
+  });
+
+  it('accepts a pack manifest with defaultNotifications', () => {
+    const state = {
+      ...baseState,
+      chores: [],
+      packs: [{
+        id: 'personal',
+        manifest: { title: 'Personal', defaultNotifications: 'on' },
+        isPersonal: true,
+        importedAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      }],
+    };
+    expect(validateAppState(state).valid).toBe(true);
+  });
+
+  it('rejects a pack manifest with an invalid defaultNotifications value', () => {
+    const state = {
+      ...baseState,
+      chores: [],
+      packs: [{
+        id: 'personal',
+        manifest: { title: 'Personal', defaultNotifications: 'maybe' },
+        isPersonal: true,
+        importedAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      }],
+    };
+    expect(validateAppState(state).valid).toBe(false);
+  });
+
+  it('accepts a profile with defaultNotifications', () => {
+    const state = {
+      ...baseState,
+      chores: [],
+      profile: { id: 'me', displayName: 'User', email: 'u@example.com', activeXPSettingsId: 'standard', defaultNotifications: 'on' },
+    };
+    expect(validateAppState(state).valid).toBe(true);
+  });
+
+  it('rejects a profile with defaultNotifications set to "default" (not allowed at profile level)', () => {
+    const state = {
+      ...baseState,
+      chores: [],
+      profile: { id: 'me', displayName: 'User', email: 'u@example.com', activeXPSettingsId: 'standard', defaultNotifications: 'default' },
+    };
+    expect(validateAppState(state).valid).toBe(false);
+  });
+});
+
+describe('validatePackManifest — notification fields', () => {
+  it('accepts defaultNotifications: "on"', () => {
+    expect(validatePackManifest({ title: 'T', defaultNotifications: 'on' }).valid).toBe(true);
+  });
+
+  it('accepts defaultNotifications: "off"', () => {
+    expect(validatePackManifest({ title: 'T', defaultNotifications: 'off' }).valid).toBe(true);
+  });
+
+  it('accepts defaultNotifications: "default"', () => {
+    expect(validatePackManifest({ title: 'T', defaultNotifications: 'default' }).valid).toBe(true);
+  });
+
+  it('rejects defaultNotifications with an invalid value', () => {
+    expect(validatePackManifest({ title: 'T', defaultNotifications: 'maybe' }).valid).toBe(false);
+  });
+});
+
 describe('validateAppState — malicious pack manifest (SEC-000030)', () => {
   test('rejects a pack whose manifest carries an unknown property', () => {
     const state = {
