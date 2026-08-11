@@ -91,7 +91,7 @@ export interface PackManifest {
   decay?: boolean;           // default true; false disables decay mechanics for all chores
   defaultXPSize?: XPSize | number; // pre-fills XP size when creating a new chore in this pack
   deletedXP?: number;        // XP earned from deleted chores, preserved for total calculations
-  defaultNotifications?: 'on' | 'off' | 'default'; // absent = 'default'
+  defaultNotifications?: NotificationToggle; // absent = 'default'
 }
 
 export interface Pack {

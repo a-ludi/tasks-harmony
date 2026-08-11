@@ -43,4 +43,10 @@ describe('resolveNotificationsEnabled', () => {
     const chore = { ...baseChore, notifications: { enabled: 'default' as const, trigger: 'at-due-time' as const } };
     expect(resolveNotificationsEnabled(chore, pack, baseProfile)).toBe(true);
   });
+
+  it('chore off overrides global on with no pack override', () => {
+    const profile = { ...baseProfile, defaultNotifications: 'on' as const };
+    const chore = { ...baseChore, notifications: { enabled: 'off' as const, trigger: 'at-due-time' as const } };
+    expect(resolveNotificationsEnabled(chore, basePack, profile)).toBe(false);
+  });
 });
