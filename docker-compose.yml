@@ -32,6 +32,12 @@ services:
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     volumes:
       - couchdb-data:/opt/couchdb/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
 
   vapid-observer:
@@ -45,7 +51,8 @@ services:
       VAPID_SUBJECT: ${VAPID_SUBJECT}
       POLL_INTERVAL_MS: 60000
     depends_on:
-      - couchdb
+      couchdb:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
