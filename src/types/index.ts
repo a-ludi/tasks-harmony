@@ -4,6 +4,14 @@ export type DuePeriodUnit = 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
 export type ChoreStatus = 'overdue' | 'due' | 'completed' | 'upcoming';
 export type ChoreSyncStatus = 'in-sync' | 'out-of-sync';
 
+export type NotificationTrigger = 'at-due-time';
+export type NotificationToggle = 'on' | 'off' | 'default';
+
+export interface ChoreNotificationSettings {
+  enabled: NotificationToggle;
+  trigger: NotificationTrigger;
+}
+
 export interface DuePeriod {
   value: number;
   unit: DuePeriodUnit;
@@ -65,6 +73,7 @@ export interface Chore {
   createdAt: string;            // ISO datetime
   completionBonusXPSize?: XPSize | number; // absent = no set bonus
   syncStatus?: ChoreSyncStatus; // set after "Update from URL"; only present on URL-imported chores
+  notifications?: ChoreNotificationSettings;
 }
 
 export interface PackManifest {
@@ -82,6 +91,7 @@ export interface PackManifest {
   decay?: boolean;           // default true; false disables decay mechanics for all chores
   defaultXPSize?: XPSize | number; // pre-fills XP size when creating a new chore in this pack
   deletedXP?: number;        // XP earned from deleted chores, preserved for total calculations
+  defaultNotifications?: 'on' | 'off' | 'default'; // absent = 'default'
 }
 
 export interface Pack {
@@ -124,6 +134,7 @@ export interface UserProfile {
   displayName: string;
   email: string;
   activeXPSettingsId: string;
+  defaultNotifications?: 'on' | 'off'; // absent = 'off'
 }
 
 export interface SyncState {
