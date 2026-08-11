@@ -40,8 +40,13 @@ if (SYNC_SOCKET) {
 }
 
 // CouchDB startup initialization
-await ensureDb('push-subscriptions');
-await ensureDb('push-schedules');
-await ensureIndex('push-subscriptions', ['syncId', 'blockedUntil']);
-await ensureIndex('push-schedules', ['nextNotificationAt']);
-await ensureIndex('push-schedules', ['syncId']);
+try {
+  await ensureDb('push-subscriptions');
+  await ensureDb('push-schedules');
+  await ensureIndex('push-subscriptions', ['syncId', 'blockedUntil']);
+  await ensureIndex('push-schedules', ['nextNotificationAt']);
+  await ensureIndex('push-schedules', ['syncId']);
+} catch (err) {
+  console.error('[startup] Failed to initialize CouchDB:', err);
+  process.exit(1);
+}
