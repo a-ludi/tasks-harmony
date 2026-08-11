@@ -29,115 +29,125 @@ function subId(endpoint: string): string {
 export async function handlePush(req: Request, _token: string | null): Promise<Response> {
   const { pathname } = new URL(req.url);
 
-  // Unauthenticated
-  if (pathname === '/push/vapid-public-key' && req.method === 'GET') {
-    return Response.json({ publicKey: process.env.VAPID_PUBLIC_KEY ?? '' });
-  }
+  try {
+    // Unauthenticated
+    if (pathname === '/push/vapid-public-key' && req.method === 'GET') {
+      return Response.json({ publicKey: process.env.VAPID_PUBLIC_KEY ?? '' });
+    }
 
-  // All other routes require auth
-  const syncId = await authenticate(req);
-  if (!syncId) return new Response('Unauthorized', { status: 401 });
+    // All other routes require auth
+    const syncId = await authenticate(req);
+    if (!syncId) return new Response('Unauthorized', { status: 401 });
 
-  // Subscriptions
-  if (pathname === '/push/subscriptions') {
-    if (req.method === 'PUT') {
-      let body: unknown;
-      try { body = await req.json(); } catch { return new Response('Bad Request', { status: 400 }); }
-      const parsed = PushSubscriptionBody.safeParse(body);
-      if (!parsed.success) return new Response('Bad Request', { status: 400 });
-      const { endpoint, keys } = parsed.data;
-      await couchPut(DB_SUBS, subId(endpoint), {
-        syncId, endpoint, keys,
-        createdAt: new Date().toISOString(),
-        failedAttempts: 0,
-        blockedUntil: BLOCKED_UNTIL_RESET,
+    // Subscriptions
+    if (pathname === '/push/subscriptions') {
+      if (req.method === 'PUT') {
+        let body: unknown;
+        try { body = await req.json(); } catch { return new Response('Bad Request', { status: 400 }); }
+        const parsed = PushSubscriptionBody.safeParse(body);
+        if (!parsed.success) return new Response('Bad Request', { status: 400 });
+        const { endpoint, keys } = parsed.data;
+        await couchPut(DB_SUBS, subId(endpoint), {
+          syncId, endpoint, keys,
+          createdAt: new Date().toISOString(),
+          failedAttempts: 0,
+          blockedUntil: BLOCKED_UNTIL_RESET,
+        });
+        return new Response(null, { status: 204 });
+      }
+      if (req.method === 'DELETE') {
+        let body: unknown;
+        try { body = await req.json(); } catch { return new Response('Bad Request', { status: 400 }); }
+        const parsed = DeleteSubscriptionBody.safeParse(body);
+        if (!parsed.success) return new Response('Bad Request', { status: 400 });
+        await couchDel(DB_SUBS, subId(parsed.data.endpoint));
+        return new Response(null, { status: 204 });
+      }
+    }
+
+    // Schedules list
+    if (pathname === '/push/schedules' && req.method === 'GET') {
+      const docs = await couchFind<{ _id: string; nextNotificationAt: string }>(
+        DB_SCHEDULES,
+        { syncId },
+      );
+      const result = docs
+        .filter((d) => !d._id.endsWith('/~test'))
+        .map((d) => ({
+          choreKey: d._id.slice(syncId.length + 1),
+          nextNotificationAt: d.nextNotificationAt,
+        }));
+      return Response.json(result);
+    }
+
+    // Test notification
+    if (pathname === '/push/test' && req.method === 'POST') {
+      await couchPut(DB_SCHEDULES, `${syncId}/~test`, {
+        syncId,
+        trigger: 'test',
+        nextNotificationAt: new Date().toISOString(),
       });
       return new Response(null, { status: 204 });
     }
-    if (req.method === 'DELETE') {
-      let body: unknown;
-      try { body = await req.json(); } catch { return new Response('Bad Request', { status: 400 }); }
-      const parsed = DeleteSubscriptionBody.safeParse(body);
-      if (!parsed.success) return new Response('Bad Request', { status: 400 });
-      await couchDel(DB_SUBS, subId(parsed.data.endpoint));
-      return new Response(null, { status: 204 });
-    }
-  }
 
-  // Schedules list
-  if (pathname === '/push/schedules' && req.method === 'GET') {
-    const docs = await couchFind<{ _id: string; nextNotificationAt: string }>(
-      DB_SCHEDULES,
-      { syncId },
-    );
-    const result = docs
-      .filter((d) => !d._id.endsWith('/~test'))
-      .map((d) => ({
-        choreKey: d._id.slice(syncId.length + 1),
-        nextNotificationAt: d.nextNotificationAt,
-      }));
-    return Response.json(result);
-  }
+    // Schedule PUT/DELETE: /push/schedules/<packId>/<choreId>
+    const scheduleMatch = pathname.match(/^\/push\/schedules\/([^/]+\/.+)$/);
+    if (scheduleMatch) {
+      const choreKey = scheduleMatch[1]!;
+      const docId = `${syncId}/${choreKey}`;
 
-  // Test notification
-  if (pathname === '/push/test' && req.method === 'POST') {
-    await couchPut(DB_SCHEDULES, `${syncId}/~test`, {
-      syncId,
-      trigger: 'test',
-      nextNotificationAt: new Date().toISOString(),
-    });
-    return new Response(null, { status: 204 });
-  }
-
-  // Schedule PUT/DELETE: /push/schedules/<packId>/<choreId>
-  const scheduleMatch = pathname.match(/^\/push\/schedules\/([^/]+\/.+)$/);
-  if (scheduleMatch) {
-    const choreKey = scheduleMatch[1]!;
-    const docId = `${syncId}/${choreKey}`;
-
-    if (req.method === 'DELETE') {
-      await couchDel(DB_SCHEDULES, docId);
-      return new Response(null, { status: 204 });
-    }
-
-    if (req.method === 'PUT') {
-      let body: unknown;
-      try { body = await req.json(); } catch { return new Response('Bad Request', { status: 400 }); }
-      const parsed = PushScheduleBody.safeParse(body);
-      if (!parsed.success) return new Response('Bad Request', { status: 400 });
-
-      // Cap check
-      const existing = await couchFind<{ _id: string }>(DB_SCHEDULES, { syncId });
-      const isNew = !existing.some((d) => d._id === docId);
-      if (isNew && existing.filter((d) => !d._id.endsWith('/~test')).length >= SCHEDULE_CAP) {
-        return new Response('Insufficient Storage', { status: 507 });
+      if (req.method === 'DELETE') {
+        await couchDel(DB_SCHEDULES, docId);
+        return new Response(null, { status: 204 });
       }
 
-      const existingDoc = await couchGet<{ lastDeliveredAt?: string }>(DB_SCHEDULES, docId);
-      const lastDeliveredAt = existingDoc?.lastDeliveredAt ?? null;
-      const nextNotificationAt = computeNextNotificationAt(
-        parsed.data.recurrence,
-        parsed.data.duePeriod,
-        parsed.data.trigger,
-        lastDeliveredAt,
-      );
+      if (req.method === 'PUT') {
+        let body: unknown;
+        try { body = await req.json(); } catch { return new Response('Bad Request', { status: 400 }); }
+        const parsed = PushScheduleBody.safeParse(body);
+        if (!parsed.success) return new Response('Bad Request', { status: 400 });
 
-      await couchPut(DB_SCHEDULES, docId, {
-        syncId,
-        choreKey,
-        title: parsed.data.title,
-        recurrence: parsed.data.recurrence,
-        ...(parsed.data.duePeriod ? { duePeriod: parsed.data.duePeriod } : {}),
-        trigger: parsed.data.trigger,
-        lastDeliveredAt,
-        nextNotificationAt,
-        updatedAt: new Date().toISOString(),
-      });
-      return new Response(null, { status: 204 });
+        // Reject ~test as a choreId
+        if (choreKey.endsWith('/~test')) {
+          return new Response('Bad Request', { status: 400 });
+        }
+
+        // Cap check
+        const existing = await couchFind<{ _id: string }>(DB_SCHEDULES, { syncId });
+        const isNew = !existing.some((d) => d._id === docId);
+        if (isNew && existing.filter((d) => !d._id.endsWith('/~test')).length >= SCHEDULE_CAP) {
+          return new Response('Insufficient Storage', { status: 507 });
+        }
+
+        const existingDoc = await couchGet<{ lastDeliveredAt?: string }>(DB_SCHEDULES, docId);
+        const lastDeliveredAt = existingDoc?.lastDeliveredAt ?? null;
+        const nextNotificationAt = computeNextNotificationAt(
+          parsed.data.recurrence,
+          parsed.data.duePeriod,
+          parsed.data.trigger,
+          lastDeliveredAt,
+        );
+
+        await couchPut(DB_SCHEDULES, docId, {
+          syncId,
+          choreKey,
+          title: parsed.data.title,
+          recurrence: parsed.data.recurrence,
+          ...(parsed.data.duePeriod ? { duePeriod: parsed.data.duePeriod } : {}),
+          trigger: parsed.data.trigger,
+          lastDeliveredAt,
+          nextNotificationAt,
+          updatedAt: new Date().toISOString(),
+        });
+        return new Response(null, { status: 204 });
+      }
     }
-  }
 
-  return new Response('Not Found', { status: 404 });
+    return new Response('Not Found', { status: 404 });
+  } catch (err) {
+    console.error('[push] handler error:', err);
+    return new Response('Internal Server Error', { status: 500 });
+  }
 }
 
 // Shared computation (also in vapid-observer/scheduler.ts — kept in sync)
