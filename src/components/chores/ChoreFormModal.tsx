@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
-import type { Chore, XPSize, RecurrenceFrequency, DuePeriodUnit, MultiplierQuestion, QuickAnswerSet, Question } from '@/types';
+import type { Chore, XPSize, RecurrenceFrequency, DuePeriodUnit, MultiplierQuestion, QuickAnswerSet, Question, NotificationToggle } from '@/types';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import type { DraftTarget } from '@/store';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -122,6 +123,12 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
   const choreQuickSets = isEdit ? allQuickAnswerSets.filter((s) => s.choreKey === chore!.key) : [];
   const [editingSet, setEditingSet] = useState<QuickAnswerSet | null | 'new'>(null);
 
+  const { supported, permission } = usePushNotifications();
+  const showNotificationToggle = supported && permission !== 'denied';
+  const [notificationEnabled, setNotificationEnabled] = useState<NotificationToggle>(
+    chore?.notifications?.enabled ?? 'default',
+  );
+
   const hasTargets = targetDrafts.some((d) => !d._deleted);
   const hasQuickAnswerSets = choreQuickSets.length > 0;
 
@@ -182,7 +189,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           if (!moved) { setErrors((prev) => ({ ...prev, pack: `A chore with ID "${chore.choreId}" already exists in this pack.` })); setSubmitting(false); return; }
         }
         const activeChoreKey = packChanged ? `${selectedPackId}/${chore.choreId}` : chore.key;
-        await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, completionBonusXPSize });
+        await updateChore({ ...chore, key: activeChoreKey, packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, completionBonusXPSize, notifications: showNotificationToggle ? { enabled: notificationEnabled, trigger: 'at-due-time' as const } : chore?.notifications });
         const allDrafts = [
           ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
           ...(multiplierDraft ? [multiplierDraft] : []),
@@ -195,7 +202,7 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
           await saveTargets(activeChoreKey, targetDrafts.map((d) => ({ ...d, choreKey: activeChoreKey })));
         }
       } else {
-        const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, completionBonusXPSize, active: true });
+        const newChoreKey = await addChore({ packId: selectedPackId, title: title.trim(), description: description.trim() || undefined, xpSize: effectiveXpSize, recurrence: { frequency, interval: Number(interval), startDate, windowStartTime }, repeatable, duePeriod, completionBonusXPSize, active: true, notifications: showNotificationToggle ? { enabled: notificationEnabled, trigger: 'at-due-time' as const } : undefined });
         const allDrafts = [
           ...questionDrafts.filter(d => d.type !== 'MULTIPLIER'),
           ...(multiplierDraft ? [multiplierDraft] : []),
@@ -290,6 +297,25 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
               )}
               {xpPreview && <p className="text-xs text-primary">{xpPreview}</p>}
             </div>
+
+            {showNotificationToggle && (
+              <div className="space-y-2">
+                <Label>Notifications</Label>
+                <div className="flex gap-2">
+                  {(['default', 'on', 'off'] as const).map((v) => (
+                    <Button
+                      key={v}
+                      type="button"
+                      variant={notificationEnabled === v ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setNotificationEnabled(v)}
+                    >
+                      {v === 'default' ? 'Default' : v === 'on' ? 'On' : 'Off'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <div className="flex items-center gap-3">
