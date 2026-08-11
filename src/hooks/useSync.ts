@@ -3,6 +3,7 @@ import { useAppStore } from '@/store';
 import { push, pull } from '@/sync/server';
 import { setDirtyListener, isDirty } from '@/sync/dirty';
 import { getSyncState } from '@/db';
+import { useScheduleSync } from './useScheduleSync';
 
 const DEBOUNCE_MS = 10_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
@@ -18,6 +19,8 @@ export function useSync(): SyncStatus {
   const reload = useAppStore((s) => s.reload);
   const syncState = useAppStore((s) => s.syncState);
   const updateSyncState = useAppStore((s) => s.updateSyncState);
+
+  const { reconcile } = useScheduleSync();
 
   const [error, setError] = useState(false);
   const consecutiveFailures = useRef(0);
@@ -56,6 +59,7 @@ export function useSync(): SyncStatus {
     if (!db) return;
     pull(db).then(async (result) => {
       if (result.imported) await reload();
+      void reconcile();
     });
   }, [db]); // eslint-disable-line react-hooks/exhaustive-deps
 
