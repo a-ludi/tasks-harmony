@@ -14,6 +14,7 @@ export interface PushNotificationState {
   supported: boolean;
   permission: PushPermissionState;
   loading: boolean;
+  sendTestLoading: boolean;
   requestPermission: () => Promise<void>;
   sendTest: () => Promise<void>;
 }
@@ -64,6 +65,7 @@ export function usePushNotifications(): PushNotificationState {
     supported ? Notification.permission : 'unsupported',
   );
   const [loading, setLoading] = useState(false);
+  const [sendTestLoading, setSendTestLoading] = useState(false);
 
   useEffect(() => {
     if (!supported || Notification.permission !== 'granted') return;
@@ -108,11 +110,21 @@ export function usePushNotifications(): PushNotificationState {
     }
   }
 
+  async function sendTest() {
+    setSendTestLoading(true);
+    try {
+      await sendTestNotification();
+    } finally {
+      setSendTestLoading(false);
+    }
+  }
+
   return {
     supported,
     permission,
     loading,
+    sendTestLoading,
     requestPermission,
-    sendTest: sendTestNotification,
+    sendTest,
   };
 }

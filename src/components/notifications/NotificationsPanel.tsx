@@ -2,7 +2,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 
 export function NotificationsPanel() {
-  const { supported, permission, loading, requestPermission, sendTest } = usePushNotifications();
+  const { supported, permission, loading, sendTestLoading, requestPermission, sendTest } = usePushNotifications();
 
   return (
     <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-2">
@@ -36,7 +36,7 @@ export function NotificationsPanel() {
       {supported && permission === 'granted' && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Notifications are enabled.</p>
-          <Button variant="outline" size="sm" onClick={sendTest}>
+          <Button variant="outline" size="sm" onClick={sendTest} disabled={sendTestLoading}>
             Send test notification
           </Button>
         </div>
