@@ -17,9 +17,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       devOptions: { enabled: true },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-      },
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       manifest: {
         name: 'Tasks Harmony',
         short_name: 'Tasks',
