@@ -10,6 +10,10 @@ services:
       - REDIS_URL=redis://redis:6379
       - SYNC_SOCKET=${SOCKET_DIR}/sync.sock
       - SYNC_BLOB_DIR=/data
+      - COUCHDB_URL=http://couchdb:5984
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
     depends_on:
       - redis
     restart: unless-stopped
@@ -21,6 +25,30 @@ services:
     command: redis-server --appendonly yes
     restart: unless-stopped
 
+  couchdb:
+    image: couchdb:3
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+    restart: unless-stopped
+
+  vapid-observer:
+    build: ./vapid-observer
+    environment:
+      COUCHDB_URL: http://couchdb:5984
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
+      POLL_INTERVAL_MS: 60000
+    depends_on:
+      - couchdb
+    restart: unless-stopped
+
 volumes:
   sync-data:
   redis-data:
+  couchdb-data:
