@@ -10,7 +10,7 @@ export function useScheduleSync() {
   async function reconcile() {
     if (!profile) return;
 
-    const [serverSchedules] = await Promise.all([fetchSchedules()]);
+    const serverSchedules = await fetchSchedules();
     const serverKeys = new Set(serverSchedules.map((s) => s.choreKey));
 
     const localEnabled = chores.filter((chore) => {
