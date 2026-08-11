@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
-import type { Pack, XPSize } from '@/types';
+import type { NotificationToggle, Pack, XPSize } from '@/types';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +61,12 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
   );
   const isCustomDefaultXP = defaultXPSize === 'CUSTOM';
 
+  const { supported, permission } = usePushNotifications();
+  const showNotificationToggle = supported && permission !== 'denied';
+  const [defaultNotifications, setDefaultNotifications] = useState<NotificationToggle>(
+    pack.manifest.defaultNotifications ?? 'default',
+  );
+
   const [titleError, setTitleError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -82,6 +89,7 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
       targetDate: targetDateVal,
       allowShiftOnImport,
       defaultXPSize: defaultXPSizeVal,
+      ...(showNotificationToggle ? { defaultNotifications } : {}),
     });
     setSubmitting(false);
     onClose();
@@ -185,6 +193,25 @@ export default function PackOptionsModal({ pack, onClose }: Props) {
                 </Select>
               )}
             </div>
+
+            {showNotificationToggle && (
+              <div className="space-y-2">
+                <Label>Default notifications for chores in this pack</Label>
+                <div className="flex gap-2">
+                  {(['default', 'on', 'off'] as const).map((v) => (
+                    <Button
+                      key={v}
+                      type="button"
+                      variant={defaultNotifications === v ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setDefaultNotifications(v)}
+                    >
+                      {v === 'default' ? 'Default' : v === 'on' ? 'On' : 'Off'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* XP target number input */}
             <div className="space-y-1">

@@ -8,6 +8,8 @@ import { validateAppState } from '@/schemas/validate';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/hooks/useTheme';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { exportKeyFile, importKeyFile, isLegacyCredentials } from '@/sync/credentials';
@@ -29,6 +31,8 @@ export function ProfilePage() {
   const packs = useAppStore((s) => s.packs);
   const reload = useAppStore((s) => s.reload);
   const { theme, toggle } = useTheme();
+  const { supported, permission } = usePushNotifications();
+  const showNotificationToggle = supported && permission !== 'denied';
 
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [email, setEmail] = useState(profile?.email ?? '');
@@ -253,6 +257,25 @@ export function ProfilePage() {
                 {xpSettings.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+        )}
+
+        {showNotificationToggle && (
+          <div className="space-y-2">
+            <Label>Default notifications for new chores</Label>
+            <div className="flex gap-2">
+              {(['off', 'on'] as const).map((v) => (
+                <Button
+                  key={v}
+                  type="button"
+                  variant={(profile?.defaultNotifications ?? 'off') === v ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => void updateProfile({ ...profile!, defaultNotifications: v })}
+                >
+                  {v === 'on' ? 'On' : 'Off'}
+                </Button>
+              ))}
+            </div>
           </div>
         )}
 
