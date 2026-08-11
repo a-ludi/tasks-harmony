@@ -7,7 +7,7 @@
 
 ## Background
 
-Tasks Harmony is a PWA running locally in each user's browser. A central sync server handles multiple users (low count) with multiple devices each. The app state is end-to-end encrypted — the server stores only an opaque blob and cannot read chore schedules. This means all scheduling logic must originate client-side.
+Tasks Harmony is a PWA running locally in each user's browser. A central sync server handles multiple users with multiple devices each. The app state is end-to-end encrypted — the server stores only an opaque blob and cannot read chore schedules. This means all scheduling logic must originate client-side.
 
 Prior research (issue comment) established that service-worker-only local notifications are unreliable on mobile when the app is closed, and that a VAPID server is required for reliable delivery on both iOS (16.4+) and Android.
 
@@ -20,22 +20,22 @@ Five components, three new:
 ```
 ┌─────────────────────────┐         ┌──────────────────────────┐
 │  PWA (browser)          │         │  sync-server/            │
-│                         │──auth──▶│  existing blob handlers   │
-│  - notification UI      │         │                           │
-│  - push subscription    │──push──▶│  new push handlers        │
-│  - schedule upload      │         │  (subscription, schedule) │
+│                         │──auth──▶│  existing blob handlers  │
+│  - notification UI      │         │                          │
+│  - push subscription    │──push──▶│  new push handlers       │
+│  - schedule upload      │         │  (subscription, schedule)│
 │  - service worker       │         └──────────┬───────────────┘
 │    (receives push,      │                    │ read/write
-│     shows notification) │         ┌──────────▼───────────────┐
+│     shows notification) │         ┌──────────▼────────────────┐
 └─────────────────────────┘         │  CouchDB                  │
-                                    │  subscriptions + schedules│
-                                    └──────────▲───────────────┘
-                                               │ read/write
-                                    ┌──────────┴───────────────┐
-                                    │  vapid-observer/          │
-                                    │  polls CouchDB, sends     │
-                                    │  VAPID pushes             │
-                                    └──────────────────────────┘
+                                   │  subscriptions + schedules│
+                                   └──────────▲────────────────┘
+                                              │ read/write
+                                   ┌──────────┴───────────────┐
+                                   │  vapid-observer/         │
+                                   │  polls CouchDB, sends    │
+                                   │  VAPID pushes            │
+                                   └──────────────────────────┘
 
 Shared: Redis (session tokens, nonces — existing)
 ```
@@ -157,12 +157,43 @@ Upserts by `_id = sub-<sha256(endpoint)>`. Sets `failedAttempts: 0, blockedUntil
 
 ### Validation
 
-Server rejects with `400 Bad Request` for:
-- `recurrence.frequency` not in `['daily', 'weekly', 'monthly']`
-- `recurrence.interval` less than 1
-- Unknown `trigger` value
-- `duePeriod` present but malformed
-- More than 500 schedule documents for the authenticated `syncId`
+All request bodies are validated with Zod schemas before any processing, consistent with the existing `src/schemas/` approach. Invalid bodies are rejected with `400 Bad Request` before touching CouchDB.
+
+```typescript
+// PUT /push/subscriptions
+const PushSubscriptionBody = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
+
+// DELETE /push/subscriptions
+const DeleteSubscriptionBody = z.object({
+  endpoint: z.string().url(),
+});
+
+// PUT /push/schedules/<packId>/<choreId>
+const DuePeriodSchema = z.object({
+  value: z.number().int().positive(),
+  unit: z.enum(['minutes', 'hours', 'days', 'weeks', 'months']),
+});
+
+const PushScheduleBody = z.object({
+  title: z.string().min(1),
+  recurrence: z.object({
+    frequency: z.enum(['daily', 'weekly', 'monthly']),
+    interval: z.number().int().min(1),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    windowStartTime: z.string().regex(/^\d{2}:\d{2}$/),
+  }),
+  duePeriod: DuePeriodSchema.optional(),
+  trigger: z.enum(['at-due-time']),
+});
+```
+
+The 500-schedule cap per `syncId` is enforced after schema validation passes, and returns `507` rather than `400`.
 
 ### Response codes
 
