@@ -8,11 +8,14 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 self.addEventListener('push', (event: PushEvent) => {
   if (!event.data) return;
-  const { title, body, choreKey } = event.data.json() as {
-    title: string;
-    body: string;
-    choreKey: string;
-  };
+  let data: { title: string; body: string; choreKey: string };
+  try {
+    data = event.data.json() as { title: string; body: string; choreKey: string };
+  } catch {
+    console.error('[push] Failed to parse push payload');
+    return;
+  }
+  const { title, body, choreKey } = data;
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
