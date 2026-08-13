@@ -15,7 +15,10 @@ services:
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      couchdb:
+        condition: service_healthy
     restart: unless-stopped
 
   redis:
