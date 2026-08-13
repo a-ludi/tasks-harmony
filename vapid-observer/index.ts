@@ -18,49 +18,57 @@ type ScheduleDoc = {
   nextNotificationAt: string;
 };
 
+let pollRunning = false;
+
 async function poll() {
-  const now = new Date().toISOString();
-  let due: ScheduleDoc[];
+  if (pollRunning) return;
+  pollRunning = true;
   try {
-    due = await couchFind<ScheduleDoc>(DB_SCHEDULES, {
-      nextNotificationAt: { $lte: now },
-      trigger: { $ne: 'test' },
-    });
-  } catch (err) {
-    console.error('[poll] CouchDB unavailable:', err);
-    return;
-  }
-
-  for (const schedule of due) {
+    const now = new Date().toISOString();
+    let due: ScheduleDoc[];
     try {
-      const subs = await couchFind<Subscription>(DB_SUBS, {
-        syncId: schedule.syncId,
-        blockedUntil: { $lte: now },
+      due = await couchFind<ScheduleDoc>(DB_SCHEDULES, {
+        nextNotificationAt: { $lte: now },
+        trigger: { $ne: 'test' },
       });
-
-      if (subs.length === 0) continue;
-
-      const payload: Payload = {
-        title: schedule.title,
-        body: `${schedule.title} is due`,
-        choreKey: schedule.choreKey,
-      };
-
-      const anySuccess = await deliverToSubscriptions(subs, payload);
-
-      if (anySuccess) {
-        const lastDeliveredAt = now;
-        const nextNotificationAt = computeNextNotificationAt(
-          schedule.recurrence,
-          schedule.duePeriod,
-          'at-due-time',
-          lastDeliveredAt,
-        );
-        await couchPut(DB_SCHEDULES, schedule._id, { ...schedule, lastDeliveredAt, nextNotificationAt });
-      }
     } catch (err) {
-      console.error(`[poll] error processing schedule ${schedule._id}:`, err);
+      console.error('[poll] CouchDB unavailable:', err);
+      return;
     }
+
+    for (const schedule of due) {
+      try {
+        const subs = await couchFind<Subscription>(DB_SUBS, {
+          syncId: schedule.syncId,
+          blockedUntil: { $lte: now },
+        });
+
+        if (subs.length === 0) continue;
+
+        const payload: Payload = {
+          title: schedule.title,
+          body: `${schedule.title} is due`,
+          choreKey: schedule.choreKey,
+        };
+
+        const anySuccess = await deliverToSubscriptions(subs, payload);
+
+        if (anySuccess) {
+          const lastDeliveredAt = now;
+          const nextNotificationAt = computeNextNotificationAt(
+            schedule.recurrence,
+            schedule.duePeriod,
+            'at-due-time',
+            lastDeliveredAt,
+          );
+          await couchPut(DB_SCHEDULES, schedule._id, { ...schedule, lastDeliveredAt, nextNotificationAt });
+        }
+      } catch (err) {
+        console.error(`[poll] error processing schedule ${schedule._id}:`, err);
+      }
+    }
+  } finally {
+    pollRunning = false;
   }
 }
 
