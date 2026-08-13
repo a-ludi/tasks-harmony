@@ -1,4 +1,4 @@
-FROM oven/bun:1 AS base
+FROM oven/bun:1-alpine
 WORKDIR /app
 
 COPY package.json bun.lock* ./
@@ -6,7 +6,6 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
-RUN addgroup --system --gid 1001 app && adduser --system --uid 1001 --ingroup app app
-USER app
+USER bun
 
 CMD ["bun", "run", "index.ts"]
