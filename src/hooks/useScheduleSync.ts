@@ -14,6 +14,7 @@ export function useScheduleSync() {
     const serverKeys = new Set(serverSchedules.map((s) => s.choreKey));
 
     const localEnabled = chores.filter((chore) => {
+      if (chore.active === false) return false;
       const pack = packs.find((p) => p.id === chore.packId);
       if (!pack) return false;
       return resolveNotificationsEnabled(chore, pack, profile);

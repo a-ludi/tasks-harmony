@@ -34,6 +34,7 @@ export function useSync(): SyncStatus {
       setError(false);
       const updated = await getSyncState(db);
       if (updated) await updateSyncState(updated);
+      void reconcile();
     } else {
       consecutiveFailures.current += 1;
       if (consecutiveFailures.current >= MAX_CONSECUTIVE_FAILURES) {
