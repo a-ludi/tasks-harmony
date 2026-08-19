@@ -73,8 +73,8 @@ export function ProfilePage() {
     try {
       await doExport(db);
       recordExport();
-    } catch {
-      setExportError('Export failed. Please try again.');
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed. Please try again.');
     }
   }
 
