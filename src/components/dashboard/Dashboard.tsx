@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useCompactMode } from '@/hooks/useCompactMode';
 import { useArchiveMode } from '@/hooks/useArchiveMode';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { BackupReminderBanner } from '@/components/backup/BackupReminderBanner';
 
 const SECTION_LABELS: Record<ChoreStatus, string> = {
   overdue: 'Overdue',
@@ -38,6 +39,7 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
   const xpSettings = useAppStore((s) => s.xpSettings);
   const profile = useAppStore((s) => s.profile);
   const packs = useAppStore((s) => s.packs);
+  const db = useAppStore((s) => s.db);
   const [showNewChoreModal, setShowNewChoreModal] = useState(false);
   const { compact, toggle: toggleCompact } = useCompactMode();
   const { archiveMode, toggle: toggleArchiveMode } = useArchiveMode();
@@ -82,6 +84,7 @@ export default function Dashboard({ chores: choresProp, currentPackId }: Dashboa
 
   return (
     <div className="space-y-6 pb-8">
+      {db && <BackupReminderBanner db={db} />}
       <div className="flex items-center justify-between pt-4">
         {!currentPackId && <h1 className="text-2xl font-bold">Dashboard</h1>}
         <div className={`flex items-center ${currentPackId ? 'ml-auto' : ''}`}>
