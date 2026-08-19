@@ -3,10 +3,11 @@ import type { TasksHarmonyDB } from '@/db/schema';
 import {
   getPacks, getAllChores, getAllQuestions, getAllCompletions,
   getXPSettings, getProfile, getSyncState, getAllQuickAnswerSets, getAllTargets,
+  getCredentials,
 } from '@/db/index';
 import type { AppState } from '@/types';
-import { getOrCreateSyncKey } from '@/sync/credentials';
-import { encryptState } from '@/sync/encrypt';
+import { isLegacyCredentials } from '@/sync/credentials';
+import { encryptState, encryptStatePQ } from '@/sync/encrypt';
 
 export async function exportAppState(db: IDBPDatabase<TasksHarmonyDB>): Promise<AppState> {
   const [packs, chores, questions, completions, xpSettings, profile, syncState, quickAnswerSets, targets] =
@@ -26,7 +27,11 @@ export async function exportAppState(db: IDBPDatabase<TasksHarmonyDB>): Promise<
 }
 
 export async function encryptedExport(db: IDBPDatabase<TasksHarmonyDB>): Promise<Uint8Array> {
-  const key = await getOrCreateSyncKey(db);
+  const creds = await getCredentials(db);
+  if (!creds) throw new Error('No sync credentials found. Cannot create encrypted backup.');
   const state = await exportAppState(db);
-  return encryptState(key, state);
+  if (isLegacyCredentials(creds)) {
+    return encryptState(creds.cryptoKey, state);
+  }
+  return encryptStatePQ(creds, state);
 }
