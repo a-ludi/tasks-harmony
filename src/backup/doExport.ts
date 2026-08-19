@@ -2,9 +2,10 @@ import type { IDBPDatabase } from 'idb';
 import type { TasksHarmonyDB } from '@/db/schema';
 import { encryptedExport, exportAppState } from '@/sync/export';
 import { wrapStateInZip, buildBackupFilename } from '@/backup/backup';
+import { KEYS } from '@/hooks/useBackupReminder';
 
 export async function doExport(db: IDBPDatabase<TasksHarmonyDB>): Promise<void> {
-  const format = localStorage.getItem('backup-export-format') ?? 'encrypted';
+  const format = localStorage.getItem(KEYS.exportFormat) ?? 'encrypted';
   const date = new Date().toISOString().substring(0, 10);
 
   let file: Blob;
