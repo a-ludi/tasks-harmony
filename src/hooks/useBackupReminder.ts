@@ -45,43 +45,72 @@ export interface UseBackupReminderReturn {
   recordExport: () => void;
 }
 
+function validateFrequency(raw: string | null): BackupReminderFrequency {
+  const valid: BackupReminderFrequency[] = ['never', 'daily', 'weekly', 'monthly'];
+  return valid.includes(raw as BackupReminderFrequency) ? (raw as BackupReminderFrequency) : 'daily';
+}
+
+function validateExportFormat(raw: string | null): 'encrypted' | 'plain' {
+  return raw === 'plain' ? 'plain' : 'encrypted';
+}
+
 export function useBackupReminder(): UseBackupReminderReturn {
-  const [frequency, setFrequencyState] = useState<BackupReminderFrequency>(
-    () => (localStorage.getItem(KEYS.frequency) as BackupReminderFrequency | null) ?? 'daily',
-  );
-  const [exportFormat, setExportFormatState] = useState<'encrypted' | 'plain'>(
-    () => (localStorage.getItem(KEYS.exportFormat) as 'encrypted' | 'plain' | null) ?? 'encrypted',
-  );
-  const [isDue, setIsDue] = useState(() =>
-    computeIsDue(
-      (localStorage.getItem(KEYS.frequency) as BackupReminderFrequency | null) ?? 'daily',
+  interface State {
+    frequency: BackupReminderFrequency;
+    exportFormat: 'encrypted' | 'plain';
+    isDue: boolean;
+  }
+
+  const [state, setState] = useState<State>(() => {
+    const frequency = validateFrequency(localStorage.getItem(KEYS.frequency));
+    const exportFormat = validateExportFormat(localStorage.getItem(KEYS.exportFormat));
+    const isDue = computeIsDue(
+      frequency,
       localStorage.getItem(KEYS.lastBackedUpAt),
       localStorage.getItem(KEYS.dismissedAt),
-    ),
-  );
+    );
+    return { frequency, exportFormat, isDue };
+  });
 
   function setFrequency(f: BackupReminderFrequency) {
     localStorage.setItem(KEYS.frequency, f);
-    setFrequencyState(f);
-    setIsDue(computeIsDue(f, localStorage.getItem(KEYS.lastBackedUpAt), localStorage.getItem(KEYS.dismissedAt)));
+    setState((prev) => ({
+      ...prev,
+      frequency: f,
+      isDue: computeIsDue(f, localStorage.getItem(KEYS.lastBackedUpAt), localStorage.getItem(KEYS.dismissedAt)),
+    }));
   }
 
   function setExportFormat(f: 'encrypted' | 'plain') {
     localStorage.setItem(KEYS.exportFormat, f);
-    setExportFormatState(f);
+    setState((prev) => ({ ...prev, exportFormat: f }));
   }
 
   function dismiss() {
     const now = new Date().toISOString();
     localStorage.setItem(KEYS.dismissedAt, now);
-    setIsDue(computeIsDue(frequency, localStorage.getItem(KEYS.lastBackedUpAt), now));
+    setState((prev) => ({
+      ...prev,
+      isDue: computeIsDue(prev.frequency, localStorage.getItem(KEYS.lastBackedUpAt), now),
+    }));
   }
 
   function recordExport() {
     const now = new Date().toISOString();
     localStorage.setItem(KEYS.lastBackedUpAt, now);
-    setIsDue(computeIsDue(frequency, now, localStorage.getItem(KEYS.dismissedAt)));
+    setState((prev) => ({
+      ...prev,
+      isDue: computeIsDue(prev.frequency, now, localStorage.getItem(KEYS.dismissedAt)),
+    }));
   }
 
-  return { isDue, frequency, exportFormat, setFrequency, setExportFormat, dismiss, recordExport };
+  return {
+    isDue: state.isDue,
+    frequency: state.frequency,
+    exportFormat: state.exportFormat,
+    setFrequency,
+    setExportFormat,
+    dismiss,
+    recordExport,
+  };
 }
