@@ -10,14 +10,15 @@ export async function doExport(db: IDBPDatabase<TasksHarmonyDB>): Promise<void> 
   let file: Blob;
   let filename: string;
 
-  if (format === 'encrypted') {
+  if (format !== 'plain') {
+    // treat any non-plain value (including 'encrypted' default) as encrypted
     const blob = await encryptedExport(db);
-    file = new Blob([blob.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+    file = new Blob([blob.buffer.slice(blob.byteOffset, blob.byteOffset + blob.byteLength) as ArrayBuffer], { type: 'application/octet-stream' });
     filename = `tasks-harmony-backup-${date}.enc`;
   } else {
     const state = await exportAppState(db);
     const zipBytes = wrapStateInZip(state);
-    file = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
+    file = new Blob([zipBytes.buffer.slice(zipBytes.byteOffset, zipBytes.byteOffset + zipBytes.byteLength) as ArrayBuffer], { type: 'application/zip' });
     filename = buildBackupFilename(date);
   }
 
