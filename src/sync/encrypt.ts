@@ -50,7 +50,7 @@ async function decompress(data: Uint8Array): Promise<Uint8Array> {
 }
 
 /**
- * @deprecated Use encryptStatePQ instead. Only called from migrate.ts.
+ * @deprecated Use encryptStatePQ instead. Called from migrate.ts and as legacy fallback in export.ts.
  */
 export async function encryptState(key: CryptoKey, state: AppState): Promise<Uint8Array> {
   const plaintext = new TextEncoder().encode(JSON.stringify(state));
@@ -63,7 +63,7 @@ export async function encryptState(key: CryptoKey, state: AppState): Promise<Uin
 }
 
 /**
- * @deprecated Use decryptStatePQ instead. Only called from migrate.ts.
+ * @deprecated Use decryptStatePQ instead. Called from migrate.ts and as legacy fallback in import.ts.
  */
 export async function decryptState(key: CryptoKey, blob: Uint8Array): Promise<AppState> {
   const iv = blob.slice(0, 12);

@@ -4,7 +4,7 @@ import {
   getPacks, getAllChores, getAllQuestions, getAllCompletions,
   getXPSettings, getProfile, getSyncState, getAllQuickAnswerSets, getAllTargets,
   getCredentials,
-} from '@/db/index';
+} from '@/db';
 import type { AppState } from '@/types';
 import { isLegacyCredentials } from '@/sync/credentials';
 import { encryptState, encryptStatePQ } from '@/sync/encrypt';
