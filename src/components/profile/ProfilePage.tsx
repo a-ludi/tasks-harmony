@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { useAppStore } from '@/store';
 import type { UserProfile, XPSettings } from '@/types';
-import { exportAppState, encryptedExport } from '@/sync/export';
-import { wrapStateInZip, buildBackupFilename, unwrapStateFromZip, isAppStatePristine } from '@/backup/backup';
+import { unwrapStateFromZip, isAppStatePristine } from '@/backup/backup';
+import { doExport } from '@/backup/doExport';
+import { useBackupReminder } from '@/hooks/useBackupReminder';
 import { importAppState, decryptedImport } from '@/sync/import';
 import { validateAppState } from '@/schemas/validate';
 import { Switch } from '@/components/ui/switch';
@@ -45,7 +46,7 @@ export function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'encrypted' | 'plain'>('encrypted');
+  const { frequency, setFrequency, exportFormat, setExportFormat, recordExport } = useBackupReminder();
   const [exportError, setExportError] = useState<string | null>(null);
   const [keyExportError, setKeyExportError] = useState<string | null>(null);
   const [keyImportError, setKeyImportError] = useState<string | null>(null);
@@ -68,31 +69,12 @@ export function ProfilePage() {
 
   async function handleExport() {
     if (!db) return;
-    if (exportFormat === 'encrypted') {
-      try {
-        const blob = await encryptedExport(db);
-        const file = new Blob([blob.buffer as ArrayBuffer], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(file);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `tasks-harmony-backup-${new Date().toISOString().substring(0, 10)}.enc`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-      } catch {
-        setExportError('Encrypted backup is not available after upgrading to post-quantum sync. Use the plain backup instead, or export your sync key from the Sync section.');
-      }
-    } else {
-      const state = await exportAppState(db);
-      const zipBytes = wrapStateInZip(state);
-      const date = new Date().toISOString().substring(0, 10);
-      const filename = buildBackupFilename(date);
-      const file = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
-      const url = URL.createObjectURL(file);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+    setExportError(null);
+    try {
+      await doExport(db);
+      recordExport();
+    } catch {
+      setExportError('Export failed. Please try again.');
     }
   }
 
@@ -321,6 +303,22 @@ export function ProfilePage() {
             />
             Plain
           </label>
+        </div>
+        <div className="space-y-2">
+          <span className="text-sm font-medium text-foreground">Remind me to back up</span>
+          <div className="flex flex-wrap gap-2">
+            {(['never', 'daily', 'weekly', 'monthly'] as const).map((f) => (
+              <Button
+                key={f}
+                type="button"
+                variant={frequency === f ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFrequency(f)}
+              >
+                {f === 'daily' ? 'Daily (recommended)' : f.charAt(0).toUpperCase() + f.slice(1)}
+              </Button>
+            ))}
+          </div>
         </div>
         <button
           onClick={handleExport}
