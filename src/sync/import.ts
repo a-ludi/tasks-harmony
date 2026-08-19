@@ -7,7 +7,7 @@ import { decryptState } from '@/sync/encrypt';
 export async function importAppState(db: IDBPDatabase<TasksHarmonyDB>, state: AppState): Promise<void> {
   const storeNames = [
     'packs', 'chores', 'questions', 'completions',
-    'xpSettings', 'profile', 'syncState', 'quickAnswerSets',
+    'xpSettings', 'profile', 'syncState', 'quickAnswerSets', 'targets',
   ] as const;
   const tx = db.transaction(storeNames, 'readwrite');
 
@@ -20,6 +20,7 @@ export async function importAppState(db: IDBPDatabase<TasksHarmonyDB>, state: Ap
     ...state.completions.map((c) => tx.objectStore('completions').put(c)),
     ...state.xpSettings.map((s) => tx.objectStore('xpSettings').put(s)),
     ...(state.quickAnswerSets ?? []).map((q) => tx.objectStore('quickAnswerSets').put(q)),
+    ...(state.targets ?? []).map((t) => tx.objectStore('targets').put(t)),
     tx.objectStore('profile').put(state.profile),
     tx.objectStore('syncState').put(state.syncState),
   ]);
