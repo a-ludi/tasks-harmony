@@ -6,7 +6,7 @@ import { generatePQCredentials } from '@/sync/credentials';
 import { encryptedExport } from './export';
 import { decryptedImport } from './import';
 import type { IDBPDatabase } from 'idb';
-import type { TasksHarmonyDB } from '@/db/schema';
+import type { TasksHarmonyDB, LegacySyncCredentials } from '@/db/schema';
 
 let db: IDBPDatabase<TasksHarmonyDB>;
 
@@ -25,6 +25,20 @@ describe('encryptedExport + decryptedImport — PQ credentials', () => {
   it('round-trips app state through PQ encrypted backup', async () => {
     const creds = await generatePQCredentials();
     await putCredentials(db, creds);
+    const blob = await encryptedExport(db);
+    const state = await decryptedImport(db, blob);
+    expect(state.profile.id).toBe('me');
+    expect(state.syncState.id).toBe('main');
+  });
+});
+
+describe('encryptedExport + decryptedImport — legacy credentials', () => {
+  it('round-trips app state through legacy encrypted backup', async () => {
+    const key = await crypto.subtle.generateKey(
+      { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'],
+    );
+    const legacyCreds: LegacySyncCredentials = { id: 'main', cryptoKey: key };
+    await putCredentials(db, legacyCreds);
     const blob = await encryptedExport(db);
     const state = await decryptedImport(db, blob);
     expect(state.profile.id).toBe('me');
