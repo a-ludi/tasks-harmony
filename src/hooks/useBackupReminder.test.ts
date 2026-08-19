@@ -55,4 +55,15 @@ describe('computeIsDue', () => {
   it('is due when dismissed 31 days ago, monthly', () => {
     expect(computeIsDue('monthly', null, isoDaysAgo(31))).toBe(true);
   });
+
+  it('is due if dismissed at 23:59 yesterday and now is 00:01 today', () => {
+    const now = new Date();
+    now.setHours(0, 1, 0, 0); // 00:01 today (local time)
+
+    const yesterday2359 = new Date();
+    yesterday2359.setDate(yesterday2359.getDate() - 1);
+    yesterday2359.setHours(23, 59, 0, 0);
+
+    expect(computeIsDue('daily', null, yesterday2359.toISOString(), now)).toBe(true);
+  });
 });

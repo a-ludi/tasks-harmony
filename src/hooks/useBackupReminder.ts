@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 export type BackupReminderFrequency = 'never' | 'daily' | 'weekly' | 'monthly';
 
-const KEYS = {
+export const KEYS = {
   frequency: 'backup-reminder-frequency',
   dismissedAt: 'backup-reminder-dismissed-at',
   lastBackedUpAt: 'last-backed-up-at',
