@@ -1,17 +1,23 @@
 import { useSync } from '@/hooks/useSync';
+import { Button } from '@/components/ui/button';
 
 export function SyncPanel() {
-  const { lastSyncedAt, error, retryNow } = useSync();
+  const { lastSyncedAt, error, syncing, retryNow } = useSync();
 
   return (
     <section className="rounded-lg border border-border bg-background p-4 shadow-sm space-y-2">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Sync</h2>
-      <p className="text-sm text-muted-foreground">
-        Last synced:{' '}
-        <span className="font-medium text-foreground">
-          {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'Never'}
-        </span>
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Last synced:{' '}
+          <span className="font-medium text-foreground">
+            {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'Never'}
+          </span>
+        </p>
+        <Button variant="outline" size="sm" onClick={retryNow} disabled={syncing}>
+          {syncing ? 'Syncing…' : 'Sync now'}
+        </Button>
+      </div>
       {error && (
         <div
           role="alert"

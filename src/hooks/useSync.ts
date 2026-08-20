@@ -11,6 +11,7 @@ const MAX_CONSECUTIVE_FAILURES = 3;
 export interface SyncStatus {
   lastSyncedAt: string | undefined;
   error: boolean;
+  syncing: boolean;
   retryNow: () => void;
 }
 
@@ -23,23 +24,29 @@ export function useSync(): SyncStatus {
   const { reconcile } = useScheduleSync();
 
   const [error, setError] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const consecutiveFailures = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function doPush() {
     if (!db) return;
-    const result = await push(db);
-    if (result.success) {
-      consecutiveFailures.current = 0;
-      setError(false);
-      const updated = await getSyncState(db);
-      if (updated) await updateSyncState(updated);
-      void reconcile();
-    } else {
-      consecutiveFailures.current += 1;
-      if (consecutiveFailures.current >= MAX_CONSECUTIVE_FAILURES) {
-        setError(true);
+    setSyncing(true);
+    try {
+      const result = await push(db);
+      if (result.success) {
+        consecutiveFailures.current = 0;
+        setError(false);
+        const updated = await getSyncState(db);
+        if (updated) await updateSyncState(updated);
+        void reconcile();
+      } else {
+        consecutiveFailures.current += 1;
+        if (consecutiveFailures.current >= MAX_CONSECUTIVE_FAILURES) {
+          setError(true);
+        }
       }
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -83,5 +90,5 @@ export function useSync(): SyncStatus {
     return () => window.removeEventListener('pagehide', handlePageHide);
   }, [db]);
 
-  return { lastSyncedAt: syncState?.lastSyncedAt, error, retryNow };
+  return { lastSyncedAt: syncState?.lastSyncedAt, error, syncing, retryNow };
 }
