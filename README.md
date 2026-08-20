@@ -46,11 +46,14 @@ VITE_SYNC_URL=http://localhost:5173
 REDIS_URL=redis://localhost:6379
 SYNC_BLOB_DIR=.dev-sync-data/
 SYNC_SOCKET=
+COUCHDB_URL=http://localhost:5984
+COUCHDB_USER=admin
+COUCHDB_PASSWORD=password
 ```
 
-Leave `SYNC_SOCKET` empty so the sync server listens on TCP port 3001 instead of a Unix socket.
+Leave `SYNC_SOCKET` empty so the sync server listens on TCP port 3001 instead of a Unix socket. The CouchDB credentials match the defaults in `docker-compose.dev.yml`.
 
-**2. Start Redis** (requires Docker):
+**2. Start Redis and CouchDB** (requires Docker):
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
