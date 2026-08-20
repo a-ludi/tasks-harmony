@@ -64,11 +64,14 @@ export function useBackupReminder(): UseBackupReminderReturn {
   const [state, setState] = useState<State>(() => {
     const frequency = validateFrequency(localStorage.getItem(KEYS.frequency));
     const exportFormat = validateExportFormat(localStorage.getItem(KEYS.exportFormat));
-    const isDue = computeIsDue(
-      frequency,
-      localStorage.getItem(KEYS.lastBackedUpAt),
-      localStorage.getItem(KEYS.dismissedAt),
-    );
+    let lastBackedUpAt = localStorage.getItem(KEYS.lastBackedUpAt);
+    let dismissedAt = localStorage.getItem(KEYS.dismissedAt);
+    // On first open, seed dismissedAt so the reminder waits one full period.
+    if (!lastBackedUpAt && !dismissedAt) {
+      dismissedAt = new Date().toISOString();
+      localStorage.setItem(KEYS.dismissedAt, dismissedAt);
+    }
+    const isDue = computeIsDue(frequency, lastBackedUpAt, dismissedAt);
     return { frequency, exportFormat, isDue };
   });
 
