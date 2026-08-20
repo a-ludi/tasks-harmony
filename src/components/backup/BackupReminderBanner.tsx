@@ -31,7 +31,7 @@ export function BackupReminderBanner({ db }: Props) {
 
   return (
     <div
-      className="flex items-center justify-between gap-3 rounded-md border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 text-sm text-amber-800 dark:text-amber-300 mb-4"
+      className="flex items-center justify-between gap-3 rounded-md border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 text-sm text-amber-800 dark:text-amber-300 mt-2 mb-4"
     >
       <span role={error ? 'alert' : 'status'}>{error ?? 'Time to back up your data.'}</span>
       <div className="flex items-center gap-3 shrink-0">
