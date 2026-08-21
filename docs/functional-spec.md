@@ -84,7 +84,8 @@
 **As the user, I want to control display preferences from the profile page, so that they are easy to find.**
 
 - **Dark mode:** a toggle switches between light and dark themes. The preference persists in `localStorage`. On first use, it defaults to the OS colour scheme preference.
-- **Sync button:** triggers a manual sync and shows the last-synced timestamp.
+- **Sync section:** shows the last-synced timestamp and a "Sync now" button that triggers an immediate push; the button label changes to "Syncing…" while the push is in flight.
+- **Backup reminder frequency:** four-option selector (Never / Daily (recommended) / Weekly / Monthly) controlling how often the backup reminder banner appears. Persists in `localStorage`.
 
 ### 2.5 About section
 
@@ -565,10 +566,25 @@ Each question has a prompt text, a type, and a required toggle (defaults to **re
 **As the user, I want to export my app state, so that I can make a local backup.**
 
 - The export option offers two formats:
-  - **Encrypted** (default) — compressed and AES-256-GCM encrypted with the current sync key; produces a `.enc` file.
-  - **Plain** — unencrypted JSON.
+  - **Encrypted** (default) — AES-256-GCM (legacy) or ML-KEM-1024 hybrid (PQ) encrypted with the current sync key; produces a `.enc` file. The crypto path is chosen automatically based on which credential type the user has.
+  - **Plain** — unencrypted ZIP.
+- The chosen format is persisted in `localStorage` and shared between the Profile page and the backup reminder banner.
 - Import auto-detects format by file extension.
 - The sync key itself is **never** included in exported app state.
+- Importing restores all stores including `targets`.
+
+### 13.5 Backup reminder banner
+
+**As the user, I want a periodic reminder to back up my data, so that a browser storage wipe never causes permanent data loss.**
+
+- A dismissible banner appears at the top of the Dashboard when a backup is due.
+- Due date logic: the later of `last-backed-up-at` and `backup-reminder-dismissed-at` is floored to local midnight; the next due date is that midnight plus the reminder period. The reminder fires on the first app open on or after the due date.
+- On first app open (neither timestamp set), `dismissed-at` is seeded to now so the reminder waits one full period.
+- Banner actions:
+  - **Export now** — runs the export (using the persisted format), calls `recordExport()` on success; shows "Exporting…" while in flight; shows an inline error on failure. Banner disappears on success.
+  - **Remind me later** — sets an in-memory `sessionDismissed` flag; banner re-appears on next app load.
+  - **× (dismiss)** — writes `dismissed-at = now`; snoozes for one full period.
+- Frequency is configured in Profile §2.4 and defaults to daily.
 
 ---
 

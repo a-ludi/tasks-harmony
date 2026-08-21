@@ -1,5 +1,23 @@
 [
   {
+    "version": "0.15.1",
+    "date": "2026-08-21",
+    "highlights": [
+      "Fixed a data-loss risk: a new backup reminder prompts you to export your data on a schedule you choose, so a browser wipe never catches you off-guard",
+      "Encrypted backups now work correctly for accounts using post-quantum cryptography",
+      "Restoring from a backup now correctly recovers your targets",
+      "New 'Sync now' button in Profile — trigger a sync on demand without waiting for the automatic delay"
+    ],
+    "sections": {
+      "Fixed": [
+        "**Data-loss prevention: backup reminder banner** — browsers (especially on mobile) can clear IndexedDB storage without warning, wiping all local data including credentials; a new banner on the Dashboard prompts you to export when a scheduled backup is due (daily, weekly, monthly, or never); dismissible per-session ('Remind me later') or until the next period ('×'); suppressed on first app open; frequency configurable in Profile",
+        "**Encrypted backup for PQ credentials** — export and import now use the correct post-quantum (ML-KEM-1024 + ML-DSA-87) crypto path for accounts with PQ credentials; previously, PQ users received an error or corrupted output when exporting an encrypted backup",
+        "**Backup import restores targets** — `importAppState` now writes the `targets` store when importing a backup; previously, targets were silently skipped, leading to data loss after a restore",
+        "**Manual sync button** — a 'Sync now' button in the Profile › Sync section lets you trigger a push immediately rather than waiting for the 10-second debounce; shows a 'Syncing…' label while in progress"
+      ]
+    }
+  },
+  {
     "version": "0.15.0",
     "date": "2026-08-10",
     "highlights": [
