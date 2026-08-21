@@ -84,3 +84,50 @@ And the sync key itself is not included in the export
 When the user exports the app state in either Plain or Encrypted format
 Then the exported file does not contain the sync key bundle
 And importing that file on another device does not grant sync access
+
+---
+
+## Scenario: Manual sync now
+
+When the user opens the Profile page
+And clicks "Sync now" in the Sync section
+Then the app immediately attempts a push
+And the button label changes to "Syncing…" while the push is in flight
+And on success: the "Last synced" timestamp updates
+
+---
+
+## Scenario: Backup reminder appears when due
+
+Given the user's backup reminder frequency is set to "Weekly"
+And the last export or dismiss was more than 7 days ago (as measured from local midnight)
+When the user opens the Dashboard
+Then a backup reminder banner appears at the top of the Dashboard
+And the banner offers "Export now", "Remind me later", and "×"
+
+---
+
+## Scenario: Backup reminder dismissed for the session
+
+When the user clicks "Remind me later" in the backup reminder banner
+Then the banner disappears for the current session
+And no timestamp is written to localStorage
+And the banner reappears on the next app load if still due
+
+---
+
+## Scenario: Backup reminder snoozed for one period
+
+When the user clicks "×" in the backup reminder banner
+Then a dismissed-at timestamp is written to localStorage
+And the banner disappears
+And the reminder will not reappear until one full period has elapsed from local midnight of the dismiss date
+
+---
+
+## Scenario: Backup exported from banner
+
+When the user clicks "Export now" in the backup reminder banner
+Then the app downloads the backup in the configured format
+And on success: a last-backed-up-at timestamp is written to localStorage
+And the banner disappears

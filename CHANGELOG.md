@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.1] — 2026-08-21
+
+### Fixed
+
+- **Data-loss prevention: backup reminder banner** — browsers (especially on mobile) can clear IndexedDB storage without warning, wiping all local data including credentials; a new banner on the Dashboard prompts you to export when a scheduled backup is due (daily, weekly, monthly, or never); dismissible per-session ('Remind me later') or until the next period ('×'); suppressed on first app open; frequency configurable in Profile
+- **Encrypted backup for PQ credentials** — export and import now use the correct post-quantum (ML-KEM-1024 + ML-DSA-87) crypto path for accounts with PQ credentials; previously, PQ users received an error or corrupted output when exporting an encrypted backup
+- **Backup import restores targets** — `importAppState` now writes the `targets` store when importing a backup; previously, targets were silently skipped, leading to data loss after a restore
+- **Manual sync button** — a 'Sync now' button in the Profile › Sync section lets you trigger a push immediately rather than waiting for the 10-second debounce; shows a 'Syncing…' label while in progress
+
 ## [0.15.0] — 2026-08-10
 
 ### Fixed
@@ -302,6 +311,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.15.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.15.1
 [0.15.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.15.0
 [0.14.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.14.0
 [0.13.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.13.0

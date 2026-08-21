@@ -67,3 +67,11 @@ When the user selects "Hard Mode" as the active configuration
 And clicks "Save"
 Then the profile shows "Hard Mode" as the active configuration
 And future completions use the Hard Mode formula
+
+---
+
+## Scenario: Set backup reminder frequency
+
+When the user selects "Weekly" in the backup reminder frequency selector
+Then the preference is saved to localStorage
+And the backup reminder banner will next appear after the current weekly period has elapsed
