@@ -72,6 +72,7 @@ interface AppState {
   duplicateChore: (choreKey: string, newTitle: string, targetPackId: string) => Promise<string>;
   saveTargets: (choreKey: string, drafts: DraftTarget[]) => Promise<void>;
   linkCompletionToTarget: (completionId: string, targetId: string) => Promise<void>;
+  patchCompletionTargetId: (completionId: string, targetId: string | undefined) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -761,6 +762,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     await putCompletion(db, linked);
     set((state) => ({
       completions: state.completions.map((c) => (c.id === completionId ? linked : c)),
+    }));
+    markDirty();
+  },
+
+  patchCompletionTargetId: async (completionId, targetId) => {
+    const { db, completions } = get();
+    if (!db) throw new Error('DB not initialised');
+    const completion = completions.find((c) => c.id === completionId);
+    if (!completion) return;
+    const { targetId: _old, ...rest } = completion;
+    const updated: Completion = targetId !== undefined ? { ...rest, targetId } : rest;
+    await putCompletion(db, updated);
+    set((state) => ({
+      completions: state.completions.map((c) => (c.id === completionId ? updated : c)),
     }));
     markDirty();
   },
