@@ -21,6 +21,7 @@ import { toFirstDueDate, firstDueDateToStartDate } from '@/chores/dueDateConvers
 import { getWindowStart, duePeriodToMs } from '@/chores/recurrence';
 import WindowBar from './WindowBar';
 import XPFormula from './XPFormula';
+import ChoreHealthTooltip from './ChoreHealthTooltip';
 
 interface Props {
   chore?: Chore;
@@ -224,7 +225,10 @@ export default function ChoreFormModal({ chore, packId, onClose }: Props) {
       <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isEdit ? 'Edit Chore' : 'New Chore'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {isEdit ? 'Edit Chore' : 'New Chore'}
+              {isEdit && chore && <ChoreHealthTooltip choreKey={chore.key} />}
+            </DialogTitle>
           </DialogHeader>
 
           <form id="chore-form" onSubmit={handleSubmit} noValidate className="space-y-4">
