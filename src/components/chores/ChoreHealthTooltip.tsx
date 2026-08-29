@@ -48,7 +48,7 @@ export default function ChoreHealthTooltip({ choreKey }: Props) {
             </button>
           </TooltipTrigger>
           <TooltipContent
-            className="bg-popover text-popover-foreground ring-1 ring-foreground/10 shadow-md p-3 space-y-2 max-w-56 text-left"
+            className="flex-col bg-popover text-popover-foreground ring-1 ring-foreground/10 shadow-md p-3 space-y-2 max-w-56 text-left [&>svg]:fill-popover [&>svg]:bg-popover"
           >
             <p className="font-medium text-xs">Data issues found</p>
             <ul className="space-y-0.5">
