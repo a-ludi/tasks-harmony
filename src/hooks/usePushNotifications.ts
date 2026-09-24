@@ -20,12 +20,23 @@ export interface PushNotificationState {
 }
 
 export function isSupported(): boolean {
-  return (
-    typeof Notification !== 'undefined' &&
-    'serviceWorker' in navigator &&
-    'PushManager' in window &&
-    window.isSecureContext
-  );
+  if (typeof Notification === 'undefined') {
+    console.warn('[push] not supported: Notification API unavailable');
+    return false;
+  }
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[push] not supported: serviceWorker unavailable');
+    return false;
+  }
+  if (!('PushManager' in window)) {
+    console.warn('[push] not supported: PushManager unavailable');
+    return false;
+  }
+  if (!window.isSecureContext) {
+    console.warn('[push] not supported: not a secure context', location.protocol, location.hostname);
+    return false;
+  }
+  return true;
 }
 
 function base64urlToUint8Array(base64url: string): Uint8Array {
