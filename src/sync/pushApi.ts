@@ -64,7 +64,10 @@ export async function fetchSchedules(): Promise<ServerSchedule[]> {
     const res = await pushFetch('/push/schedules');
     if (!res.ok) return [];
     return await res.json() as ServerSchedule[];
-  } catch { return []; }
+  } catch (err) {
+    console.warn('[pushApi] fetchSchedules: failed to parse response as JSON', err);
+    return [];
+  }
 }
 
 export async function upsertSchedule(
