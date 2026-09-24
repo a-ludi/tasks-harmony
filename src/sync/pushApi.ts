@@ -63,7 +63,7 @@ export async function fetchSchedules(): Promise<ServerSchedule[]> {
   try {
     const res = await pushFetch('/push/schedules');
     if (!res.ok) return [];
-    return res.json() as Promise<ServerSchedule[]>;
+    return await res.json() as ServerSchedule[];
   } catch { return []; }
 }
 

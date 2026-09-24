@@ -44,6 +44,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/sync': { target: 'http://localhost:3001', changeOrigin: true },
+      '/push': { target: 'http://localhost:3001', changeOrigin: true },
     },
   },
 });
