@@ -19,12 +19,12 @@ export interface PushNotificationState {
   sendTest: () => Promise<void>;
 }
 
-function isSupported(): boolean {
+export function isSupported(): boolean {
   return (
     typeof Notification !== 'undefined' &&
     'serviceWorker' in navigator &&
     'PushManager' in window &&
-    location.protocol === 'https:'
+    window.isSecureContext
   );
 }
 
