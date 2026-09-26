@@ -15,10 +15,8 @@ services:
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
     depends_on:
-      redis:
-        condition: service_started
-      couchdb:
-        condition: service_healthy
+      - redis
+      - couchdb
     restart: unless-stopped
 
   redis:
@@ -46,8 +44,7 @@ services:
   couchdb-init:
     image: curlimages/curl:latest
     depends_on:
-      couchdb:
-        condition: service_healthy
+      - couchdb
     command:
       - -s
       - -X
@@ -70,8 +67,7 @@ services:
       VAPID_SUBJECT: ${VAPID_SUBJECT}
       POLL_INTERVAL_MS: 60000
     depends_on:
-      couchdb:
-        condition: service_healthy
+      - couchdb
     restart: unless-stopped
 
 volumes:
