@@ -81,11 +81,18 @@ rsync -avz -e ssh docker-compose.yml \
   "$SSH_USER@$SSH_HOST:$STAGING_SERVER_DIR/"
 rsync -avz -e ssh sync-server/ \
   "$SSH_USER@$SSH_HOST:$STAGING_SERVER_DIR/sync-server/"
+rsync -avz -e ssh vapid-observer/ \
+  "$SSH_USER@$SSH_HOST:$STAGING_SERVER_DIR/vapid-observer/"
 
 # --- 4. Write server .env ---
 echo "==> Writing server .env..."
-printf 'COMPOSE_PROJECT_NAME=tasks-harmony-staging\nSOCKET_DIR=%s\n' \
+printf 'COMPOSE_PROJECT_NAME=tasks-harmony-staging\nSOCKET_DIR=%s\nCOUCHDB_USER=%s\nCOUCHDB_PASSWORD=%s\nVAPID_PUBLIC_KEY=%s\nVAPID_PRIVATE_KEY=%s\nVAPID_SUBJECT=%s\n' \
   "$STAGING_SOCKET_DIR" \
+  "$COUCHDB_USER" \
+  "$COUCHDB_PASSWORD" \
+  "$VAPID_PUBLIC_KEY" \
+  "$VAPID_PRIVATE_KEY" \
+  "$VAPID_SUBJECT" \
   | ssh_exec "cat > $STAGING_SERVER_DIR/.env"
 
 # --- 5. Write systemd service ---

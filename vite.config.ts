@@ -16,7 +16,7 @@ export default defineConfig({
     stripCspInDev(),
     VitePWA({
       registerType: 'prompt',
-      devOptions: { enabled: true },
+      devOptions: { enabled: true, type: 'module' },
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',

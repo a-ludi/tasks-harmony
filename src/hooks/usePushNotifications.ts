@@ -82,19 +82,23 @@ export function usePushNotifications(): PushNotificationState {
     if (!supported || Notification.permission !== 'granted') return;
     let cancelled = false;
     void (async () => {
-      const serverKey = await fetchVapidPublicKey();
-      if (!serverKey || cancelled) return;
-      const storedKey = localStorage.getItem(VAPID_KEY_STORAGE);
-      if (storedKey && storedKey !== serverKey) {
-        // Key rotated — unsubscribe old
-        const reg = await navigator.serviceWorker.ready;
-        const oldSub = await reg.pushManager.getSubscription();
-        if (oldSub && !cancelled) {
-          await unregisterSubscription(oldSub.endpoint);
-          await oldSub.unsubscribe();
+      try {
+        const serverKey = await fetchVapidPublicKey();
+        if (!serverKey || cancelled) return;
+        const storedKey = localStorage.getItem(VAPID_KEY_STORAGE);
+        if (storedKey && storedKey !== serverKey) {
+          // Key rotated — unsubscribe old
+          const reg = await navigator.serviceWorker.ready;
+          const oldSub = await reg.pushManager.getSubscription();
+          if (oldSub && !cancelled) {
+            await unregisterSubscription(oldSub.endpoint);
+            await oldSub.unsubscribe();
+          }
         }
+        if (!cancelled) await subscribe(serverKey);
+      } catch (err) {
+        console.error('[push] useEffect: error:', err);
       }
-      if (!cancelled) await subscribe(serverKey);
     })();
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

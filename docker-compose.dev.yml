@@ -1,4 +1,38 @@
 services:
+  sync:
+    build: ./sync-server
+    ports:
+      - "3001:3001"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SYNC_BLOB_DIR=/data
+      - COUCHDB_URL=http://couchdb:5984
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+      # Dev-only VAPID keys (generated once for local development)
+      - VAPID_PUBLIC_KEY=BCz9ylPst7TLBeIfmtA70VheYNbmyJQ2VcszQcouWn4TVAzLppG4sovQl2HLMaY_6p_vqNzXrUQw7I23SsDzoR8
+    volumes:
+      - sync-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      couchdb-init:
+        condition: service_completed_successfully
+
+  vapid-observer:
+    build: ./vapid-observer
+    environment:
+      - COUCHDB_URL=http://couchdb:5984
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+      - VAPID_SUBJECT=mailto:dev@localhost
+      # Dev-only VAPID keys (generated once for local development)
+      - VAPID_PUBLIC_KEY=BCz9ylPst7TLBeIfmtA70VheYNbmyJQ2VcszQcouWn4TVAzLppG4sovQl2HLMaY_6p_vqNzXrUQw7I23SsDzoR8
+      - VAPID_PRIVATE_KEY=YVcB0dPLSQmfTEtfdCLXSKEpFaY1ACKEBUhQ8s3-vJU
+    depends_on:
+      couchdb-init:
+        condition: service_completed_successfully
+
   redis:
     image: redis:7-alpine
     ports:
@@ -37,3 +71,6 @@ services:
       - "Content-Type: application/json"
       - -d
       - '{"action":"enable_single_node","username":"admin","password":"password","bind_address":"0.0.0.0","port":5984,"singlenode":true}'
+
+volumes:
+  sync-data:
