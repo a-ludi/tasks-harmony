@@ -3,9 +3,11 @@ const SESSION_KEY = 'sync-session-token';
 
 function sessionHeaders(): Record<string, string> {
   const token = localStorage.getItem(SESSION_KEY);
-  return token
-    ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-    : { 'Content-Type': 'application/json' };
+  const basicAuth = import.meta.env.VITE_BASIC_AUTH ?? '';
+  if (!token) return { 'Content-Type': 'application/json' };
+  return basicAuth
+    ? { Authorization: `Basic ${basicAuth}`, 'X-Push-Token': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    : { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
 async function pushFetch(path: string, init?: RequestInit): Promise<Response> {
