@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2] — 2026-10-25
+
+### Changed
+
+- **Separate deploy workflow** — deployment jobs extracted into a standalone `deploy.yml` reusable workflow triggered automatically after each CD release or manually from Actions › Deploy › Run workflow with an optional release tag; supports re-deploying any previous version independently of the release process
+- **Release-attached build artifacts** — the CD pipeline now archives the production build as `dist.tar.gz` and attaches it to the GitHub Release; the deploy workflow downloads from the release instead of the short-lived Actions artifact store (7-day expiry)
+
 ## [0.15.1] — 2026-08-21
 
 ### Fixed
@@ -311,6 +318,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebDAV URL field**: Input is now full-width so it no longer gets clipped when the sidebar is narrow.
 - **Score multiplier XP preview**: Weight input in the question form now shows the per-unit preview (was missing, chore questions already had it).
 
+[0.15.2]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.15.2
 [0.15.1]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.15.1
 [0.15.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.15.0
 [0.14.0]: https://github.com/a-ludi/tasks-harmony/releases/tag/v0.14.0

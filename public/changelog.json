@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.15.2",
+    "date": "2026-10-25",
+    "highlights": [
+      "Deployment workflow is now independent — you can re-trigger a deploy from Actions without cutting a new release",
+      "Build artifacts are permanently attached to each GitHub Release as dist.tar.gz, so old versions can always be redeployed even after the 7-day Actions artifact window closes"
+    ],
+    "sections": {
+      "Changed": [
+        "**Separate deploy workflow** — deployment jobs extracted into a standalone `deploy.yml` reusable workflow triggered automatically after each CD release or manually from Actions › Deploy › Run workflow with an optional release tag; supports re-deploying any previous version independently of the release process",
+        "**Release-attached build artifacts** — the CD pipeline now archives the production build as `dist.tar.gz` and attaches it to the GitHub Release; the deploy workflow downloads from the release instead of the short-lived Actions artifact store (7-day expiry)"
+      ]
+    }
+  },
+  {
     "version": "0.15.1",
     "date": "2026-08-21",
     "highlights": [
