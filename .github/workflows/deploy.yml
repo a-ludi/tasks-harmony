@@ -2,10 +2,14 @@ name: Deploy
 
 on:
   workflow_call:
+    inputs:
+      version:
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
-      run_id:
-        description: "Workflow run ID whose build artifact to deploy"
+      version:
+        description: 'Release tag to deploy (e.g. v0.15.1, leave empty for latest)'
         required: false
         type: string
 
@@ -14,17 +18,21 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     permissions:
-      actions: read
+      contents: read
     steps:
       # NOTE: This job's deploy logic is mirrored in scripts/deploy-staging.sh.
       # Keep both files in sync when changing deploy steps.
-      - name: Download build artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: build
-          path: dist/
-          run-id: ${{ inputs.run_id || github.run_id }}
-          github-token: ${{ github.token }}
+      - name: Download release archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$VERSION" ]; then
+            gh release download "$VERSION" --pattern 'dist.tar.gz'
+          else
+            gh release download --pattern 'dist.tar.gz'
+          fi
+          tar -xzf dist.tar.gz
 
       - name: Configure SSH
         run: |
