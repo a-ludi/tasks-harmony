@@ -16,7 +16,7 @@ export default defineConfig({
     stripCspInDev(),
     VitePWA({
       registerType: 'prompt',
-      devOptions: { enabled: true },
+      devOptions: { enabled: true, type: 'module' },
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
@@ -44,6 +44,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/sync': { target: 'http://localhost:3001', changeOrigin: true },
+      '/push': { target: 'http://localhost:3001', changeOrigin: true },
     },
   },
 });

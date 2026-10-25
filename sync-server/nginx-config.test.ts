@@ -56,6 +56,11 @@ describe('nginx sync-location.conf.template security', () => {
     expect(config).toMatch(/proxy_set_header\s+Authorization\s+\$sync_auth/);
   });
 
+  it('/push/ location rewrites Authorization from X-Push-Token so staging basic-auth and bearer token coexist', () => {
+    expect(config).toContain('$http_x_push_token');
+    expect(config).toMatch(/proxy_set_header\s+Authorization\s+\$push_auth/);
+  });
+
   it('suppresses access logging inside the syncToken-carrying location block to prevent token leakage into nginx access logs', () => {
     // The block matched by 'location ~ "^/sync/[a-f0-9]{64}$"' carries the syncToken
     // verbatim in the URL path. Without 'access_log off;' inside this block, nginx's

@@ -19,13 +19,24 @@ export interface PushNotificationState {
   sendTest: () => Promise<void>;
 }
 
-function isSupported(): boolean {
-  return (
-    typeof Notification !== 'undefined' &&
-    'serviceWorker' in navigator &&
-    'PushManager' in window &&
-    location.protocol === 'https:'
-  );
+export function isSupported(): boolean {
+  if (typeof Notification === 'undefined') {
+    console.warn('[push] not supported: Notification API unavailable');
+    return false;
+  }
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[push] not supported: serviceWorker unavailable');
+    return false;
+  }
+  if (!('PushManager' in window)) {
+    console.warn('[push] not supported: PushManager unavailable');
+    return false;
+  }
+  if (!window.isSecureContext) {
+    console.warn('[push] not supported: not a secure context', location.protocol, location.hostname);
+    return false;
+  }
+  return true;
 }
 
 function base64urlToUint8Array(base64url: string): Uint8Array {
@@ -71,19 +82,23 @@ export function usePushNotifications(): PushNotificationState {
     if (!supported || Notification.permission !== 'granted') return;
     let cancelled = false;
     void (async () => {
-      const serverKey = await fetchVapidPublicKey();
-      if (!serverKey || cancelled) return;
-      const storedKey = localStorage.getItem(VAPID_KEY_STORAGE);
-      if (storedKey && storedKey !== serverKey) {
-        // Key rotated — unsubscribe old
-        const reg = await navigator.serviceWorker.ready;
-        const oldSub = await reg.pushManager.getSubscription();
-        if (oldSub && !cancelled) {
-          await unregisterSubscription(oldSub.endpoint);
-          await oldSub.unsubscribe();
+      try {
+        const serverKey = await fetchVapidPublicKey();
+        if (!serverKey || cancelled) return;
+        const storedKey = localStorage.getItem(VAPID_KEY_STORAGE);
+        if (storedKey && storedKey !== serverKey) {
+          // Key rotated — unsubscribe old
+          const reg = await navigator.serviceWorker.ready;
+          const oldSub = await reg.pushManager.getSubscription();
+          if (oldSub && !cancelled) {
+            await unregisterSubscription(oldSub.endpoint);
+            await oldSub.unsubscribe();
+          }
         }
+        if (!cancelled) await subscribe(serverKey);
+      } catch (err) {
+        console.error('[push] useEffect: error:', err);
       }
-      if (!cancelled) await subscribe(serverKey);
     })();
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

@@ -10,6 +10,7 @@ import CompleteButton from '@/components/chores/CompleteButton';
 import ChoreActionsDropdown from '@/components/chores/ChoreActionsDropdown';
 import QuickCompleteButtonList from '@/components/chores/QuickCompleteButtonList';
 import TargetProgressBar from '@/components/chores/TargetProgressBar';
+import ChoreHealthTooltip from '@/components/chores/ChoreHealthTooltip';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from '@/components/ui/card';
 import { MarkdownDisplay } from '@/components/ui/MarkdownDisplay';
 
@@ -59,11 +60,12 @@ export default function ChoreCard({ chore, completions, xpSettings, profile, pac
         className={`border-l-4 ${isArchived ? 'border-l-border' : BORDER_COLOR[status]}`}
       >
         <CardHeader>
-          <CardTitle className="text-sm leading-snug">
+          <CardTitle className="flex items-center gap-1.5 text-sm leading-snug">
             <Link to={`/chores/${encodeURIComponent(chore.key)}`} className="hover:underline">
               {chore.title}
               {packTitle && <span className="ml-2 text-xs font-normal text-muted-foreground">{packTitle}</span>}
             </Link>
+            <ChoreHealthTooltip choreKey={chore.key} />
           </CardTitle>
           {!isArchived && (
             <CardDescription className="flex items-center gap-2">

@@ -36,3 +36,16 @@ location /sync/ {
     proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
     proxy_http_version 1.1;
 }
+
+location /push/ {
+    # Staging sends Authorization: Basic <creds> (for nginx basic auth) and
+    # X-Push-Token: Bearer <token> (for the sync server). Rewrite Authorization
+    # to the token value before proxying so the sync server sees its expected header.
+    set $push_auth $http_authorization;
+    if ($http_x_push_token) {
+        set $push_auth $http_x_push_token;
+    }
+    proxy_set_header Authorization $push_auth;
+    proxy_pass http://unix:__SOCKET_DIR__/sync.sock;
+    proxy_http_version 1.1;
+}
