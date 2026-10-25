@@ -23,17 +23,29 @@ jobs:
         id: get-version
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
+      - name: Download build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: build
+          path: dist/
+
+      - name: Create release archive
+        run: tar -czf dist.tar.gz dist/
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "v${{ steps.get-version.outputs.version }}" \
             --title "v${{ steps.get-version.outputs.version }}" \
-            --generate-notes
+            --generate-notes \
+            dist.tar.gz
 
   deploy:
     needs: release
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
+    with:
+      version: "v${{ needs.release.outputs.version }}"
     permissions:
-      actions: read
+      contents: read
