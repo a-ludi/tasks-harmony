@@ -53,7 +53,8 @@ jobs:
   deploy-sync:
     runs-on: ubuntu-latest
     environment: production
-    permissions: {}
+    permissions:
+      contents: read
     steps:
       # NOTE: This job's deploy logic is mirrored in scripts/deploy-staging.sh.
       # Keep both files in sync when changing deploy steps.
