@@ -90,6 +90,8 @@ jobs:
             docker-compose.yml "$SSH_USER@$SSH_HOST:$SERVER_DIR/"
           rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
             sync-server/ "$SSH_USER@$SSH_HOST:$SERVER_DIR/sync-server/"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
+            vapid-observer/ "$SSH_USER@$SSH_HOST:$SERVER_DIR/vapid-observer/"
 
           # Render and sync nginx location config
           perl -pe 's|__SOCKET_DIR__|$ENV{SOCKET_DIR}|g' nginx/sync-location.conf.template \
