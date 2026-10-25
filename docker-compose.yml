@@ -3,6 +3,7 @@ version: '3.3'
 services:
   sync:
     build: ./sync-server
+    user: "1001"
     volumes:
       - ${SOCKET_DIR}:${SOCKET_DIR}
       - sync-data:/data
@@ -45,15 +46,21 @@ services:
     depends_on:
       - couchdb
     entrypoint: sh
+    user: root
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     command:
       - -c
       - |
-        curl -fs http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/_up &&
-        curl -s -X POST http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/_cluster_setup \
+        apk add jq
+        curl -fs "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/_up" &&
+        jq -n '{"action":"enable_single_node","username":env.COUCHDB_USER,"password":env.COUCHDB_PASSWORD,"bind_address":"0.0.0.0","port":5984,"singlenode":true}' \
+        | curl -s "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/_cluster_setup" \
           -H 'Content-Type: application/json' \
-          -d '{"action":"enable_single_node","username":"${COUCHDB_USER}","password":"${COUCHDB_PASSWORD}","bind_address":"0.0.0.0","port":5984,"singlenode":true}' &&
-        curl -s -X PUT http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/_users &&
-        curl -s -X PUT http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/_replicator
+          --data @- &&
+        curl -s -X PUT "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/_users" &&
+        curl -s -X PUT "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/_replicator"
     restart: on-failure
 
   vapid-observer:
