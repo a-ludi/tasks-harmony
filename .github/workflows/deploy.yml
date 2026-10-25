@@ -73,10 +73,16 @@ jobs:
           NGINX_INCLUDE_DIR: ${{ vars.NGINX_INCLUDE_DIR }}
           SSH_USER: ${{ vars.SSH_USER }}
           SSH_HOST: ${{ vars.SSH_HOST }}
+          COUCHDB_USER: ${{ vars.COUCHDB_USER }}
+          COUCHDB_PASSWORD: ${{ secrets.COUCHDB_PASSWORD }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
         run: |
           # Write server env file
-          printf 'SOCKET_DIR=%s\n' \
-            "$SOCKET_DIR" \
+          printf 'SOCKET_DIR=%s\nCOUCHDB_USER=%s\nCOUCHDB_PASSWORD=%s\nVAPID_PUBLIC_KEY=%s\nVAPID_PRIVATE_KEY=%s\nVAPID_SUBJECT=%s\n' \
+            "$SOCKET_DIR" "$COUCHDB_USER" "$COUCHDB_PASSWORD" \
+            "$VAPID_PUBLIC_KEY" "$VAPID_PRIVATE_KEY" "$VAPID_SUBJECT" \
             | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "cat > $SERVER_DIR/.env"
 
           # Sync compose config and server source
