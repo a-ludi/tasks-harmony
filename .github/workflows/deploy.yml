@@ -1,0 +1,86 @@
+name: Deploy
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Workflow run ID whose build artifact to deploy"
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      actions: read
+    steps:
+      # NOTE: This job's deploy logic is mirrored in scripts/deploy-staging.sh.
+      # Keep both files in sync when changing deploy steps.
+      - name: Download build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: build
+          path: dist/
+          run-id: ${{ inputs.run_id || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ vars.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy via rsync
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            dist/ \
+            "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/"
+
+  deploy-sync:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions: {}
+    steps:
+      # NOTE: This job's deploy logic is mirrored in scripts/deploy-staging.sh.
+      # Keep both files in sync when changing deploy steps.
+      - uses: actions/checkout@v6
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ vars.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy sync server
+        env:
+          SERVER_DIR: ${{ vars.SERVER_DIR }}
+          SOCKET_DIR: ${{ vars.SOCKET_DIR }}
+          NGINX_INCLUDE_DIR: ${{ vars.NGINX_INCLUDE_DIR }}
+          SSH_USER: ${{ vars.SSH_USER }}
+          SSH_HOST: ${{ vars.SSH_HOST }}
+        run: |
+          # Write server env file
+          printf 'SOCKET_DIR=%s\n' \
+            "$SOCKET_DIR" \
+            | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "cat > $SERVER_DIR/.env"
+
+          # Sync compose config and server source
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
+            docker-compose.yml "$SSH_USER@$SSH_HOST:$SERVER_DIR/"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
+            sync-server/ "$SSH_USER@$SSH_HOST:$SERVER_DIR/sync-server/"
+
+          # Render and sync nginx location config
+          perl -pe 's|__SOCKET_DIR__|$ENV{SOCKET_DIR}|g' nginx/sync-location.conf.template \
+            | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
+              "cat > $NGINX_INCLUDE_DIR/sync-location.conf"
+
+          # Restart service and reload nginx
+          # (systemd ExecStartPre rebuilds the Docker image before starting)
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
+            "sudo systemctl restart tasks-harmony-sync && sudo nginx -s reload"
